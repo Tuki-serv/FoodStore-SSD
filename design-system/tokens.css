@@ -1,0 +1,55 @@
+/* Food Store design tokens - Revision 1 (pending approval). Local only, no remote fonts. */
+:root {
+  /* Color: brand */
+  --color-primary: #B8400F;        /* tomato/terracotta; white text 5.9:1 */
+  --color-primary-hover: #9A3409;
+  --color-primary-soft: #FDE8DB;
+  --color-accent: #2F6B3F;         /* basil green */
+  --color-accent-soft: #E1F1E5;
+  /* Color: neutrals (warm) */
+  --color-bg: #FFF8EE;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F7EEE0;
+  --color-border: #E3D5C0;
+  --color-text: #2B2118;           /* 14:1 on bg */
+  --color-text-muted: #66584A;     /* 6.3:1 on bg */
+  /* Color: semantic */
+  --color-success: #1F6B3A;  --color-success-bg: #DFF3E5;
+  --color-warning: #8A5A00;  --color-warning-bg: #FFF0C7;
+  --color-danger:  #B3261E;  --color-danger-bg:  #FCE4E2;
+  --color-info:    #1D5B8F;  --color-info-bg:    #DDEBF7;
+  /* Order FSM states */
+  --state-pendiente-fg: #8A5A00;  --state-pendiente-bg: #FFF0C7;
+  --state-confirmado-fg: #1D5B8F; --state-confirmado-bg: #DDEBF7;
+  --state-en-prep-fg: #7A3E00;    --state-en-prep-bg: #FFE0C2;
+  --state-en-camino-fg: #5B3A9A;  --state-en-camino-bg: #EBE2FA;
+  --state-entregado-fg: #1F6B3A;  --state-entregado-bg: #DFF3E5;
+  --state-cancelado-fg: #B3261E;  --state-cancelado-bg: #FCE4E2;
+  /* Typography (system stacks) */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: ui-rounded, "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-base: 1rem;
+  --text-lg: 1.125rem; --text-xl: 1.375rem; --text-2xl: 1.75rem; --text-3xl: 2.25rem;
+  --leading-tight: 1.2; --leading-normal: 1.5;
+  /* Spacing (4px scale) */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  /* Radii */
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-pill: 999px;
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(43,33,24,.08);
+  --shadow-md: 0 4px 12px rgba(43,33,24,.10);
+  --shadow-lg: 0 12px 28px rgba(43,33,24,.16);
+  /* Focus */
+  --focus-ring: 0 0 0 3px #FFF8EE, 0 0 0 5px #1D5B8F;
+  /* Motion */
+  --motion-fast: 120ms; --motion-base: 200ms; --motion-slow: 320ms;
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  /* Layout */
+  --tap-min: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

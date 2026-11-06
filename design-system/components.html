@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Food Store - Design System Components (Rev 1, provisional)</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);font-size:var(--text-base);line-height:var(--leading-normal)}
+h1,h2,h3{font-family:var(--font-display);line-height:var(--leading-tight);margin:0}
+h1{font-size:var(--text-2xl)} h2{font-size:var(--text-xl);margin-bottom:var(--space-4);padding-bottom:var(--space-2);border-bottom:2px solid var(--color-border)} h3{font-size:var(--text-lg)}
+p{margin:0}
+.wrap{max-width:1200px;margin:0 auto;padding:var(--space-4)}
+section{margin:var(--space-6) 0}
+.row{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
+.grid{display:grid;gap:var(--space-4);grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin:var(--space-4) 0 var(--space-2)}
+.banner{background:var(--color-warning-bg);color:var(--color-warning);padding:var(--space-2) var(--space-4);font-size:var(--text-sm);font-weight:600;text-align:center}
+.topnav{background:var(--color-surface);border-bottom:1px solid var(--color-border);box-shadow:var(--shadow-sm)}
+.topnav .in{max-width:1200px;margin:0 auto;padding:var(--space-2) var(--space-4);display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap}
+.topnav img{height:40px;max-width:100%}
+.navlinks{display:flex;gap:var(--space-1);flex:1;flex-wrap:wrap}
+.navlinks a{padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm);color:var(--color-text);text-decoration:none;font-weight:600;min-height:var(--tap-min);display:inline-flex;align-items:center}
+.navlinks a:hover{background:var(--color-surface-alt)} .navlinks a[aria-current=page]{background:var(--color-primary-soft);color:var(--color-primary-hover)}
+.count{background:var(--color-primary);color:#fff;border-radius:var(--radius-pill);font-size:var(--text-xs);padding:0 7px;margin-left:6px;font-weight:700}
+.btn{font:inherit;font-weight:700;min-height:var(--tap-min);padding:0 var(--space-5);border-radius:var(--radius-md);border:2px solid transparent;cursor:pointer;transition:background var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out);display:inline-flex;align-items:center;gap:var(--space-2)}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible,.input:focus-visible,a:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.btn-primary{background:var(--color-primary);color:#fff}.btn-primary:hover{background:var(--color-primary-hover)}
+.btn-secondary{background:var(--color-surface);color:var(--color-primary-hover);border-color:var(--color-primary)}.btn-secondary:hover{background:var(--color-primary-soft)}
+.btn-ghost{background:transparent;color:var(--color-text)}.btn-ghost:hover{background:var(--color-surface-alt)}
+.btn-danger{background:var(--color-danger);color:#fff}
+.btn[disabled]{background:var(--color-surface-alt);color:var(--color-text-muted);border-color:var(--color-border);cursor:not-allowed}
+.btn-sm{min-height:36px;padding:0 var(--space-3);font-size:var(--text-sm)}
+.spinner{width:16px;height:16px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.field{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+.field label{font-weight:600;font-size:var(--text-sm)}
+.input{font:inherit;min-height:var(--tap-min);padding:0 var(--space-3);border:2px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);width:100%}
+.input:hover{border-color:var(--color-text-muted)}
+.input[aria-invalid=true]{border-color:var(--color-danger)}
+.input[disabled]{background:var(--color-surface-alt);color:var(--color-text-muted)}
+.hint{font-size:var(--text-xs);color:var(--color-text-muted)} .err{font-size:var(--text-xs);color:var(--color-danger);font-weight:600}
+.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column}
+.card .img{aspect-ratio:4/3;background:var(--color-surface-alt);display:grid;place-items:center;color:var(--color-text-muted);font-size:var(--text-sm);position:relative}
+.card .body{padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);flex:1}
+.price{font-weight:800;font-size:var(--text-lg);font-family:var(--font-display)}
+.tag{position:absolute;top:var(--space-2);left:var(--space-2)}
+.card.unavailable .img{filter:grayscale(1);opacity:.6}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:700;white-space:nowrap}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.b-pendiente{color:var(--state-pendiente-fg);background:var(--state-pendiente-bg)}
+.b-confirmado{color:var(--state-confirmado-fg);background:var(--state-confirmado-bg)}
+.b-en-prep{color:var(--state-en-prep-fg);background:var(--state-en-prep-bg)}
+.b-en-camino{color:var(--state-en-camino-fg);background:var(--state-en-camino-bg)}
+.b-entregado{color:var(--state-entregado-fg);background:var(--state-entregado-bg)}
+.b-cancelado{color:var(--state-cancelado-fg);background:var(--state-cancelado-bg)}
+.b-neutral{color:var(--color-text-muted);background:var(--color-surface-alt)}
+.fsm{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
+.fsm .arrow{color:var(--color-text-muted)}
+.cartitem{display:grid;grid-template-columns:64px 1fr auto;gap:var(--space-3);align-items:center;padding:var(--space-3);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md)}
+.cartitem .thumb{width:64px;height:64px;border-radius:var(--radius-sm);background:var(--color-surface-alt)}
+.cartitem .meta{min-width:0}.cartitem .meta small{color:var(--color-text-muted);display:block}
+.qty{display:inline-flex;align-items:center;border:2px solid var(--color-border);border-radius:var(--radius-pill);margin-top:var(--space-2)}
+.qty button{width:36px;height:36px;border:0;background:transparent;font:inherit;font-weight:800;cursor:pointer;border-radius:50%}
+.qty button:hover{background:var(--color-surface-alt)} .qty span{min-width:28px;text-align:center;font-weight:700}
+.tablewrap{overflow-x:auto;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:var(--text-sm)}
+th{text-align:left;background:var(--color-surface-alt);padding:var(--space-3);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)}
+td{padding:var(--space-3);border-top:1px solid var(--color-border)}
+tbody tr:hover{background:var(--color-bg)} td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.toast{display:flex;gap:var(--space-3);align-items:flex-start;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);box-shadow:var(--shadow-md);border-left:6px solid;background:var(--color-surface);max-width:420px;animation:slidein var(--motion-base) var(--ease-out)}
+@keyframes slidein{from{opacity:0;transform:translateY(8px)}}
+.t-success{border-color:var(--color-success)}.t-error{border-color:var(--color-danger)}.t-info{border-color:var(--color-info)}.t-warning{border-color:var(--color-warning)}
+.toast strong{display:block}
+.state{text-align:center;padding:var(--space-6) var(--space-4);background:var(--color-surface);border:2px dashed var(--color-border);border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:var(--space-2);align-items:center}
+.state .ico{font-size:2rem}
+.state p{color:var(--color-text-muted);max-width:32ch}
+.skel{background:linear-gradient(90deg,var(--color-surface-alt) 25%,#fff 50%,var(--color-surface-alt) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite;border-radius:var(--radius-sm)}
+@keyframes shim{to{background-position:-200% 0}}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:var(--space-3)}
+.sw div{border-radius:var(--radius-md);padding:var(--space-3);font-size:var(--text-xs);font-weight:700;border:1px solid var(--color-border);min-height:70px;display:flex;align-items:flex-end}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<div class="banner">Design system Revision 1 - APROBACION PENDIENTE - logo y nombre final (TBD)</div>
+<nav class="topnav" aria-label="Principal"><div class="in">
+  <img src="assets/logo.svg" alt="Food Store (logo provisional)">
+  <div class="navlinks">
+    <a href="#" aria-current="page">Catalogo</a><a href="#">Mis pedidos</a><a href="#">Perfil</a>
+  </div>
+  <a class="btn btn-secondary btn-sm" href="#" style="text-decoration:none">Carrito <span class="count">3</span></a>
+</div></nav>
+
+<main class="wrap">
+<header><h1 data-brand-name>Food Store</h1><p style="color:var(--color-text-muted)">Componentes y estados - tokens en <code>tokens.css</code></p></header>
+
+<section aria-labelledby="s-color"><h2 id="s-color">Color y tipografia</h2>
+  <div class="sw">
+    <div style="background:var(--color-primary);color:#fff">primary</div>
+    <div style="background:var(--color-primary-soft);color:var(--color-primary-hover)">primary-soft</div>
+    <div style="background:var(--color-accent);color:#fff">accent</div>
+    <div style="background:var(--color-accent-soft);color:var(--color-accent)">accent-soft</div>
+    <div style="background:var(--color-bg)">bg</div>
+    <div style="background:var(--color-surface-alt)">surface-alt</div>
+    <div style="background:var(--color-text);color:#fff">text</div>
+    <div style="background:var(--color-danger);color:#fff">danger</div>
+  </div>
+  <p class="label">Escala</p>
+  <h1 style="font-size:var(--text-3xl)">Titulo 3xl</h1><h2 style="border:0;margin:0">Titulo xl</h2><h3>Subtitulo lg</h3>
+  <p>Texto base: pedi tu comida favorita y seguila en tiempo real.</p><p class="hint">Texto auxiliar xs</p>
+</section>
+
+<section aria-labelledby="s-btn"><h2 id="s-btn">Botones</h2>
+  <div class="row">
+    <button class="btn btn-primary">Agregar al carrito</button>
+    <button class="btn btn-secondary">Ver detalle</button>
+    <button class="btn btn-ghost">Cancelar</button>
+    <button class="btn btn-danger">Cancelar pedido</button>
+  </div>
+  <p class="label">Estados</p>
+  <div class="row">
+    <button class="btn btn-primary" disabled>Deshabilitado</button>
+    <button class="btn btn-primary" aria-busy="true"><span class="spinner"></span>Procesando</button>
+    <button class="btn btn-primary btn-sm">Pequeno</button>
+    <button class="btn btn-primary" style="box-shadow:var(--focus-ring)">Foco (visible)</button>
+  </div>
+</section>
+
+<section aria-labelledby="s-form"><h2 id="s-form">Formularios</h2>
+  <div class="grid">
+    <div class="field"><label for="f1">Email</label><input id="f1" class="input" type="email" placeholder="tu@email.com"><span class="hint">Usaremos este email para ingresar.</span></div>
+    <div class="field"><label for="f2">Contrasena</label><input id="f2" class="input" type="password" value="abc" aria-invalid="true" aria-describedby="e2"><span id="e2" class="err">Minimo 8 caracteres.</span></div>
+    <div class="field"><label for="f3">Direccion (deshabilitado)</label><input id="f3" class="input" disabled value="Av. Siempre Viva 742"></div>
+    <div class="field"><label for="f4">Forma de pago</label><select id="f4" class="input"><option>MercadoPago</option><option>Efectivo (TBD)</option></select></div>
+  </div>
+</section>
+
+<section aria-labelledby="s-prod"><h2 id="s-prod">Tarjeta de producto</h2>
+  <div class="grid">
+    <article class="card"><div class="img"><span class="badge b-neutral tag">Hamburguesas</span>Foto del producto (TBD)</div>
+      <div class="body"><h3>Hamburguesa Clasica</h3><p class="hint">Carne, queso, lechuga, tomate</p>
+      <div class="row" style="justify-content:space-between;margin-top:auto"><span class="price">$ 8.500</span><button class="btn btn-primary btn-sm">Agregar</button></div></div></article>
+    <article class="card"><div class="img"><span class="badge b-pendiente tag">Pocas unidades</span>Foto del producto (TBD)</div>
+      <div class="body"><h3>Pizza Muzzarella</h3><p class="hint">Quedan 2 en stock</p>
+      <div class="row" style="justify-content:space-between;margin-top:auto"><span class="price">$ 12.000</span><button class="btn btn-primary btn-sm">Agregar</button></div></div></article>
+    <article class="card unavailable"><div class="img"><span class="badge b-cancelado tag">No disponible</span>Foto del producto (TBD)</div>
+      <div class="body"><h3>Empanadas x6</h3><p class="hint">Sin stock por ahora</p>
+      <div class="row" style="justify-content:space-between;margin-top:auto"><span class="price">$ 9.000</span><button class="btn btn-primary btn-sm" disabled>Agotado</button></div></div></article>
+  </div>
+</section>
+
+<section aria-labelledby="s-cart"><h2 id="s-cart">Item de carrito</h2>
+  <div style="display:grid;gap:var(--space-3);max-width:560px">
+    <div class="cartitem"><div class="thumb"></div><div class="meta"><strong>Hamburguesa Clasica</strong><small>Sin cebolla</small>
+      <div class="qty"><button aria-label="Quitar uno">-</button><span>2</span><button aria-label="Agregar uno">+</button></div></div>
+      <div style="text-align:right"><div class="price">$ 17.000</div><button class="btn btn-ghost btn-sm">Quitar</button></div></div>
+    <div class="card" style="padding:var(--space-4);gap:var(--space-2)">
+      <div class="row" style="justify-content:space-between"><span>Subtotal</span><span>$ 17.000</span></div>
+      <div class="row" style="justify-content:space-between"><span>Envio</span><span>$ 50</span></div>
+      <div class="row" style="justify-content:space-between"><strong>Total</strong><span class="price">$ 17.050</span></div>
+      <button class="btn btn-primary" style="justify-content:center">Pagar con MercadoPago</button></div>
+  </div>
+</section>
+
+<section aria-labelledby="s-ord"><h2 id="s-ord">Estados de pedido (FSM)</h2>
+  <div class="fsm">
+    <span class="badge b-pendiente">Pendiente</span><span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="badge b-confirmado">Confirmado</span><span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="badge b-en-prep">En preparacion</span><span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="badge b-en-camino">En camino</span><span class="arrow" aria-hidden="true">&rarr;</span>
+    <span class="badge b-entregado">Entregado</span>
+  </div>
+  <div class="fsm" style="margin-top:var(--space-3)"><span class="badge b-cancelado">Cancelado</span><span class="hint">Terminal; requiere motivo</span></div>
+</section>
+
+<section aria-labelledby="s-tab"><h2 id="s-tab">Tabla (panel interno)</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>Cliente</th><th>Estado</th><th class="num">Total</th><th>Accion</th></tr></thead>
+    <tbody>
+      <tr><td>1042</td><td>Ana Gomez</td><td><span class="badge b-pendiente">Pendiente</span></td><td class="num">$ 17.050</td><td><button class="btn btn-secondary btn-sm">Ver</button></td></tr>
+      <tr><td>1041</td><td>Luis Perez</td><td><span class="badge b-en-prep">En preparacion</span></td><td class="num">$ 24.050</td><td><button class="btn btn-secondary btn-sm">Avanzar</button></td></tr>
+      <tr><td>1040</td><td>Marta Diaz</td><td><span class="badge b-entregado">Entregado</span></td><td class="num">$ 9.050</td><td><button class="btn btn-secondary btn-sm">Ver</button></td></tr>
+      <tr><td>1039</td><td>Jose Ruiz</td><td><span class="badge b-cancelado">Cancelado</span></td><td class="num">$ 12.050</td><td><button class="btn btn-secondary btn-sm">Ver</button></td></tr>
+    </tbody></table></div>
+</section>
+
+<section aria-labelledby="s-toast"><h2 id="s-toast">Notificaciones</h2>
+  <div style="display:grid;gap:var(--space-3)">
+    <div class="toast t-success" role="status"><div><strong>Pedido creado</strong>Te avisamos cuando se confirme el pago.</div></div>
+    <div class="toast t-error" role="alert"><div><strong>Stock insuficiente</strong>Quedan 2 unidades de Pizza Muzzarella.</div></div>
+    <div class="toast t-warning" role="status"><div><strong>Pago pendiente</strong>Esperando confirmacion de MercadoPago.</div></div>
+    <div class="toast t-info" role="status"><div><strong>Tu pedido esta en camino</strong>Llega en aproximadamente 20 min (TBD).</div></div>
+  </div>
+</section>
+
+<section aria-labelledby="s-st"><h2 id="s-st">Vacio, error y carga</h2>
+  <div class="grid">
+    <div class="state"><div class="ico" aria-hidden="true">&#128722;</div><h3>Tu carrito esta vacio</h3><p>Suma algo rico del catalogo para empezar.</p><button class="btn btn-primary">Ver catalogo</button></div>
+    <div class="state" style="border-color:var(--color-danger)"><div class="ico" aria-hidden="true">&#9888;&#65039;</div><h3>No pudimos cargar</h3><p>Revisa tu conexion e intenta de nuevo.</p><button class="btn btn-secondary">Reintentar</button></div>
+    <div class="card" aria-busy="true"><div class="img skel" style="border-radius:0"></div><div class="body"><div class="skel" style="height:20px;width:70%"></div><div class="skel" style="height:14px;width:90%"></div><div class="skel" style="height:36px;width:50%"></div></div><span class="sr">Cargando</span></div>
+  </div>
+</section>
+</main>
+<script src="brand.js"></script>
+</body>
+</html>

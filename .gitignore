@@ -1,0 +1,68 @@
+.env
+.env.*
+!.env.example
+!.env.test.example
+# =========================================
+# Python: bytecode, caches y tooling
+# =========================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+.python-version
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+
+# =========================================
+# Entornos virtuales
+# =========================================
+.venv/
+venv/
+env/
+ENV/
+
+# =========================================
+# Test coverage / reportes
+# =========================================
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# =========================================
+# Build / distribución
+# =========================================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================================
+# IDEs y editores
+# =========================================
+.vscode/
+.idea/
+*.iml
+
+# =========================================
+# Sistema operativo
+# =========================================
+.DS_Store
+Thumbs.db
+
+# =========================================
+# Archivos generados localmente
+# =========================================
+
+# Archivos y carpetas ignorados del proyecto
+manuall.md
+ejemplo-mp/
+
+# Backups del estado del orquestador y carpeta de trabajo local
+.active-orchestrator-state.json.bak*
+todoAMd/

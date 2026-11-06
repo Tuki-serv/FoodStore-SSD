@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" width="240" height="64" role="img" aria-label="Food Store (logo provisional)">
+  <title>Food Store - PROVISIONAL placeholder logo</title>
+  <rect x="2" y="8" width="48" height="48" rx="12" fill="#B8400F"/>
+  <path d="M16 24h20a8 8 0 0 1 0 16H16z" fill="#FFF8EE"/>
+  <circle cx="36" cy="32" r="4" fill="#B8400F"/>
+  <text x="62" y="34" font-family="system-ui, Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#2B2118">Food Store</text>
+  <text x="62" y="52" font-family="system-ui, Segoe UI, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="1.5" fill="#8A3410">LOGO PROVISIONAL (TBD)</text>
+</svg>
