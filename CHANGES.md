@@ -134,7 +134,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 > Seguridad y pagos primero. Cada change agrupa filas de la tabla DT por dominio; ninguno es un change por fila. Tras C-01 se abren C-02, C-04 y C-06 en paralelo.
 
 ### [C-01] `baseline-backend`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-06-c-01-baseline-backend/`)
 - **Scope**:
   - Incorporar el backend FastAPI base al repo y reubicarlo en la estructura de la spec bajo `backend/` (la raíz es solo gestión; código en `backend/` y `frontend/`, D9): `backend/app/main.py`, `backend/app/db/seed.py`, módulos feature-first (DT-09 parte de layout; DD-02).
   - Alinear variables de entorno: `ACCESS_TOKEN_EXPIRE_MINUTES`, `MP_ACCESS_TOKEN`, `MP_NOTIFICATION_URL`, `VITE_API_URL`, `CORS_ORIGINS` (JSON); retirar `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL` (DT-22). `backend/.env.example`.
