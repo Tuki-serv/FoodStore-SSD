@@ -18,7 +18,7 @@
 ## Goals / Non-Goals
 
 **Goals:**
-- Que el código incorporado sea **fiel** al backend base, salvo las ediciones listadas en D2, D3, D4, D5 y D9.
+- Que el código incorporado sea **fiel** al backend base, salvo las ediciones listadas en D2, D3, D4, D5 y D8.
 - Una suite reproducible sobre PostgreSQL real, aislada por test y sin riesgo para los datos de desarrollo.
 - Que la configuración sea testeable sin efectos de import: los tests de `Settings` no deben requerir BD.
 
@@ -46,7 +46,7 @@ Es la de `knowledge-base/08` (§Estructura), con `main.py` y `seed.py` dentro de
 - **Convención: obligatoria u opcional según si la app la necesita para funcionar (decisión del usuario, criterio refinado)**. Ningún campo tiene un valor por defecto *oculto*: ni URLs `localhost` ni constantes.
   - **Obligatorias (sin default, fail-fast)**: las que la app necesita para funcionar. Son `ENVIRONMENT`, `DATABASE_URL`, `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS`, `LOG_LEVEL`, `SQL_ECHO`, `CORS_ORIGINS` y los 4 `RATE_LIMIT_*` (aprobado por el usuario hasta que C-03 los retire). Si falta una, `Settings()` lanza `ValidationError` nombrándola; como `settings` se instancia al importar `app.core.config`, la app no arranca.
   - **Opcionales por funcionalidad (`Optional[...] = None`)**: las de integraciones que no se necesitan para probar el CRUD. `None` significa «funcionalidad no configurada», no es un valor sustituto. La funcionalidad falla con un error claro y específico solo cuando se usa sin ellas. Motivo del usuario: accesibilidad, porque quien clone el proyecto para probar el CRUD no debe necesitar cuentas de MercadoPago ni de Cloudinary.
-    - **Imágenes**: `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (ver D9).
+    - **Imágenes**: `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (ver D8).
     - **Pagos**: `MP_ACCESS_TOKEN` y `MP_PUBLIC_KEY`. Esto revierte la decisión previa (b): la rama «MercadoPago no configurado» de `pagos/service.py` vuelve a ser alcanzable y es el comportamiento previsto. Su código pasa de 400 a **503** (decisión g).
     - **URLs del flujo de pago, opcionales** (decisión f, aprobada): `MP_NOTIFICATION_URL`, `BACKEND_PUBLIC_URL` y `FRONTEND_URL` solo se usan al crear un pago y en el redirect post-pago. Ninguna otra parte de la app las lee, así que son **opcionales, del mismo grupo que MP**, y se validan al usarse:
       - `crear_pago` extiende su chequeo existente («MercadoPago no configurado») para que también falle si falta `MP_NOTIFICATION_URL` o `BACKEND_PUBLIC_URL`. Lo hace antes de contactar a MP, nombra las faltantes en el `detail` y responde **503** en lugar del 400 anterior (cambio deliberado, decisión g).
@@ -57,7 +57,7 @@ Es la de `knowledge-base/08` (§Estructura), con `main.py` y `seed.py` dentro de
   Se conservan los tipos y `Literal` (`ENVIRONMENT`, `LOG_LEVEL`) para la validación de formato. Las propiedades `rate_limit_*` son alias sin lógica: se mantienen, porque las consume el middleware.
   - **BD (decisión del usuario)**: `DATABASE_URL: str` es obligatoria y es la **única** configuración de BD que lee `Settings`.
     - Se eliminan el `model_validator` `fix_database_url`, la construcción desde `POSTGRES_*` con sus fallbacks `localhost` y `5432`, y la normalización `postgresql://` → `postgresql+psycopg://`. La URL se usa tal cual, así que `.env.example` documenta que debe escribirse con el esquema `postgresql+psycopg://`.
-    - Los 5 campos `POSTGRES_*` se **quitan** de `Settings`. `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` los consume **solo docker-compose** (verificado en el `docker-compose.yml`: crean el usuario y la base del contenedor, y alimentan el healthcheck), igual que `PGADMIN_EMAIL` y `PGADMIN_PASSWORD` (login de pgAdmin). Viven en el `.env` de la **raíz** (y su `.env.example`; D11), que solo lee docker-compose, con el comentario de mantener `DATABASE_URL` consistente a mano (usuario, contraseña, base, puerto host 5433). Con `extra="ignore"`, que estén en `.env` no afecta a `Settings`.
+    - Los 5 campos `POSTGRES_*` se **quitan** de `Settings`. `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` los consume **solo docker-compose** (verificado en el `docker-compose.yml`: crean el usuario y la base del contenedor, y alimentan el healthcheck), igual que `PGADMIN_EMAIL` y `PGADMIN_PASSWORD` (login de pgAdmin). Viven en el `.env` de la **raíz** (y su `.env.example`; D10), que solo lee docker-compose, con el comentario de mantener `DATABASE_URL` consistente a mano (usuario, contraseña, base, puerto host 5433). Con `extra="ignore"`, que estén en `.env` no afecta a `Settings`.
     - El `ValueError` de `database.py` si falta `DATABASE_URL` queda inalcanzable, porque `Settings` ya falla antes. Se conserva como defensa por fidelidad al código base.
   - **Tests y MP**: ningún test llama a la API real de MP (`test_pago.py` solo cubre el 404 y el webhook ignorado). `.env.test.example` **no** define variables MP ni Cloudinary. El test 503 de «MercadoPago no configurado» corre sin ellas, y el camino configurado se prueba con el SDK mockeado.
 - Variables explícitas nuevas del grupo pagos, **opcionales y sin valor sustituto**:
@@ -93,9 +93,9 @@ Es la de `knowledge-base/08` (§Estructura), con `main.py` y `seed.py` dentro de
   - Las opcionales (`MP_*`, `BACKEND_PUBLIC_URL`, `FRONTEND_URL`, `CLOUDINARY_*`) aparecen **comentadas o vacías**, con la nota «opcional: la suite corre sin ellas». Los tests que necesitan el camino configurado las inyectan con `monkeypatch` y mockean el SDK.
   - El desarrollador lo copia a `.env.test` y completa usuario y contraseña de su Postgres.
   - `.gitignore`: se mantienen `.env` y `.env.*` ignorados. Se **quita** la excepción `!.env.test` previa y se agrega `!.env.test.example` junto a `!.env.example`.
-  - `pytest.ini` declara `env_files = tests/.env.test` (se corre desde `backend/`; D11), y `pytest-dotenv` lo carga antes del import de `app.*`.
+  - `pytest.ini` declara `env_files = tests/.env.test` (se corre desde `backend/`; D10), y `pytest-dotenv` lo carga antes del import de `app.*`.
   - `conftest.py` **no** depende de defaults de `Settings`. Si falta `backend/tests/.env.test`, aborta con `pytest.exit("Falta backend/tests/.env.test: copiá backend/tests/.env.test.example y completá las credenciales")` antes de importar `app.*`.
-- Los `POSTGRES_*`/`PGADMIN_*` ya no van en `.env.test.example` sino en el `.env.example` de la raíz (D11); la advertencia de consistencia manual con `DATABASE_URL` se mantiene. Los tests reutilizan el contenedor de desarrollo: solo cambia el nombre de la base en `DATABASE_URL`.
+- Los `POSTGRES_*`/`PGADMIN_*` ya no van en `.env.test.example` sino en el `.env.example` de la raíz (D10); la advertencia de consistencia manual con `DATABASE_URL` se mantiene. Los tests reutilizan el contenedor de desarrollo: solo cambia el nombre de la base en `DATABASE_URL`.
 - **Guardia de seguridad**: un hook temprano de `conftest.py` (`pytest_sessionstart` o un chequeo a nivel de módulo antes de importar `app.main`) aborta con `pytest.exit(...)` si `ENVIRONMENT != "test"` o si el nombre de la base no termina en `_test`. Ese nombre se parsea del path de `settings.DATABASE_URL` con `sqlalchemy.engine.make_url(url).database`, que es la única fuente.
 - **Creación de la base**: una fixture `scope="session"` se conecta a la base de mantenimiento `postgres` (mismo host y credenciales, `AUTOCOMMIT`) y ejecuta `CREATE DATABASE foodstore_test` si no existe. Después hace `SQLModel.metadata.drop_all` + `create_all` sobre el engine de test, una vez por sesión. C-06 cambiará este paso por `alembic upgrade head`.
   - *Alternativa*: un init script de docker-compose (`/docker-entrypoint-initdb.d`). Se descarta porque solo corre con el volumen vacío, y el volumen de desarrollo ya puede existir.
@@ -120,7 +120,7 @@ El objetivo es una suite **verde o xfail explícita**, sin fallas silenciosas. E
 ### D7. Organización de los tests nuevos
 - `backend/tests/unit/test_config.py`: `Settings`, sin BD. Cubre todos los escenarios de `backend-config` excepto «Entorno de tests aislado» y «Logging de SQL configurable».
 - `backend/tests/unit/test_database_engine.py`: `build_engine` respeta `SQL_ECHO`. Construye el engine, no conecta.
-- `backend/tests/unit/test_cloudinary_service.py`: D9. Cubre el import sin credenciales, el upload sin configurar (503), el delete sin configurar (no-op, `False`) y el camino configurado, con `cloudinary.config` y `cloudinary.uploader` mockeados. Nunca llama a la API real.
+- `backend/tests/unit/test_cloudinary_service.py`: D8. Cubre el import sin credenciales, el upload sin configurar (503), el delete sin configurar (no-op, `False`) y el camino configurado, con `cloudinary.config` y `cloudinary.uploader` mockeados. Nunca llama a la API real.
 - `backend/tests/integration/test_optional_integrations.py`:
   - la app arranca y `GET /api/v1/productos/` responde sin `MP_*` ni `CLOUDINARY_*`
   - el soft delete de un producto con imágenes responde 204 sin Cloudinary
@@ -134,7 +134,7 @@ El objetivo es una suite **verde o xfail explícita**, sin fallas silenciosas. E
 
 Las reglas de `python-testing-patterns` y `tdd` aplican: AAA, nombres `test_<unidad>_<escenario>_<esperado>`, fixtures en `conftest.py`, mocks solo en bordes externos (MP, Cloudinary), literales independientes (no recalcular el valor esperado) y tests por interfaz pública.
 
-### D9. Cloudinary opcional, con configuración perezosa (`backend/app/core/cloudinary/service.py`)
+### D8. Cloudinary opcional, con configuración perezosa (`backend/app/core/cloudinary/service.py`)
 Es un cambio mínimo, exigido por el criterio «opcional por funcionalidad». El resto del módulo queda intacto.
 - Se elimina el `cloudinary.config(...)` a nivel de módulo, que hoy fuerza las credenciales al importar y, por la cadena de imports, al arrancar la app.
 - Se agrega un helper privado `_asegurar_configuracion() -> bool`:
@@ -146,14 +146,14 @@ Es un cambio mínimo, exigido por el criterio «opcional por funcionalidad». El
 - `eliminar_imagen`: con `public_id` vacío sigue devolviendo `True` (sin cambios). Si no hay configuración, registra un `logger.warning` y devuelve `False`, igual que la semántica existente de «limpieza secundaria»: el soft delete de entidades nunca falla por la ausencia de Cloudinary. `eliminar_multiples_imagenes` lo hereda sin cambios.
 - El `HTTPException` dentro del servicio core sigue siendo deuda (auditoría, punto 7). No se refactoriza en C-01.
 
-### D10. Estructura del repo: raíz = gestión, código en `backend/` y `frontend/`
+### D9. Estructura del repo: raíz = gestión, código en `backend/` y `frontend/`
 Decisión del usuario, posterior a la incorporación inicial: **sustituye** la elección inicial de dejar `app/` en la raíz. La raíz es solo de gestión del proyecto (`openspec/`, `knowledge-base/`, `docs/`, `design-system/`, `CHANGES.md`, `CLAUDE.md`, `AGENTS.md`, `README.md` de proyecto, `todoAMd/`, `.atl/`, `.claude/`). El backend vive en `backend/` (`app/`, `tests/`, `pytest.ini`, `requirements.txt`, `Dockerfile`, `README.md`, `.env`, `tests/.env.test*`) y el frontend vivirá en `frontend/` (llega en C-13). Los tests nunca conviven con los directorios de gestión.
-- Todos los comandos de backend (`pytest`, `uvicorn app.main:app`, `python -m app.db.seed`, `pip install -r requirements.txt`) se corren **desde `backend/`**; `docker compose` se corre desde la raíz (D11). Por eso no cambia ningún path relativo: `pythonpath = .` de `pytest.ini`, el `env_file=".env"` de `Settings`, `_ROOT` de `conftest.py` y el default de `ENV_EXAMPLES_DIR` resuelven dentro de `backend/`.
+- Todos los comandos de backend (`pytest`, `uvicorn app.main:app`, `python -m app.db.seed`, `pip install -r requirements.txt`) se corren **desde `backend/`**; `docker compose` se corre desde la raíz (D10). Por eso no cambia ningún path relativo: `pythonpath = .` de `pytest.ini`, el `env_file=".env"` de `Settings`, `_ROOT` de `conftest.py` y el default de `ENV_EXAMPLES_DIR` resuelven dentro de `backend/`.
 - `.gitignore` queda en la raíz; sus patrones `.env`, `.env.*`, `!.env.example`, `!.env.test.example` no están anclados, así que también aplican dentro de `backend/`. `docs/` no se ignora.
-- `backend/.env(.example)` (backend) y `backend/tests/.env.test(.example)` (tests) van en `backend/`; el `.env(.example)` de compose va en la raíz (D11).
+- `backend/.env(.example)` (backend) y `backend/tests/.env.test(.example)` (tests) van en `backend/`; el `.env(.example)` de compose va en la raíz (D10).
 
-### D11. `docker-compose.yml` en la raíz orquesta todo el proyecto
-Decisión del usuario, posterior a D10: `docker-compose.yml` vive en la **raíz** y orquesta todo el proyecto (`db`, `pgadmin`, `backend`; `frontend` llega en C-13); el `docker-compose.yml` de `backend/` se eliminó.
+### D10. `docker-compose.yml` en la raíz orquesta todo el proyecto
+Decisión del usuario, posterior a D9: `docker-compose.yml` vive en la **raíz** y orquesta todo el proyecto (`db`, `pgadmin`, `backend`; `frontend` llega en C-13); el `docker-compose.yml` de `backend/` se eliminó.
 - `backend/Dockerfile` (+ `.dockerignore`) construye la imagen del backend; el servicio `backend` usa `build.context: ./backend`. En C-01 no se levanta ni se construye: solo se usa `db`.
 - La `DATABASE_URL` del contenedor `backend` se declara en el propio compose (host `db:5432`) y pisa la de `backend/.env` (`localhost:5433`, para uvicorn/pytest locales).
 - El `.env` de la raíz es **solo para compose** (`POSTGRES_*`, `PGADMIN_*`); no se valida contra `Settings` (un test verifica que contiene exactamente esas claves).
@@ -167,7 +167,7 @@ Los 4 archivos auditados se incorporan tal cual. Hallazgos frente a la spec (`kn
 |---|---|---|---|
 | `productos/router.py` | `POST`, `PUT`, `DELETE`, `PATCH /{id}/imagenes` y `POST /{id}/ingredientes` son solo ADMIN. Existe `PATCH /{id}/disponibilidad` con ADMIN+STOCK | (1) STOCK **no** puede actualizar `stock_cantidad`: solo `PUT` (ADMIN) lo permite. (2) `PATCH /disponibilidad` es un **toggle sin body**: no es idempotente y no recibe el valor deseado. (3) La lectura pública acepta `estado` (eliminados) e `include_deleted`, y `disponible` es opcional (`None` = todos), así que el público puede ver productos no disponibles o eliminados (viola RN-PR-03) | C-08 (1, 2); C-08/C-11 (3) |
 | `productos/service.py` | La limpieza de Cloudinary corre fuera del UoW, después del commit. La paginación respeta `{items,total,page,size,pages}` | (4) Lanza `HTTPException` desde el service: acopla la capa a HTTP. (5) La unicidad de nombre incluye eliminados (`include_deleted=True`) y contradice los índices parciales de DD-04. Además responde 400 donde correspondería 409 | C-08 / C-11 (contrato); regla dura 1 a revisar |
-| `core/cloudinary/service.py` | Valida MIME y tamaño (5 MB). El delete es idempotente y no aborta la transacción | (6) `cloudinary.config` se ejecutaba al importarse y obligaba a tener `CLOUDINARY_*` aun en tests. **Resuelto en C-01 (D9)**: la configuración pasa a ser perezosa y opcional. (7) `HTTPException` en un servicio core. Es un extra no especificado (PA-19), y su router es solo ADMIN | (6) C-01; (7) C-28 / PA-19 |
+| `core/cloudinary/service.py` | Valida MIME y tamaño (5 MB). El delete es idempotente y no aborta la transacción | (6) `cloudinary.config` se ejecutaba al importarse y obligaba a tener `CLOUDINARY_*` aun en tests. **Resuelto en C-01 (D8)**: la configuración pasa a ser perezosa y opcional. (7) `HTTPException` en un servicio core. Es un extra no especificado (PA-19), y su router es solo ADMIN | (6) C-01; (7) C-28 / PA-19 |
 | `ingredientes/service.py` | Las escrituras son solo ADMIN (router). La lectura es pública, así que STOCK puede leer ingredientes y alérgenos (cumple) | (8) Lectura pública con `estado` e `incluir_eliminado`: expone eliminados. (9) Mismo patrón de unicidad con eliminados, 400 y `HTTPException` en el service | C-08 / C-11 |
 
 Conclusión PA-09: **contenido disponible y auditado**. Los permisos de escritura ADMIN son correctos. PATCH disponibilidad existe pero es un toggle, y la actualización de stock por STOCK **falta**. Se registra en CHANGES.md como insumo de C-08.
@@ -216,7 +216,7 @@ Resueltas por el usuario (2026-11-03):
 - ~~(b) MercadoPago~~ → **RESUELTA en sentido contrario a la propuesta previa**: `MP_ACCESS_TOKEN` y `MP_PUBLIC_KEY` son **opcionales** (`None`). La rama «MercadoPago no configurado» es alcanzable y está testeada; responde 503 según la decisión (g). `.env.test.example` no lleva dummies de MP.
 - ~~(c) `.env.test`~~ → **RESUELTA (confirmada)**: se versionan solo los `.example`; `.env` y `.env.test` reales quedan ignorados.
 - ~~(d) `RATE_LIMIT_*`~~ → **RESUELTA (aprobada)**: obligatorias hasta que C-03 las retire.
-- ~~Cloudinary~~ → **RESUELTA**: `CLOUDINARY_*` son opcionales, con configuración perezosa. El upload sin credenciales responde 503 y el delete es un no-op (D9).
+- ~~Cloudinary~~ → **RESUELTA**: `CLOUDINARY_*` son opcionales, con configuración perezosa. El upload sin credenciales responde 503 y el delete es un no-op (D8).
 
 - ~~(e) Claves extra en los `.example`~~ → **RESUELTA (aprobada)**: solo se permiten dentro de bloques rotulados de docker-compose (`POSTGRES_*`, `PGADMIN_*`) y de frontend (`VITE_*`).
 - ~~(f) URLs del flujo de pago~~ → **RESUELTA (aprobada)**: `MP_NOTIFICATION_URL`, `BACKEND_PUBLIC_URL` y `FRONTEND_URL` son **opcionales**, del grupo pagos. Solo hacen falta para usar el módulo de pagos y se validan al usarse (D3).

@@ -2,7 +2,7 @@
 
 > Strict TDD: donde hay comportamiento testeable, cada tarea sigue el ciclo RED → GREEN → TRIANGULATE → REFACTOR, y los tests se **ejecutan** en cada gate. Skills: `python-testing-patterns`, `tdd` (compact rules en `.atl/skill-registry.md`).
 > Hard rules: no levantar el dev server ni hacer build por iniciativa propia; solo correr `pytest`. No commitear. Sin secretos reales.
-> Estructura (D10, D11): el código vive en `backend/`; `pytest`, `uvicorn` y `pip` se corren desde `backend/`; `docker compose` desde la raíz (el `docker-compose.yml` está en la raíz). Los tests leen `backend/tests/.env.test`.
+> Estructura (D9, D10): el código vive en `backend/`; `pytest`, `uvicorn` y `pip` se corren desde `backend/`; `docker compose` desde la raíz (el `docker-compose.yml` está en la raíz). Los tests leen `backend/tests/.env.test`.
 > Prerrequisito para correr tests: el contenedor `db` levantado (`docker compose up -d db` desde la raíz, puerto 5433). Si no está disponible, frenar y reportarlo; no caer a SQLite.
 
 ## 1. Incorporación del backend base (sin tests: scaffolding)
@@ -13,7 +13,7 @@
 
 - [x] 1.4 Corregir el typo `backend/app/core/minxins/` → `backend/app/core/mixins/` (design D2). Mover la carpeta y actualizar los 6 `from app.core.minxins.auditable_mixin import UniqueAuditableMixin` de `categorias`, `ingredientes`, `pedidos`, `productos`, `unidades_medida` y `usuarios` (`models.py`). Verificar con `grep -rn "minxins" app tests` vacío y `python -m compileall -q app` sin errores. El test de import queda en 2.6.
 
-- [x] 1.5 Reubicar el código a `backend/` (design D10): mover `app/`, `tests/`, `pytest.ini`, `requirements.txt` y `docker-compose.yml`; `README.md` de raíz pasa a ser de proyecto y el detalle de backend a `backend/README.md`; actualizar rutas en docs y artefactos. Sin cambios de comportamiento. Verificado desde `backend/`: mismas pruebas sin Postgres verdes y `compileall backend/app` limpio.
+- [x] 1.5 Reubicar el código a `backend/` (design D9): mover `app/`, `tests/`, `pytest.ini`, `requirements.txt` y `docker-compose.yml`; `README.md` de raíz pasa a ser de proyecto y el detalle de backend a `backend/README.md`; actualizar rutas en docs y artefactos. Sin cambios de comportamiento. Verificado desde `backend/`: mismas pruebas sin Postgres verdes y `compileall backend/app` limpio.
 
 ## 2. Infraestructura de tests sobre PostgreSQL (PA-10)
 
@@ -32,7 +32,7 @@
   - `.env.test.example` no está ignorado
   - `pytest --co -q` colecta sin error de configuración
   - al renombrar `.env.test` temporalmente, la sesión aborta con el mensaje esperado
-  - **Hecho (D11)**: el usuario creó las plantillas y los `.env` reales: `backend/tests/.env.test.example`, `backend/.env.example`, `.env.example` (raíz, solo compose) y los `.env` reales (ignorados). `.gitignore` (`!.env.test.example`, sin `!.env.test`). `pytest.ini` → `env_files = tests/.env.test`; `conftest.py` aborta con el mensaje de D5 (verificado renombrando temporalmente `backend/tests/.env.test`: `Exit: Falta backend/tests/.env.test: ...`). `test_env_example.py`: 30 verdes contra los archivos reales (incluye que el `.env.example` de la raíz contiene exactamente `POSTGRES_*`/`PGADMIN_*`).
+  - **Hecho (D10)**: el usuario creó las plantillas y los `.env` reales: `backend/tests/.env.test.example`, `backend/.env.example`, `.env.example` (raíz, solo compose) y los `.env` reales (ignorados). `.gitignore` (`!.env.test.example`, sin `!.env.test`). `pytest.ini` → `env_files = tests/.env.test`; `conftest.py` aborta con el mensaje de D5 (verificado renombrando temporalmente `backend/tests/.env.test`: `Exit: Falta backend/tests/.env.test: ...`). `test_env_example.py`: 30 verdes contra los archivos reales (incluye que el `.env.example` de la raíz contiene exactamente `POSTGRES_*`/`PGADMIN_*`).
 - [x] 2.4 Reescribir `backend/tests/conftest.py` según design D5:
   - guardia temprana con `pytest.exit` si `ENVIRONMENT != test` o la base no es `_test`
   - fixture de sesión que crea `foodstore_test` si falta, más `drop_all` + `create_all`
@@ -114,7 +114,7 @@
   - Hecho: 6 de 7 tests corren y pasan (todos de caracterización: ya pasaban con el código base). Con Postgres: los 7 pasan (incluye `test_listado_de_productos_bajo_api_v1_devuelve_forma_paginada`).
 - [x] 4.4 REFACTOR: revisar que `backend/app/main.py` no tenga lógica de negocio y que se respete la dirección de dependencias (reglas duras 1 y 2). Re-ejecutar `pytest backend/tests/integration/test_health.py backend/tests/integration/test_app_startup.py` → verde.
   - Revisado: `backend/app/main.py` sin lógica de negocio, dirección de dependencias respetada. Ambos archivos re-ejecutados con Postgres: verdes.
-- [x] 4.5 Cloudinary opcional (design D9; escenarios «Arranque sin integraciones opcionales», «Subida de imágenes sin Cloudinary configurado» y «Borrado de imágenes sin Cloudinary configurado»):
+- [x] 4.5 Cloudinary opcional (design D8; escenarios «Arranque sin integraciones opcionales», «Subida de imágenes sin Cloudinary configurado» y «Borrado de imágenes sin Cloudinary configurado»):
   - **RED**: crear `backend/tests/unit/test_cloudinary_service.py`, con `cloudinary.config` y `cloudinary.uploader` mockeados con `monkeypatch`/`unittest.mock`. **Nunca** llama a la API real.
     - (a) importar `app.core.cloudinary.service` sin `CLOUDINARY_*` no llama a `cloudinary.config` ni lanza
     - (b) `subir_imagen` sin credenciales y con un archivo válido → `HTTPException` 503 cuyo `detail` menciona que el servicio no está configurado, sin llamar a `uploader.upload`
@@ -124,7 +124,7 @@
     - (f) con las tres variables definidas, `subir_imagen` llama a `cloudinary.config` una sola vez y a `upload`, y devuelve la URL y el `public_id` del mock
 
     Ejecutar y verificar que fallan (a), (b) y (d).
-  - **GREEN**: aplicar D9 en `backend/app/core/cloudinary/service.py`: quitar el `config` a nivel de módulo y agregar `_asegurar_configuracion()` con un flag. Ejecutar → verde.
+  - **GREEN**: aplicar D8 en `backend/app/core/cloudinary/service.py`: quitar el `config` a nivel de módulo y agregar `_asegurar_configuracion()` con un flag. Ejecutar → verde.
   - **TRIANGULATE**: crear `backend/tests/integration/test_optional_integrations.py`, sin `CLOUDINARY_*`:
     - `GET /api/v1/productos/` → 200
     - un ADMIN hace soft delete de un producto con `imagenes_public_id` → 204, el producto queda con `deleted_at`, y el mock de `destroy` no se llama
@@ -132,7 +132,7 @@
 
     Ejecutar → verde.
   - **REFACTOR**: revisar la duplicación entre `eliminar_imagen` y `subir_imagen` al chequear la configuración. Re-ejecutar → verde.
-  - Hecho: RED (fallaban (a), (b), (d), (f)) → GREEN (D9 en `core/cloudinary/service.py`) → `backend/tests/unit/test_cloudinary_service.py` 9 verdes. `backend/tests/integration/test_optional_integrations.py` escrito; ejecutado con Postgres: los 9 casos del archivo pasan. Nota: la ruta real de subida es `POST /api/v1/uploads/imagen` (no `/api/v1/imagen`).
+  - Hecho: RED (fallaban (a), (b), (d), (f)) → GREEN (D8 en `core/cloudinary/service.py`) → `backend/tests/unit/test_cloudinary_service.py` 9 verdes. `backend/tests/integration/test_optional_integrations.py` escrito; ejecutado con Postgres: los 9 casos del archivo pasan. Nota: la ruta real de subida es `POST /api/v1/uploads/imagen` (no `/api/v1/imagen`).
 - [x] 4.6 MercadoPago opcional (escenarios «Pagos sin MercadoPago configurado»; URLs opcionales, decisión f; 503, decisión g):
   - **RED**: en `backend/tests/integration/test_optional_integrations.py`, sin `MP_*`:
     - `POST /api/v1/pagos/crear` para un pedido existente, sin `MP_ACCESS_TOKEN` → **503** `{code: "HTTP_503"}`, con un `detail` que dice que MercadoPago no está configurado y nombra `MP_ACCESS_TOKEN`. Es un **cambio deliberado** respecto del 400 anterior (decisión g): hoy el test falla, porque el backend responde 400, y ese es el RED esperado.
@@ -166,7 +166,7 @@
   - Bloque rotulado frontend con `VITE_API_URL` y `VITE_MP_PUBLIC_KEY`.
 
   Ejecutar `pytest backend/tests/unit/test_env_example.py` → verde para ambos archivos.
-  - **Hecho (D11)**: `backend/.env.example` (contrato de `Settings`) y `backend/tests/.env.test.example` creados por el usuario; `test_env_example.py` 30 verdes contra los archivos reales. Las variables de compose (`POSTGRES_*`/`PGADMIN_*`) están en el `.env.example` de la raíz, verificado por un test dedicado (claves exactas, placeholders `CHANGE_ME` en las contraseñas).
+  - **Hecho (D10)**: `backend/.env.example` (contrato de `Settings`) y `backend/tests/.env.test.example` creados por el usuario; `test_env_example.py` 30 verdes contra los archivos reales. Las variables de compose (`POSTGRES_*`/`PGADMIN_*`) están en el `.env.example` de la raíz, verificado por un test dedicado (claves exactas, placeholders `CHANGE_ME` en las contraseñas).
 
 ## 6. Documentación
 
@@ -196,7 +196,7 @@
   - C-02: agregar al scope el renombre de los módulos `auth` y `refreshtokens`.
   - C-25: agregar al scope el renombre de `direcciones`, `admin`, `core/uow.py` y el resto de los módulos a la estructura de la spec.
   - C-12: anotar que, al retirar el redirect, se eliminan `FRONTEND_URL` y `BACKEND_PUBLIC_URL`, y que el chequeo «MercadoPago no configurado» (503, formato uniforme) debe conservarse en el flujo nuevo.
-  - C-28: anotar que la configuración perezosa y opcional de Cloudinary ya se resolvió en C-01 (D9). Queda pendiente el `HTTPException` en el servicio core (auditoría, punto 7).
+  - C-28: anotar que la configuración perezosa y opcional de Cloudinary ya se resolvió en C-01 (D8). Queda pendiente el `HTTPException` en el servicio core (auditoría, punto 7).
 
   No marcar C-01 como `[x]` (eso es del archive). Verificar con un diff de las secciones C-02, C-06, C-08, C-12, C-25 y C-28.
 

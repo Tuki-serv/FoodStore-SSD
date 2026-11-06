@@ -144,7 +144,7 @@ El repo SHALL incluir un `.env.example` con todas las variables de la configurac
 
 #### Scenario: Cobertura completa de variables
 - **WHEN** se comparan las claves de `.env.example` con las variables declaradas en la configuración
-- **THEN** toda variable declarada aparece en `.env.example`, y toda clave extra pertenece a un bloque rotulado de docker-compose o de frontend. Las variables de docker-compose (`POSTGRES_*`, `PGADMIN_*`) viven en el `.env.example` de la raíz (design D11), que contiene exactamente esas claves y no se valida contra la configuración
+- **THEN** toda variable declarada aparece en `.env.example`, y toda clave extra pertenece a un bloque rotulado de docker-compose o de frontend. Las variables de docker-compose (`POSTGRES_*`, `PGADMIN_*`) viven en el `.env.example` de la raíz (design D10), que contiene exactamente esas claves y no se valida contra la configuración
 
 #### Scenario: Sin variables retiradas en el ejemplo
 - **WHEN** se inspeccionan las claves de `.env.example`

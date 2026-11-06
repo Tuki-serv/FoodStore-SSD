@@ -109,6 +109,7 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 | DT-22 | Variables de entorno | `ACCESS_TOKEN_EXPIRE_MINUTES`, `MP_ACCESS_TOKEN`, `MP_NOTIFICATION_URL`, `VITE_API_URL`, `CORS_ORIGINS` JSON | `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL`, CORS por comas | IN-23 | [08](08_arquitectura_propuesta.md) |
 | DT-23 | Seed | Admin `Admin1234!`; FormaPago MERCADOPAGO/EFECTIVO/TRANSFERENCIA | `admin123`; `TARJETA` en lugar de `TRANSFERENCIA` | IN-16 | [04](04_modelo_de_datos.md) |
 | DT-24 | Frontend | React completo (alcance de la rúbrica) | No existe en el código actual | PA-01 | [13](13_rubrica_y_entrega.md) |
+| DT-25 | Capas del backend | Router → Service → UoW → Repository → Model: los routers no usan `Session` ni consultas, y `core/` no depende de `modules/` (reglas duras 1–2) | Los routers de `categorias`, `ingredientes`, `pagos`, `pedidos` y `productos` importan `Session`/`get_session`; `core/deps.py` importa desde `modules/` | Verificación C-01 | [08](08_arquitectura_propuesta.md) |
 
 Extras del código **no especificados** (se conservan, decisión pendiente): rol `COCINA` + KDS, WebSocket por rooms, módulo estadísticas, unidades de medida, uploads a Cloudinary, rate limit global (PA-07, PA-19).
 

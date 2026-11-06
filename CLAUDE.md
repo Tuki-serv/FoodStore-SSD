@@ -5,7 +5,7 @@
 
 Food Store es una tienda de comida online (React + TypeScript + FastAPI + PostgreSQL) con catálogo jerárquico, carrito persistente, pedidos gobernados por una máquina de estados con historial append-only, pago con MercadoPago (webhook IPN idempotente) y un panel de administración con métricas, protegido por JWT y RBAC de cuatro roles. Se desarrolla como TPI con SDD, evaluado sobre 200 puntos.
 
-**Estructura del repo (C-01, D10):** la raíz es solo de gestión (`openspec/`, `knowledge-base/`, `docs/`, `design-system/`, `CHANGES.md`, `todoAMd/`); el código vive en `backend/` (`app/`, `tests/`, `pytest.ini`, `requirements.txt`, `Dockerfile`, `.env`) y `frontend/` (llega en C-13). `docker-compose.yml` y su `.env` (solo variables de compose) viven en la **raíz** y orquestan todo el proyecto (`db`, `pgadmin`, `backend`; `frontend` en C-13): `docker compose up -d db` se corre desde la raíz. Los comandos de backend (`pip install`, `pytest`, `uvicorn app.main:app`, `python -m app.db.seed`) se corren desde `backend/`; los tests leen `backend/tests/.env.test`. Los tests nunca van en la raíz.
+**Estructura del repo (C-01, D9):** la raíz es solo de gestión (`openspec/`, `knowledge-base/`, `docs/`, `design-system/`, `CHANGES.md`, `todoAMd/`); el código vive en `backend/` (`app/`, `tests/`, `pytest.ini`, `requirements.txt`, `Dockerfile`, `.env`) y `frontend/` (llega en C-13). `docker-compose.yml` y su `.env` (solo variables de compose) viven en la **raíz** y orquestan todo el proyecto (`db`, `pgadmin`, `backend`; `frontend` en C-13): `docker compose up -d db` se corre desde la raíz. Los comandos de backend (`pip install`, `pytest`, `uvicorn app.main:app`, `python -m app.db.seed`) se corren desde `backend/`; los tests leen `backend/tests/.env.test`. Los tests nunca van en la raíz.
 
 ---
 
@@ -53,7 +53,7 @@ La fuente de verdad del dominio vive en `knowledge-base/` (índice: [README](kno
 | [06_funcionalidades.md](knowledge-base/06_funcionalidades.md) | Historias de usuario por épica |
 | [07_flujos_principales.md](knowledge-base/07_flujos_principales.md) | Flujos E2E |
 | [08_arquitectura_propuesta.md](knowledge-base/08_arquitectura_propuesta.md) | Patrones, estructura, env vars |
-| [09_decisiones_y_supuestos.md](knowledge-base/09_decisiones_y_supuestos.md) | Decisiones DD-xx y deuda técnica DT-01..DT-24 |
+| [09_decisiones_y_supuestos.md](knowledge-base/09_decisiones_y_supuestos.md) | Decisiones DD-xx y deuda técnica DT-01..DT-25 |
 | [10_preguntas_abiertas.md](knowledge-base/10_preguntas_abiertas.md) | Inconsistencias a resolver ANTES de codear |
 | [11_pagos_mercadopago.md](knowledge-base/11_pagos_mercadopago.md) | Integración de pagos |
 | [12_tiempo_real_websocket.md](knowledge-base/12_tiempo_real_websocket.md) | WebSocket / KDS (extra, no especificado) |
@@ -124,7 +124,7 @@ Son contrato; romperlas es un defecto.
 9. NUNCA cambiar el esquema sin migración Alembic.
 10. NUNCA commitear secretos (MercadoPago, JWT, Cloudinary) → usar variables de entorno.
 11. Los changes de gobernanza CRÍTICO (auth, pagos, RBAC) se proponen y esperan OK del usuario antes de escribir código.
-12. La spec (`integrador.docx` v5.0, DD-16/DD-17) manda sobre el código; NUNCA tomar el código actual como norma → está marcado como deuda técnica (tabla DT-01..DT-24 en `knowledge-base/09`).
+12. La spec (`integrador.docx` v5.0, DD-16/DD-17) manda sobre el código; NUNCA tomar el código actual como norma → está marcado como deuda técnica (tabla DT-01..DT-25 en `knowledge-base/09`).
 
 ### Universales (el global no las cubre)
 

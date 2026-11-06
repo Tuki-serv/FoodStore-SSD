@@ -44,9 +44,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
 
-    # load_dotenv()
-    # frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
     app.add_middleware(RateLimitMiddleware)
 
     app.add_middleware(

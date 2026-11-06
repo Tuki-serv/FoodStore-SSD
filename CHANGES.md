@@ -4,7 +4,7 @@
 > Cada change es atómico: un agente puede implementarlo en una sesión (~4-6 horas).
 > **Leer este archivo antes de ejecutar cualquier `/opsx:propose`.**
 
-**Regla de la KB (DD-16/DD-17):** la spec `integrador.docx` v5.0 es el objetivo; el código actual (solo backend) es el *estado actual con deuda técnica*. La tabla consolidada DT-01..DT-24 vive en `knowledge-base/09_decisiones_y_supuestos.md`. Por eso la **Fase 0 corrige la deuda** antes de construir features (Fase 1). La Fase 2 son extras no especificados, opcionales y bloqueados.
+**Regla de la KB (DD-16/DD-17):** la spec `integrador.docx` v5.0 es el objetivo; el código actual (solo backend) es el *estado actual con deuda técnica*. La tabla consolidada DT-01..DT-25 vive en `knowledge-base/09_decisiones_y_supuestos.md`. Por eso la **Fase 0 corrige la deuda** antes de construir features (Fase 1). La Fase 2 son extras no especificados, opcionales y bloqueados.
 
 **Leyenda de marcas**
 - `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 1 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
@@ -136,7 +136,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 ### [C-01] `baseline-backend`
 - **Estado**: `[ ]` pendiente
 - **Scope**:
-  - Incorporar el backend FastAPI base al repo y reubicarlo en la estructura de la spec bajo `backend/` (la raíz es solo gestión; código en `backend/` y `frontend/`, D10): `backend/app/main.py`, `backend/app/db/seed.py`, módulos feature-first (DT-09 parte de layout; DD-02).
+  - Incorporar el backend FastAPI base al repo y reubicarlo en la estructura de la spec bajo `backend/` (la raíz es solo gestión; código en `backend/` y `frontend/`, D9): `backend/app/main.py`, `backend/app/db/seed.py`, módulos feature-first (DT-09 parte de layout; DD-02).
   - Alinear variables de entorno: `ACCESS_TOKEN_EXPIRE_MINUTES`, `MP_ACCESS_TOKEN`, `MP_NOTIFICATION_URL`, `VITE_API_URL`, `CORS_ORIGINS` (JSON); retirar `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL` (DT-22). `backend/.env.example`.
   - Auditar los permisos de productos, ingredientes y `cloudinary/service.py` y dejar nota en el change (PA-09).
   - Arrancar suite pytest baseline y fijar estrategia de BD de pruebas (Postgres vs SQLite, PA-10).
@@ -513,6 +513,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 - **Scope**:
   - US-029 seed/arranque reproducible (`alembic upgrade head` + seed + dev), US-030 Swagger `/docs`, README con setup, `.env.example` final, `docker-compose` para BD.
   - Cobertura pytest > 60% (auth, pedidos, pagos, categorías, direcciones, ingredientes, productos, estadísticas); prueba end-to-end del flujo compra→pago→entrega.
+  - DT-25 (capas): sacar `Session`/`get_session` de los routers de `categorias`, `ingredientes`, `pagos`, `pedidos` y `productos` (delegar al service) y cortar la dependencia `core/deps.py` → `modules/`; si un change anterior toca alguno de esos routers, lo corrige ahí.
   - Checklist de entrega de la rúbrica de 200 pts; metadatos faltantes (PA-18); deploy opcional (PA-17).
   - Verificación visual contra mockups aprobados (si hay frontend).
   - Renombrar `direcciones_entrega` → `direcciones`, `admin`, `core/unit_of_work.py` → `core/uow.py` y el resto de los módulos a la estructura objetivo de la spec (`knowledge-base/08` §Estructura).
@@ -564,7 +565,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
   - US-013 subida/eliminación de imágenes en Cloudinary (`imagen_url` + `public_id`), US-014 CRUD de unidades de medida, US-031 rate limit general (token bucket, `X-RateLimit-*`), módulo de estadísticas extendido.
   - Solo si PA-19 los formaliza; si no, retirar del código.
   - Tests: upload mock, CRUD unidades, headers de rate limit.
-  - La configuración perezosa y opcional de Cloudinary ya se resolvió en C-01 (D9: sin `CLOUDINARY_*` la app arranca, subir = 503, borrar = no-op). Queda pendiente sacar el `HTTPException` del servicio core (auditoría PA-09, punto 7).
+  - La configuración perezosa y opcional de Cloudinary ya se resolvió en C-01 (D8: sin `CLOUDINARY_*` la app arranca, subir = 503, borrar = no-op). Queda pendiente sacar el `HTTPException` del servicio core (auditoría PA-09, punto 7).
 - **Dependencias**: `C-17, C-03`
 - **Governance**: BAJO
 - **UI**: `[UI-MOCKUP]` carga de imágenes y gestión de unidades (frontend).

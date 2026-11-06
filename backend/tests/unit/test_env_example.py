@@ -1,4 +1,4 @@
-"""Las plantillas de entorno documentan el contrato de `Settings` (D11).
+"""Las plantillas de entorno documentan el contrato de `Settings` (D10).
 
 - `backend/.env.example` y `backend/tests/.env.test.example` se validan contra `Settings`.
 - El `.env.example` de la RAÍZ solo trae variables de docker-compose (`POSTGRES_*`, `PGADMIN_*`): NO se valida
@@ -132,5 +132,5 @@ def test_example_de_la_raiz_solo_define_variables_de_docker_compose() -> None:
 
 
 def test_example_de_la_raiz_no_se_valida_contra_settings() -> None:
-    """Documenta la decisión D11: las claves de la raíz no son campos de `Settings`."""
+    """Documenta la decisión D10: las claves de la raíz no son campos de `Settings`."""
     assert COMPOSE_KEYS.isdisjoint(Settings.model_fields)

@@ -26,11 +26,11 @@ Regla de oro de imports (backend): `Router → Service → UoW → Repository �
 
 ## Estructura de directorios
 
-Backend real (, **estado tras C-01, con deuda DT-09:** sin Alembic; `main.py` y `seed.py` ya viven dentro de `backend/app/`; D10: la raíz es solo gestión, el código vive en `backend/` y `frontend/`):
+Backend real (, **estado tras C-01, con deuda DT-09:** sin Alembic; `main.py` y `seed.py` ya viven dentro de `backend/app/`; D9: la raíz es solo gestión, el código vive en `backend/` y `frontend/`):
 
 ```
 Food-Store-Prueba/                # raíz = gestión + orquestación (docker-compose.yml, .env/.env.example de compose; openspec/, knowledge-base/, docs/, design-system/, CHANGES.md, CLAUDE.md, AGENTS.md, README.md)
-├── docker-compose.yml           # D11: orquesta db (postgres:15, host 5433), pgadmin (5050), backend (build ./backend); frontend en C-13
+├── docker-compose.yml           # D10: orquesta db (postgres:15, host 5433), pgadmin (5050), backend (build ./backend); frontend en C-13
 ├── .env  .env.example           # SOLO variables de compose (POSTGRES_*, PGADMIN_*); .env no se versiona
 ├── frontend/                    # React + TS (llega en C-13)
 └── backend/
