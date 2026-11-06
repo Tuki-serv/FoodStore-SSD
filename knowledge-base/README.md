@@ -9,7 +9,7 @@ Las contradicciones entre fuentes están centralizadas en [10_preguntas_abiertas
 
 ## Regla de la KB
 
-**La spec (integrador v5.0) es el objetivo; el código actual es el estado actual con deuda.** Ante contradicción entre documentos, `integrador.docx` v5.0 prevalece sobre `Descripcion.docx` (DD-16). El comportamiento del código actual se conserva pero se etiqueta como deuda técnica / divergencia (DD-17). Lo que la spec no define (rol `COCINA`, WebSocket/KDS) figura como *extra del código, no especificado* y queda abierto (PA-07, PA-19). Tabla consolidada de deuda: [09 — Deuda técnica DT-01..DT-24](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada).
+**La spec (integrador v5.0) es el objetivo; el código actual es el estado actual con deuda.** Ante contradicción entre documentos, `integrador.docx` v5.0 prevalece sobre `Descripcion.docx` (DD-16). El comportamiento del código actual se conserva pero se etiqueta como deuda técnica / divergencia (DD-17). Lo que la spec no define (rol `COCINA`, WebSocket/KDS) figura como *extra del código, no especificado* y queda abierto (PA-07, PA-19). Tabla consolidada de deuda: [09 — Deuda técnica DT-01..DT-25](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada).
 
 ## Índice de Archivos
 
@@ -23,7 +23,7 @@ Las contradicciones entre fuentes están centralizadas en [10_preguntas_abiertas
 | [06_funcionalidades.md](06_funcionalidades.md) | 31 historias de usuario en 8 épicas |
 | [07_flujos_principales.md](07_flujos_principales.md) | Auth, catálogo, compra, webhook, ciclo operativo, cancelación, dashboard |
 | [08_arquitectura_propuesta.md](08_arquitectura_propuesta.md) | Patrones, estructura de directorios, Zustand, seguridad, variables de entorno |
-| [09_decisiones_y_supuestos.md](09_decisiones_y_supuestos.md) | 17 decisiones (DD-16 spec normativa, DD-17 spec = objetivo), 7 supuestos y la **tabla consolidada de deuda técnica DT-01..DT-24** |
+| [09_decisiones_y_supuestos.md](09_decisiones_y_supuestos.md) | 17 decisiones (DD-16 spec normativa, DD-17 spec = objetivo), 7 supuestos y la **tabla consolidada de deuda técnica DT-01..DT-25** |
 | [10_preguntas_abiertas.md](10_preguntas_abiertas.md) | 27 inconsistencias, 19 preguntas (PA-02 resuelta), incertidumbres de discovery |
 | [11_pagos_mercadopago.md](11_pagos_mercadopago.md) | Extra: integración MercadoPago, spec vs implementación, riesgos |
 | [12_tiempo_real_websocket.md](12_tiempo_real_websocket.md) | Extra: WebSocket KDS y seguimiento de pedido |
