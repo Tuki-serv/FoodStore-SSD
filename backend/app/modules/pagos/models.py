@@ -1,9 +1,11 @@
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, Numeric, BigInteger
+
+from app.core.timestamps import aware_datetime_field
 
 class Pago(SQLModel, table=True):
     __tablename__ = "pagos"
@@ -35,5 +37,5 @@ class Pago(SQLModel, table=True):
     payment_method_id: Optional[str] = Field(default=None, max_length=50)
 
 #============== Audit ================
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = aware_datetime_field(default_now=True)
+    updated_at: datetime = aware_datetime_field(default_now=True)

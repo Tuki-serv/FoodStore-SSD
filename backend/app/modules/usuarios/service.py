@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 from app.core.config import settings
+from app.core.timestamps import utc_now
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -179,7 +180,7 @@ class UsuarioService:
                 )
             
             # 3. Borrado limpio usando el Repositorio
-            if rt_db.expires_at < datetime.utcnow():
+            if rt_db.expires_at < utc_now():
                 uow.refresh_tokens.delete(rt_db) 
                 
                 raise HTTPException(

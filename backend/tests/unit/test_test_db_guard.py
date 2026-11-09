@@ -1,7 +1,9 @@
 """Guardia de seguridad de la BD de tests: solo se opera sobre bases `*_test`."""
 import pytest
 
-from tests.support.db_guard import is_safe_test_database_url
+from sqlalchemy.engine import make_url
+
+from tests.support.db_guard import is_safe_test_database_url, migrations_database_url
 
 BASE = "postgresql+psycopg://user:pass@localhost:5433/{db}"
 
@@ -28,3 +30,20 @@ def test_is_safe_test_database_url_usuario_con_sufijo_test_pero_base_de_desarrol
 
 def test_is_safe_test_database_url_sin_nombre_de_base_devuelve_false() -> None:
     assert is_safe_test_database_url("postgresql+psycopg://user:pass@localhost:5433") is False
+
+
+def test_migrations_database_url_cambia_solo_el_nombre_de_la_base() -> None:
+    url = "postgresql+psycopg://user:pass@db.local:5433/foodstore_test?sslmode=disable"
+
+    derived = make_url(migrations_database_url(url))
+
+    assert derived.database == "foodstore_migrations_test"
+    assert (derived.host, derived.port, derived.username, derived.password) == ("db.local", 5433, "user", "pass")
+    assert derived.query == {"sslmode": "disable"}
+
+
+def test_migrations_database_url_resultado_pasa_la_guardia_aun_si_el_origen_no_es_de_tests() -> None:
+    derived = migrations_database_url("postgresql+psycopg://u:p@localhost:5432/otra_base_test")
+
+    assert is_safe_test_database_url(derived) is True
+    assert make_url(derived).database == "foodstore_migrations_test"

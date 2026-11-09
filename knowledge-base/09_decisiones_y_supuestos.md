@@ -22,6 +22,7 @@
 ### DD-04 — Soft delete + snapshots + audit trail append-only
 **Decisión**: `deleted_at` en entidades de negocio; snapshots en `DetallePedido`; historial inmutable.
 **Justificación**: Integridad histórica, trazabilidad y recuperación. **Trade-off**: unicidad requiere índices parciales (`UniqueAuditableMixin`).
+**Resuelto en C-06:** dos divergencias del esquema frente a la spec: todas las fechas son `TIMESTAMPTZ` en UTC (la sesión de PostgreSQL se fija en UTC) y `unidades_medida` tiene unicidad de `nombre` y `simbolo` solo entre activas (índices parciales, sin `UNIQUE` total). También se corrigieron `usuario.id` y sus FK como `BIGINT`, `categorias.parent_id` con `ON DELETE SET NULL`, el `CHECK` de stock (`ck_producto_stock_no_negativo`) y `direccion_entrega.linea1` como `TEXT`.
 
 ### DD-05 — `personalizacion` como `INTEGER[]` en lugar de tabla intermedia
 **Decisión**: Guardar IDs de ingredientes removidos como array de PostgreSQL (más `personalizacion_snapshot` con nombres en).
@@ -60,8 +61,8 @@ Ver [12](12_tiempo_real_websocket.md). Trade-off: estado en memoria (un solo pro
 ### DD-14 — (EXTRA DEL CÓDIGO, no especificado) Imágenes en Cloudinary con upload previo
 CRUDs siguen aceptando JSON; el upload es un paso separado multipart; se guarda `public_id` para reemplazo/borrado.
 
-### DD-15 — Migraciones: Alembic es el objetivo; `create_all` es deuda (DT-09)
-`lifespan` ejecuta `SQLModel.metadata.create_all` salvo `ENVIRONMENT=test`; el seed también lo hace. Alembic figura en `requirements.txt` pero no hay migraciones (CE-04 lo exige). Ver IN-18.
+### DD-15 — Migraciones con Alembic (vigente desde C-06)
+El esquema se crea y modifica solo con migraciones (`alembic upgrade head` desde `backend/`): migración 001 con las 17 tablas, sin `create_all` en la app ni en el seed, y la suite de tests migra `foodstore_test` desde vacío en cada sesión (CE-04 cubierto por test). El contenedor `backend` migra antes de servir. Historia: antes de C-06 el `lifespan` y el seed ejecutaban `create_all` (DT-09). C-06 también resolvió las divergencias de esquema registradas en DD-04. Ver IN-18.
 
 ### DD-16 — `integrador.docx` v5.0 es la spec normativa
 **Decisión (confirmada por el usuario)**: ante contradicción entre `integrador.docx` (v5.0) y `Descripcion.docx`, **prevalece `integrador.docx` v5.0**. Cierra SU-02 y PA-02.
@@ -93,7 +94,7 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 | DT-06 | Firma del webhook | Webhook público pero con validación de firma | Sin validación de firma `x-signature` | IN-25 | [11](11_pagos_mercadopago.md) |
 | DT-07 | Logout / refresh | Refresh hasheado SHA-256, rotación, `revoked_at` | Logout y expiración borran la fila; `revoked_at` no se usa; refresh emite JWT y sobrescribe; comparación aware vs naive | IN-08 | [05](05_reglas_de_negocio.md) |
 | DT-08 | WebSocket disconnect | (extra, no especificado) | `await manager.disconnect(...)` sobre método síncrono | — | [12](12_tiempo_real_websocket.md) |
-| DT-09 | Migraciones | Alembic obligatorio (`alembic upgrade head`, CE-04), `backend/app/main.py`, `backend/app/db/seed.py` | `create_all` en lifespan, sin carpeta `alembic/`, `main.py`/`seed.py` en raíz | IN-18, DD-15 | [08](08_arquitectura_propuesta.md) |
+| DT-09 | Migraciones | Alembic obligatorio (`alembic upgrade head`, CE-04), `backend/app/main.py`, `backend/app/db/seed.py` | **Resuelta en C-06:** Alembic con migración 001, sin `create_all` (antes: `create_all` en lifespan, sin carpeta `alembic/`) | IN-18, DD-15 | [08](08_arquitectura_propuesta.md) |
 | DT-10 | Rate limiting | slowapi, 5 fallos/15 min/IP solo en `POST /auth/login` | Middleware propio, token bucket 5/min en login+register+logout y 60/min global | IN-10, DD-12 | [08](08_arquitectura_propuesta.md) |
 | DT-11 | Transporte del access token | Bearer en header (interceptor Axios), token en `authStore` (solo `accessToken` persistido), `GET /auth/me` | Solo cookie HttpOnly, Bearer deshabilitado, `/usuarios/me`, `secure=False` | IN-07, DD-09 | [08](08_arquitectura_propuesta.md) |
 | DT-12 | Email duplicado | 409 Conflict | 403 | IN-09 | [05](05_reglas_de_negocio.md) |
@@ -110,6 +111,7 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 | DT-23 | Seed | Admin `Admin1234!`; FormaPago MERCADOPAGO/EFECTIVO/TRANSFERENCIA | `admin123`; `TARJETA` en lugar de `TRANSFERENCIA` | IN-16 | [04](04_modelo_de_datos.md) |
 | DT-24 | Frontend | React completo (alcance de la rúbrica) | No existe en el código actual | PA-01 | [13](13_rubrica_y_entrega.md) |
 | DT-25 | Capas del backend | Router → Service → UoW → Repository → Model: los routers no usan `Session` ni consultas, y `core/` no depende de `modules/` (reglas duras 1–2) | Los routers de `categorias`, `ingredientes`, `pagos`, `pedidos` y `productos` importan `Session`/`get_session`; `core/deps.py` importa desde `modules/` | Verificación C-01 | [08](08_arquitectura_propuesta.md) |
+| DT-26 | Pagos: `external_reference` | UUID único y obligatorio, generado por el backend | Id numérico del pedido, nullable, sin unicidad (dueño: **C-12**, con su migración) | Verificación C-06 | [11](11_pagos_mercadopago.md) |
 
 Extras del código **no especificados** (se conservan, decisión pendiente): rol `COCINA` + KDS, WebSocket por rooms, módulo estadísticas, unidades de medida, uploads a Cloudinary, rate limit global (PA-07, PA-19).
 

@@ -4,7 +4,7 @@
 > Cada change es atómico: un agente puede implementarlo en una sesión (~4-6 horas).
 > **Leer este archivo antes de ejecutar cualquier `/opsx:propose`.**
 
-**Regla de la KB (DD-16/DD-17):** la spec `integrador.docx` v5.0 es el objetivo; el código actual (solo backend) es el *estado actual con deuda técnica*. La tabla consolidada DT-01..DT-25 vive en `knowledge-base/09_decisiones_y_supuestos.md`. Por eso la **Fase 0 corrige la deuda** antes de construir features (Fase 1). La Fase 2 son extras no especificados, opcionales y bloqueados.
+**Regla de la KB (DD-16/DD-17):** la spec `integrador.docx` v5.0 es el objetivo; el código actual (solo backend) es el *estado actual con deuda técnica*. La tabla consolidada DT-01..DT-26 vive en `knowledge-base/09_decisiones_y_supuestos.md`. Por eso la **Fase 0 corrige la deuda** antes de construir features (Fase 1). La Fase 2 son extras no especificados, opcionales y bloqueados.
 
 **Leyenda de marcas**
 - `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 1 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
@@ -27,12 +27,12 @@
 
 ```
 C-01 baseline-backend
- ├── C-02 auth-sesion-tokens-bearer-refresh ─────┬── C-08 rbac-multirol-permisos-stock
- │                                               └── C-13 fe-foundation-spa (también C-11)
  ├── C-03 auth-rate-limit-slowapi
  ├── C-04 pagos-autorizacion-propietario
  │     └── C-05 pagos-webhook-firma-idempotencia ──┐
  └── C-06 datos-migraciones-alembic                │
+       ├── C-02 auth-sesion-tokens-bearer-refresh ─┼─┬── C-08 rbac-multirol-permisos-stock
+       │                                           │ └── C-13 fe-foundation-spa (también C-11)
        └── C-07 datos-seed-y-catalogos             │
              └── C-09 pedidos-fsm-en-camino  (+C-08)
                    ├── C-10 pedidos-stock-descuento      [PA-03]
@@ -62,14 +62,16 @@ C-26 rol-cocina-kds (C-09, C-08) ── C-27 websocket-tiempo-real (C-09) ──
 
 ```
 GATE 0: C-01 ✓                                          ← FORK
-  → C-02 auth-sesion-tokens-bearer-refresh   [Agente A — CRITICO]
   → C-04 pagos-autorizacion-propietario       [Agente B — CRITICO]
   → C-06 datos-migraciones-alembic            [Agente C]
-  → C-03 auth-rate-limit-slowapi              [Agente A, tras C-02 o en paralelo si hay capacidad]
+  → C-03 auth-rate-limit-slowapi              [Agente A, en paralelo a C-06]
 
-GATE 1: C-04 ✓ / C-06 ✓ / C-02 ✓
+GATE 1: C-04 ✓ / C-06 ✓
+  → C-02 auth-sesion-tokens-bearer-refresh   [Agente A — CRITICO, tras C-06: su migración es la siguiente a la 001]
   → C-05 pagos-webhook-firma-idempotencia     [Agente B — si C-04 ✓]
   → C-07 datos-seed-y-catalogos               [Agente C — si C-06 ✓]
+
+GATE 1b: C-02 ✓
   → C-08 rbac-multirol-permisos-stock         [Agente A — si C-02 ✓]
 
 GATE 2: C-07 ✓ + C-08 ✓
@@ -113,9 +115,9 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 | Paso | Agente A (Backend Core: auth/pedidos) | Agente B (Backend Aux: pagos/datos) | Agente C (Frontend / datos) |
 |------|--------------------------------------|-------------------------------------|-----------------------------|
 | 1 | C-01 | — | — |
-| 2 | C-02 | C-04 | C-06 |
-| 3 | C-08 | C-05 | C-07 |
-| 4 | C-03 | — | — |
+| 2 | C-03 | C-04 | C-06 |
+| 3 | C-02 | C-05 | C-07 |
+| 4 | C-08 | — | — |
 | 5 | C-09 | — | — |
 | 6 | C-10 | C-12 | C-11 |
 | 7 | C-17 | C-15 | C-13 |
@@ -125,7 +127,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 | 11 | — | C-20 | C-21 |
 | 12 | C-25 | C-25 | C-25 |
 
-(Pasos 4 y 5 pueden solaparse: C-03 no bloquea C-09. En el paso 7, C-17 y C-15 requieren C-13: ajustar si C-13 aún no terminó.)
+(C-03 no bloquea nada y puede moverse a cualquier hueco del Agente A. En el paso 7, C-17 y C-15 requieren C-13: ajustar si C-13 aún no terminó.)
 
 ---
 
@@ -159,7 +161,8 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
   - Registro con email duplicado devuelve 409 (no 403).
   - Tests: login/refresh/rotación, reuso de refresh revocado, logout efectivo, expiración, 409.
   - Renombrar los módulos `auth` y `refreshtokens` a los nombres de la estructura de la spec (se reescriben en este change).
-- **Dependencias**: `C-01`
+  - Su migración es la siguiente después de la 001 de C-06 (`alembic revision --autogenerate --rev-id 002`). Toda FK nueva hacia `usuario.id` (por ejemplo `sesion.usuario_id`) es `BIGINT` (`sa_type=BigInteger`); el test de metadata de C-06 lo exige.
+- **Dependencias**: `C-01, C-06`
 - **Governance**: CRITICO
 - **Decisión pendiente**: `[PENDIENTE DE DECISIÓN: PA-04]` dónde guarda el frontend el refresh token (el backend lo soporta por body; no bloquea).
 - **Leer antes**:
@@ -222,6 +225,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
   - Verificar `alembic upgrade head` sobre BD vacía (CE-04).
   - Tests: upgrade/downgrade, esquema == modelos.
   - La fixture de tests (`backend/tests/conftest.py`, hoy `drop_all` + `create_all` sobre `foodstore_test`) debe pasar a `alembic upgrade head`.
+  - Nota de cierre de scope (implementado): además de lo anterior, C-06 corrigió el esquema a la spec antes de generar la 001: fechas `TIMESTAMPTZ` en UTC (sesión fijada en UTC), unicidad parcial en `unidades_medida`, `usuario.id` y sus FK `BIGINT`, `categorias.parent_id` `ON DELETE SET NULL`, `ck_producto_stock_no_negativo` y `direccion_entrega.linea1` `TEXT`. `pagos.external_reference` queda para C-12 (DT-26).
 - **Dependencias**: `C-01`
 - **Governance**: ALTO
 - **Leer antes**:
@@ -234,7 +238,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 - **Estado**: `[ ]` pendiente
 - **Scope**:
   - Cubre DT-23 y la parte de seed de DT-03. `backend/app/db/seed.py` idempotente: Roles (ADMIN, STOCK, PEDIDOS, CLIENT), EstadoPedido con 6 estados incl. `EN_CAMINO` y orden correcto (`CANCELADO` sin `orden=99`), FormaPago `MERCADOPAGO/EFECTIVO/TRANSFERENCIA` (no `TARJETA`), admin con `Admin1234!`.
-  - Migración 002 si hay cambios de catálogo/órdenes.
+  - Migración siguiente (el número lo toma la primera que se integre; C-02 también agrega una) si hay cambios de catálogo/órdenes.
   - Tests: seed idempotente (2 corridas), contenido exacto de catálogos.
 - **Dependencias**: `C-06`
 - **Governance**: ALTO
@@ -316,6 +320,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 - **Scope**:
   - Cubre DT-01. Migrar de Checkout Pro (preferencia + `init_point`) a Checkout API/Orders con token de tarjeta (`CardPayment` brick): `POST /pagos/crear` recibe `token`, `payment_method_id`, `installments`, `issuer_id`; la tarjeta nunca toca el backend (SAQ-A); `X-Idempotency-Key`.
   - Reintento tras rechazo; `GET /pagos/{pedido_id}` con `mp_status_detail`.
+  - Cubre DT-26: `pagos.external_reference` como UUID único y obligatorio (generado por el backend), con su migración.
   - Mantener el webhook de C-05 como confirmación.
   - Tests con sandbox mockeado: aprobado, rechazado, pendiente, reintento.
   - Al retirar el redirect de Checkout Pro se eliminan `FRONTEND_URL` y `BACKEND_PUBLIC_URL` (opcionales, introducidas en C-01). El chequeo «MercadoPago no configurado» (503, formato uniforme `{detail, code, field}`) debe conservarse en el flujo nuevo.
@@ -580,10 +585,10 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 
 | Fase | Changes | Rango | Notas |
 |------|---------|-------|-------|
-| 0 — Deuda técnica | 12 | C-01..C-12 | Cubre DT-01, 03..07, 09..23 (DT-02 y DT-08 en Fase 2; DT-24 en Fase 1) |
+| 0 — Deuda técnica | 12 | C-01..C-12 | Cubre DT-01, 03..07, 09..23, 26 (DT-02 y DT-08 en Fase 2; DT-24 en Fase 1) |
 | 1 — Features | 13 | C-13..C-25 | Frontend sujeto a PA-01; changes `[UI-MOCKUP]`: C-13..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por PA-07, PA-19 |
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) → `/opsx:propose C-01-baseline-backend`. Luego, en paralelo, C-02, C-04 y C-06.
+**Primer change recomendado**: `C-01` (`baseline-backend`) → `/opsx:propose C-01-baseline-backend`. Luego, en paralelo, C-04 y C-06 (y C-03); C-02 va después de C-06.

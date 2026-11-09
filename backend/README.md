@@ -30,8 +30,10 @@ backend/app/
 │   ├── database.py         # Conexión a PostgreSQL
 │   └── mixins/             # Mixins de auditoría / soft delete
 ├── db/                     # Utilidades de datos
+│   ├── models.py           # import_all_models(): registro único de modelos
+│   ├── migrations.py       # Helpers de Alembic (config, upgrade, drop de tablas)
 │   ├── seed.py             # Datos de prueba (python -m app.db.seed)
-│   └── reset.py            # Reset de la base de desarrollo
+│   └── reset.py            # Reset de la base de desarrollo (python -m app.db.reset)
 ├── modules/                # Módulos feature-first
 │   ├── health/              # GET /health (liveness)
 │   ├── usuarios/            # Gestión de usuarios
@@ -93,14 +95,70 @@ cp ../.env.example ../.env                    # raíz: variables de docker compo
 # 5. Levantar la base de datos con Docker (docker-compose.yml está en la RAÍZ del proyecto)
 (cd .. && docker compose up -d db)
 
-# 6. Poblar la base de datos con datos de prueba
+# 6. Crear el esquema con las migraciones (la app y el seed NO crean tablas)
+alembic upgrade head
+
+# 7. Poblar la base de datos con datos de prueba
 python -m app.db.seed
 
-# 7. Iniciar el servidor de desarrollo
+# 8. Iniciar el servidor de desarrollo
 uvicorn app.main:app --reload
 ```
 
 La API estará disponible en **http://localhost:8000**. `GET /health` responde `{"status":"ok"}` (liveness, sin BD ni credenciales).
+
+---
+
+## Migraciones
+
+El esquema de la base se crea y modifica **solo** con migraciones de Alembic (`backend/alembic/versions/`). Ni la app al
+arrancar ni el seed crean tablas. Alembic usa `DATABASE_URL` (la misma variable que la app; `alembic.ini` no define URL).
+Todos los comandos se corren desde `backend/`:
+
+```bash
+alembic upgrade head      # aplica las migraciones pendientes
+alembic downgrade -1      # deshace la última migración
+alembic current           # versión actual de la base
+alembic history           # historial de migraciones
+```
+
+### Base de desarrollo creada antes de Alembic (con `create_all`)
+
+Recrearla: los datos de desarrollo son los del seed.
+
+```bash
+python -m app.db.reset    # borra TODAS las tablas (incluida alembic_version): se pierden los datos
+alembic upgrade head
+python -m app.db.seed
+```
+
+No uses `alembic stamp 001` para «adoptar» una base vieja: marcaría como migrada una base cuyo esquema no se comprobó
+igual al de la migración 001.
+
+### Contenedor
+
+El servicio `backend` de docker-compose corre `alembic upgrade head` antes de iniciar uvicorn; si la migración falla,
+el contenedor termina con error y no atiende requests.
+
+### Cómo agregar una migración
+
+1. Cambiar el modelo. Toda restricción nueva (FK, `UNIQUE`, `CHECK`, índice) lleva **nombre explícito** en el modelo y en
+   la migración: `fk_<tabla>_<columna>_<tabla_ref>`, `uq_<tabla>_<columna>`, `ck_<tabla>_<regla>`, `ix_<tabla>_<columna>`
+   (sin nombre, el `downgrade` autogenerado no puede borrarla). Toda FK nueva hacia `usuario.id` es `BIGINT`
+   (`sa_type=BigInteger`). Las fechas usan `aware_datetime_field()` de `app/core/timestamps.py` (`TIMESTAMPTZ`, siempre UTC).
+2. Generar el borrador con la base de desarrollo en `head`, con el número siguiente:
+   `alembic revision --autogenerate -m "<descripcion>" --rev-id <NNN siguiente>` (ids `001`, `002`, ...).
+3. Revisar el archivo a mano:
+   - índices únicos parciales con `postgresql_where=sa.text('deleted_at IS NULL')` (la comparación de Alembic no compara el `WHERE`);
+   - arrays como `postgresql.ARRAY(...)`; `CHAR(n)` donde corresponda; fechas como `sa.DateTime(timezone=True)`;
+   - ningún `server_default` que el modelo no declare; `ON DELETE` y nombres de `CHECK` iguales a los del modelo;
+   - sin `import sqlmodel` (el hook `render_item` de `env.py` ya escribe `AutoString` como `sa.String`);
+   - orden de creación y de borrado de tablas coherente con las dependencias.
+4. Probar en desarrollo: `alembic upgrade head`, `alembic downgrade -1`, `alembic upgrade head`.
+5. Correr `pytest`: «esquema == modelos», ida y vuelta y «una sola cabeza» tienen que pasar.
+
+Dos migraciones con el mismo padre hacen fallar el test de «una sola cabeza»: la segunda en integrarse se rebasa
+(cambia su `down_revision` y su número).
 
 ---
 
@@ -232,6 +290,9 @@ DATABASE_URL=postgresql+psycopg://foodstore_user:una_clave@localhost:5433/foodst
 Los tests corren contra **PostgreSQL 15 real**, en la base `foodstore_test` (la crea la suite si falta) del mismo
 contenedor de desarrollo (puerto host 5433). Requieren `backend/tests/.env.test` (copiado de `backend/tests/.env.test.example`); la suite
 aborta si falta, si `ENVIRONMENT` no es `test` o si el nombre de la base no termina en `_test`.
+
+La suite construye el esquema de `foodstore_test` con `alembic upgrade head` (desde vacío, una vez por sesión) y los tests de
+migraciones usan una base auxiliar `foodstore_migrations_test` (la crea la suite; su nombre también pasa la guardia `_test`).
 
 ```bash
 # desde la raíz del proyecto

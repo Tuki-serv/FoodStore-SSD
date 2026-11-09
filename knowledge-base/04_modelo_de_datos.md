@@ -1,8 +1,8 @@
 # Modelo de Datos
 
-Esquema en **3FN** con cuatro patrones transversales: **Soft Delete** (`deleted_at TIMESTAMPTZ`), **Snapshot** (precio/nombre/personalización inmutables en pedidos), **Audit Trail append-only** (`HistorialEstadoPedido`) y **auditoría** (`created_at`, `updated_at`). Nombres de columnas según `[INT]` (`[DESC]` usa `eliminado_en`, `creado_en`, `actualizado_en`; ver IN-01).
+Esquema en **3FN** con cuatro patrones transversales: **Soft Delete** (`deleted_at TIMESTAMPTZ`), **Snapshot** (precio/nombre/personalización inmutables en pedidos), **Audit Trail append-only** (`HistorialEstadoPedido`) y **auditoría** (`created_at`, `updated_at`). Todas las fechas y horas del esquema son `TIMESTAMPTZ` y siempre UTC (la sesión de PostgreSQL se fija en UTC), no solo `deleted_at`. Nombres de columnas según `[INT]` (`[DESC]` usa `eliminado_en`, `creado_en`, `actualizado_en`; ver IN-01).
 
-En el backend actual, el mixin `UniqueAuditableMixin` aporta `created_at/updated_at/deleted_at` y crea **índices únicos parciales** (`WHERE deleted_at IS NULL`) para los campos únicos (`nombre`, `email`), de modo que un registro eliminado no bloquea reutilizar el valor. Tablas con soft delete: usuario, categorias, productos, ingredientes, unidades_medida, pedidos, direccion_entrega. Sin soft delete: detalle_pedido, historial_estado_pedido, pagos, refresh_token, catálogos.
+En el backend actual, el mixin `UniqueAuditableMixin` aporta `created_at/updated_at/deleted_at` y crea **índices únicos parciales** (`WHERE deleted_at IS NULL`) para los campos únicos (`nombre`, `email`; en `unidades_medida`, `nombre` y `simbolo`), de modo que un registro eliminado no bloquea reutilizar el valor. Tablas con soft delete: usuario, categorias, productos, ingredientes, unidades_medida, pedidos, direccion_entrega. Sin soft delete: detalle_pedido, historial_estado_pedido, pagos, refresh_token, catálogos.
 
 ## Dominios
 
@@ -46,7 +46,7 @@ Ingrediente N──1 UnidadMedida ; Producto N──0..1 UnidadMedida (unidad_ve
 
 **Ingrediente** (`ingredientes`): `id`; `nombre` único entre activos; `descripcion`; `es_alergeno` BOOLEAN default false; `imagen_url`/`imagen_public_id`; `unidad_medida_id` FK NN; auditoría + soft delete.
 
-**UnidadMedida** (`unidades_medida`): `id`; `nombre` único; `simbolo` único; `tipo` (peso, volumen, unidad, superficie); auditoría.
+**UnidadMedida** (`unidades_medida`): `id`; `nombre` único entre activas; `simbolo` único entre activas; `tipo` (peso, volumen, unidad, superficie); auditoría + soft delete.
 
 **ProductoCategoria** (`producto_categoria`): PK `(producto_id, categoria_id)`; `es_principal`; FK a producto `ON DELETE CASCADE`, a categoría `ON DELETE RESTRICT`.
 
@@ -64,7 +64,7 @@ Ingrediente N──1 UnidadMedida ; Producto N──0..1 UnidadMedida (unidad_ve
 
 **HistorialEstadoPedido** (`historial_estado_pedido`): `id`; `pedido_id` FK `ON DELETE CASCADE`; `estado_desde` FK NULL (**NULL = transición inicial**); `estado_hacia` FK NN; `usuario_id` FK NULL (NULL = Sistema); `motivo` TEXT; `created_at` NN. **Append-only**: sin `updated_at`, ningún UPDATE/DELETE.
 
-**Pago** (`pagos`): `id`; `pedido_id` FK; `estado` VARCHAR(20) local (`pendiente|aprobado|rechazado`); `mp_preference_id`, `mp_init_point` (Checkout Pro); `mp_payment_id` BIGINT único NULL; `mp_merchant_order_id` BIGINT; `mp_status` VARCHAR(30); `mp_status_detail` VARCHAR(100); `external_reference` VARCHAR(100) (UUID del pedido en spec; **id numérico del pedido** en el código actual; único NN en spec, nullable sin unicidad en el código actual); `idempotency_key` VARCHAR(100) único NN (UUID generado por backend); `transaction_amount` NUMERIC(10,2); `payment_method_id`; auditoría. Relación Pedido→Pago **1:N** (reintentos).
+**Pago** (`pagos`): `id`; `pedido_id` FK; `estado` VARCHAR(20) local (`pendiente|aprobado|rechazado`); `mp_preference_id`, `mp_init_point` (Checkout Pro); `mp_payment_id` BIGINT único NULL; `mp_merchant_order_id` BIGINT; `mp_status` VARCHAR(30); `mp_status_detail` VARCHAR(100); `external_reference` VARCHAR(100) (UUID del pedido en spec; **id numérico del pedido** en el código actual; único NN en spec, nullable sin unicidad en el código actual: deuda **DT-26**, la corrige C-12); `idempotency_key` VARCHAR(100) único NN (UUID generado por backend); `transaction_amount` NUMERIC(10,2); `payment_method_id`; auditoría. Relación Pedido→Pago **1:N** (reintentos).
 
 ## Seed data inicial
 
@@ -83,4 +83,4 @@ Obligatorio tras migrar; sin él la app no funciona. **Objetivo:** `python -m ap
 | Usuarios de prueba (`seed.py`, extra no especificado) | `cliente@foodstore.com/cliente123`, `pedidos@foodstore.com/pedidos123`, `stock@foodstore.com/stock123` |
 | Datos demo (`seed.py`, extra no especificado) | 7 unidades de medida (kg, g, L, mL, u, doc, m²); categorías Hamburguesas/Bebidas/Postres + subcategorías Veganas, Sin TACC, Gaseosas; 12 ingredientes (alérgenos: Pan Brioche, Queso Cheddar, Mayonesa); 6 productos (Clásica 1500, BBQ Bacon 1900, Vegana 1800, Sin TACC 1700, Coca-Cola 800, Limonada 700) con relaciones y `es_removible` |
 
-> **Deuda técnica (DT-09):** el `seed.py` actual crea las tablas con `SQLModel.metadata.create_all` (no depende de Alembic; el objetivo es migrar con `alembic upgrade head` y luego sembrar) y es idempotente (verifica existencia antes de insertar). `reset.py` ejecuta `DROP TABLE ... CASCADE` de todo el esquema.
+> **DT-09 (resuelta en C-06):** el `seed.py` exige el esquema migrado (`alembic upgrade head`; si no, falla con ese mensaje y no crea tablas) y es idempotente (verifica existencia antes de insertar). `reset.py` borra por reflexión todas las tablas, incluida `alembic_version`.

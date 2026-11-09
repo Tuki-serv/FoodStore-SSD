@@ -2,7 +2,7 @@ from typing import Optional
 from decimal import Decimal
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, Numeric, CheckConstraint, Text, ForeignKey, Integer
+from sqlalchemy import BigInteger, Column, Numeric, CheckConstraint, Text, ForeignKey, Integer
 from app.core.mixins.auditable_mixin import UniqueAuditableMixin
 
 
@@ -20,7 +20,7 @@ class Pedido(UniqueAuditableMixin,SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
 #============== FK's ================
-    usuario_id: int = Field(foreign_key="usuario.id" , nullable=False)
+    usuario_id: int = Field(foreign_key="usuario.id", nullable=False, sa_type=BigInteger)
     direccion_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey("direccion_entrega.id", ondelete="SET NULL"), nullable=True))
     estado_codigo: str = Field(max_length=20, foreign_key="estado_pedido.codigo", nullable=False)
     forma_pago_codigo: str = Field(max_length=20, nullable=False, foreign_key="forma_pago.codigo")

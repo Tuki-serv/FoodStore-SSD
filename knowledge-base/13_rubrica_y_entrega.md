@@ -59,7 +59,7 @@ La rúbrica evalúa contra la spec v5.0; cada celda "Estado observado" es el có
 
 | Área | Estado observado en el código actual |
 |------|-----------------------------|
-| Estructura backend | Capas + módulos por dominio; core separado; **sin Alembic**; entry en raíz (DT-09) |
+| Estructura backend | Capas + módulos por dominio; core separado; Alembic con migración 001 (`alembic upgrade head`, CE-04 cubierto por test; DT-09 resuelta en C-06) |
 | Modelo de datos | Completo y con extras (UnidadMedida); sin `direccion_snapshot` |
 | UoW/Repo | UoW genérico y por módulo; `BaseRepository`; service de categorías/pagos usan sesión directa en algunos puntos (`PaymentService` usa `self._session.get`) |
 | Servicio | FSM por rol; RN de historial/terminal/motivo cubiertas; EN_CAMINO ausente (DT-03) |
