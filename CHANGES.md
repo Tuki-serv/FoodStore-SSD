@@ -218,7 +218,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
   - `knowledge-base/09_decisiones_y_supuestos.md` (DD-07, DT-06, DT-13, DT-20, DT-21)
 
 ### [C-06] `datos-migraciones-alembic`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-09-c-06-datos-migraciones-alembic/`)
 - **Scope**:
   - Cubre DT-09 (parte datos). Inicializar `backend/alembic/`; migración 001 con el esquema completo actual (PK semántica `codigo`, `deleted_at/created_at/updated_at`, índices parciales `UniqueAuditableMixin`, `INTEGER[]` de personalización).
   - Quitar `SQLModel.metadata.create_all` del `lifespan` y del seed (los tests ya corren sobre PostgreSQL real desde C-01, PA-10 resuelta).
