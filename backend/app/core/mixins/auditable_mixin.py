@@ -1,6 +1,7 @@
 from typing import ClassVar, List, Optional
-from datetime import datetime, timezone
-from sqlmodel import Field
+from datetime import datetime
+
+from app.core.timestamps import aware_datetime_field
 from sqlalchemy import Index, text
 from sqlalchemy.orm import declared_attr
 
@@ -23,9 +24,9 @@ class UniqueAuditableMixin:
     """
     _unique_fields: ClassVar[List[str]] = []
 
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    deleted_at: Optional[datetime] = Field(default=None)
+    created_at: datetime = aware_datetime_field(default_now=True)
+    updated_at: datetime = aware_datetime_field(default_now=True)
+    deleted_at: Optional[datetime] = aware_datetime_field(nullable=True)
 
     @declared_attr
     def __table_args__(cls):

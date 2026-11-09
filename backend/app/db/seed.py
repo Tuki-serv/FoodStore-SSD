@@ -3,10 +3,13 @@ Seed principal. Ejecutar: python -m app.db.seed
 Crea en orden: roles → admin → estados → formas de pago → unidades → categorías → ingredientes → productos
 """
 from decimal import Decimal
-from sqlmodel import Session, select, SQLModel
+from sqlalchemy.engine import Engine
+from sqlmodel import Session, select
 
-from app.core.database import engine
+from app.core.database import engine as app_engine
 from app.core.security import hash_password
+from app.db.migrations import SchemaNotReadyError, ensure_schema_ready
+from app.db.models import import_all_models
 from app.modules.usuarios.models import Usuario, Rol
 from app.modules.categorias.models import Categoria
 from app.modules.ingredientes.models import Ingrediente
@@ -14,15 +17,16 @@ from app.modules.productos.models import Producto, ProductoCategoria, ProductoIn
 from app.modules.unidades_medida.models import UnidadMedida
 from app.modules.estados_pedido.models import EstadoPedido
 from app.modules.formas_pago.models import FormaPago
-from app.modules.pedidos.models import Pedido  # noqa: F401
-from app.modules.detalles_pedido.models import DetallePedido  # noqa: F401
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido  # noqa: F401
 
 
-def seed():
+def seed(engine: Engine | None = None) -> None:
+    """Siembra el catálogo inicial. Exige el esquema migrado (`alembic upgrade head`); nunca crea tablas."""
+    engine = engine or app_engine
+    import_all_models()
+    with engine.connect() as conn:
+        ensure_schema_ready(conn)
+
     print("--- INICIANDO SEED ---")
-    SQLModel.metadata.create_all(engine)
-
     with Session(engine) as session:
 
         # ══════════════════════════════════════════════════════
@@ -282,4 +286,8 @@ def seed():
 
 
 if __name__ == "__main__":
-    seed()
+    try:
+        seed()
+    except SchemaNotReadyError as exc:
+        print(f"[ERROR] {exc}")
+        raise SystemExit(1)

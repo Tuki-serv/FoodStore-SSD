@@ -103,7 +103,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 
 ### IN-18 — Migraciones y estructura del proyecto
 **A** (spec): Alembic obligatorio (CE-04 `alembic upgrade head`), `backend/app/main.py`, `python -m app.db.seed` (desde `backend/`). **B** (código actual): sin carpeta `alembic/`, `create_all` en `lifespan`, `main.py` y `seed.py` en la raíz, `uvicorn main:app`; README sin los endpoints reales (documenta `PUT`, `routers.py`, puerto DB 5432 vs compose 5433; solo variables mínimas).
-**Resolución (spec = objetivo; deuda DT-09)**: Alembic, `backend/app/main.py`, `backend/app/db/seed.py`; alinear estructura y README antes de entregar.
+**Resolución (spec = objetivo; deuda DT-09)**: Alembic, `backend/app/main.py`, `backend/app/db/seed.py`; alinear estructura y README antes de entregar. **RESUELTA en C-06:** Alembic implementado (migración 001, sin `create_all`, `alembic upgrade head` en README y contenedor); la estructura de directorios se alineó en C-01.
 
 ### IN-19 — Formato de errores
 **A** (`[DESC]`): RFC 7807 (`type, title, status, detail, instance`). **B** (`[INT]`): `{detail, code, field}` (mencionado como RFC 7807 pero es otro formato); el rate limit devuelve `{"error": {...}}` con otra forma.
@@ -155,12 +155,12 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 | PA-07 | Alta | `EN_CAMINO` entra al seed/FSM (spec, DT-03); abierto: ¿quién despacha (ADMIN/PEDIDOS)? El rol `COCINA` y el KDS son **extras del código, no especificados**: ¿se incorporan a la spec o se eliminan? (IN-12, DT-02) | Change de pedidos | Product Owner |
 | PA-08 | Media | ¿Se reembolsa automáticamente un pago aprobado si el pedido se cancela (CONFIRMADO)? ¿Se cancela el pedido si el pago es `cancelled`? | Pagos / cancelación | Product Owner |
 | PA-09 | **RESUELTA** | Auditoría de productos, ingredientes y Cloudinary en C-01. Auditoría (`openspec/changes/archive/2026-11-06-c-01-baseline-backend/design.md`): escritura ADMIN correcta; **gaps** (no corregidos en C-01): STOCK no puede actualizar `stock_cantidad` (solo `PUT` ADMIN); `PATCH /{id}/disponibilidad` es un toggle sin body, no idempotente; la lectura pública acepta `estado`/`include_deleted` y expone eliminados (viola RN-PR-03); `HTTPException` en services; unicidad incluye eliminados y responde 400 en vez de 409. Insumo de C-08/C-11; Cloudinary perezoso/opcional resuelto en C-01 (D8), `HTTPException` en core → C-28 | Auditoría de catálogo | Equipo técnico |
-| PA-10 | **RESUELTA** | Los tests no usan SQLite: corren sobre **PostgreSQL 15 real** (`foodstore_test`, mismo contenedor de desarrollo, puerto 5433) con guardia `_test`, transacción externa + savepoint por test y `create_all` por sesión (C-06 lo cambia por Alembic). Ver DD-18 / SU-07 | Estrategia de pruebas / bonus | Equipo técnico |
+| PA-10 | **RESUELTA** | Los tests no usan SQLite: corren sobre **PostgreSQL 15 real** (`foodstore_test`, mismo contenedor de desarrollo, puerto 5433) con guardia `_test`, transacción externa + savepoint por test y `alembic upgrade head` por sesión. Ver DD-18 / SU-07 | Estrategia de pruebas / bonus | Equipo técnico |
 | PA-11 | Media | ¿Qué reglas definen el costo de envío y el campo `descuento` (v1 fijo 50.00 / 0)? | Cálculo de totales | Product Owner |
 | PA-12 | Media | ¿Se debe auto-marcar `disponible=false` cuando el stock llega a 0? | Catálogo | Product Owner |
 | PA-13 | Media | ¿`direccion_id` NULL (retiro en local) cobra envío? ¿Se agrega `direccion_snapshot`? (IN-15) | Totales y trazabilidad | Product Owner |
 | PA-14 | Media | ¿Estandarizar paginación, formato de errores y nombres de endpoints según IN-11/IN-19/IN-24? | Contrato de API | Tech Lead |
-| PA-15 | Media | ¿Se implementan las migraciones Alembic (CE-04) y se alinea la estructura de directorios con la spec (IN-18)? | Entrega | Equipo técnico |
+| PA-15 | **RESUELTA** | Migraciones Alembic implementadas en C-06 (migración 001, CE-04 cubierto por test); la estructura de directorios ya se alineó en C-01 (IN-18) | Entrega | Equipo técnico |
 | PA-16 | Baja | ¿Cobertura mínima de tests (>60% para bonus) y alcance (`test_pedidos`, `test_pagos`, `test_auth`)? | Bonus | Equipo |
 | PA-17 | Baja | ¿Se hará deploy (Railway/Render/Fly.io) para el bonus? Requiere cookies `secure=True`, CORS y `NGROK_URL` reemplazada | Bonus | Equipo |
 | PA-18 | Baja | Metadatos faltantes en `integrador.docx`: **Materia** y **Carrera** están vacíos; nombre del equipo/docente desconocido | Documentación de entrega | Equipo |

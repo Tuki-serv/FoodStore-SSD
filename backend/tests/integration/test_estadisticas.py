@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
-from datetime import date
+from datetime import date, datetime, timezone
 
 # ===========================================================================
 # TESTS: Estadísticas
@@ -81,3 +81,36 @@ class TestRBACEstadisticas:
         response = client.get(
             "/api/v1/estadisticas/resumen", headers=user_auth_headers)
         assert response.status_code == 403
+
+
+class TestEstadisticasAgrupacionPorDiaUtc:
+    """GET /api/v1/estadisticas/ventas agrupa por día UTC, sin depender de la zona del servidor de BD."""
+
+    def test_pedido_creado_01_30_utc_cuenta_en_su_fecha_utc(
+        self, client: TestClient, session: Session, admin_auth_headers: dict, normal_user: dict, direccion_db
+    ):
+        from app.modules.pagos.models import Pago
+        from app.modules.pedidos.models import Pedido
+
+        pedido = Pedido(
+            usuario_id=normal_user["id"], estado_codigo="PENDIENTE", forma_pago_codigo="EFECTIVO",
+            direccion_id=direccion_db.id, subtotal="1000", total="1000", costo_envio="0", descuento="0",
+            created_at=datetime(2026, 11, 10, 1, 30, tzinfo=timezone.utc),
+        )
+        session.add(pedido)
+        session.flush()
+        # `ventas` solo cuenta pedidos con un pago aprobado
+        session.add(Pago(pedido_id=pedido.id, transaction_amount="1000", mp_status="approved",
+                         idempotency_key="idem-agrupacion-utc"))
+        session.commit()
+
+        response = client.get(
+            "/api/v1/estadisticas/ventas?desde=2026-11-09&hasta=2026-11-11&agrupacion=day",
+            headers=admin_auth_headers,
+        )
+
+        assert response.status_code == 200
+        por_fecha = {item["fecha"]: item for item in response.json()}
+        assert list(por_fecha) == ["2026-11-10"]
+        assert por_fecha["2026-11-10"]["cantidad_pedidos"] == 1
+        assert float(por_fecha["2026-11-10"]["total_ventas"]) == 1000.00

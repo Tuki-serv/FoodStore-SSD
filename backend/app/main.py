@@ -1,13 +1,10 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
-from sqlmodel import SQLModel
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.utils.errores import custom_http_exception_handler, validation_exception_handler
 from app.core.logger import setup_logging
-from app.core.database import engine
 from app.core.rate_limit.rate_limit_middleware import RateLimitMiddleware
 from app.core.cloudinary.router import router as imagen_router
 from app.modules.health.router import router as health_router
@@ -27,12 +24,6 @@ from app.modules.pedidos.router import router as pedido_router
 
 from app.core.config import settings
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    if settings.ENVIRONMENT != "test":
-        SQLModel.metadata.create_all(engine)
-    yield
-
 setup_logging()
 
 
@@ -41,7 +32,6 @@ def create_app() -> FastAPI:
         title="FoodStoreAPI",
         description="API del sistema FoodStore",
         version="1.0.0",
-        lifespan=lifespan
     )
 
     app.add_middleware(RateLimitMiddleware)

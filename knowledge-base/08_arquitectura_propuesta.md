@@ -26,7 +26,7 @@ Regla de oro de imports (backend): `Router → Service → UoW → Repository �
 
 ## Estructura de directorios
 
-Backend real (, **estado tras C-01, con deuda DT-09:** sin Alembic; `main.py` y `seed.py` ya viven dentro de `backend/app/`; D9: la raíz es solo gestión, el código vive en `backend/` y `frontend/`):
+Backend real (, **estado tras C-06 (DT-09 resuelta):** Alembic con migración 001; `main.py` y `seed.py` ya viven dentro de `backend/app/`; D9: la raíz es solo gestión, el código vive en `backend/` y `frontend/`):
 
 ```
 Food-Store-Prueba/                # raíz = gestión + orquestación (docker-compose.yml, .env/.env.example de compose; openspec/, knowledge-base/, docs/, design-system/, CHANGES.md, CLAUDE.md, AGENTS.md, README.md)
@@ -35,12 +35,13 @@ Food-Store-Prueba/                # raíz = gestión + orquestación (docker-com
 ├── frontend/                    # React + TS (llega en C-13)
 └── backend/
     ├── Dockerfile  .dockerignore
+    ├── alembic.ini  alembic/ (env.py, script.py.mako, versions/001_esquema_inicial.py)   # migraciones (C-06)
     ├── requirements.txt  pytest.ini  .env  .env.example   # .env no se versiona
     ├── tests/.env.test  tests/.env.test.example           # .env.test no se versiona; los tests lo leen de ahí
     ├── README.md
     ├── app/
-    │   ├── main.py                  # create_app(): CORS, RateLimitMiddleware, routers /api/v1 + /health, handlers de error, lifespan(create_all)
-    │   ├── db/                      # seed.py (python -m app.db.seed), reset.py
+    │   ├── main.py                  # create_app(): CORS, RateLimitMiddleware, routers /api/v1 + /health, handlers de error (sin lifespan: la app no crea tablas)
+    │   ├── db/                      # models.py (import_all_models), migrations.py (helpers Alembic), seed.py (python -m app.db.seed), reset.py
     │   ├── core/
     │   │   ├── config.py            # Settings (pydantic-settings)
     │   │   ├── database.py  deps.py  security.py  enums.py  logger.py
@@ -104,7 +105,7 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 
 | Variable | Descripción | Ejemplo | Obligatoria |
 |----------|-------------|---------|-------------|
-| `ENVIRONMENT` | `development|production|test` (en `test` no se hace `create_all`) | `development` | **Y** |
+| `ENVIRONMENT` | `development|production|test` | `development` | **Y** |
 | `DATABASE_URL` | **Única variable de BD del backend.** Se usa tal cual (esquema `postgresql+psycopg://`); sin normalización ni construcción desde `POSTGRES_*`. En tests apunta a una base `*_test` | `postgresql+psycopg://CHANGE_ME_USER:CHANGE_ME_PASSWORD@localhost:5433/foodstore` | **Y** |
 | `SQL_ECHO` | `true` imprime cada sentencia SQL | `false` | **Y** |
 | `SECRET_KEY` | Firma JWT (>= 32 chars) | `openssl rand -hex 32` | **Y** |
@@ -129,4 +130,4 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 
 ## Testing
 
-pytest + httpx + pytest-asyncio + pytest-cov sobre **PostgreSQL 15 real** (base `foodstore_test`, creada por la suite si falta; `backend/tests/.env.test` copiado de `backend/tests/.env.test.example`). Guardia de seguridad: la suite aborta si `ENVIRONMENT != test`, si el nombre de la base no termina en `_test` o si falta la configuración. Aislamiento por test con transacción externa + savepoint (rollback al terminar); el esquema se recrea una vez por sesión con `create_all` (C-06 lo cambia por `alembic upgrade head`). `conftest.py` resetea los limiters entre tests. Suites en `backend/tests/integration/` y `backend/tests/unit/` (config, engine, mixins, Cloudinary, plantillas `.env`, guardia de BD, rate limiter). Ningún test llama a las APIs reales de MercadoPago ni Cloudinary.
+pytest + httpx + pytest-asyncio + pytest-cov sobre **PostgreSQL 15 real** (base `foodstore_test`, creada por la suite si falta; `backend/tests/.env.test` copiado de `backend/tests/.env.test.example`). Guardia de seguridad: la suite aborta si `ENVIRONMENT != test`, si el nombre de la base no termina en `_test` o si falta la configuración. Aislamiento por test con transacción externa + savepoint (rollback al terminar); el esquema de `foodstore_test` se construye una vez por sesión con `alembic upgrade head` desde una base vacía; los tests de migraciones (upgrade/downgrade, «esquema == modelos») usan la base auxiliar `foodstore_migrations_test`, que también cumple la guardia `_test`. `conftest.py` resetea los limiters entre tests. Suites en `backend/tests/integration/` y `backend/tests/unit/` (config, engine, mixins, Cloudinary, plantillas `.env`, guardia de BD, rate limiter). Ningún test llama a las APIs reales de MercadoPago ni Cloudinary.

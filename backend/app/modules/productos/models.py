@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional, ClassVar, List
 from pydantic import field_validator
 from sqlmodel import Field, Relationship, Column, Integer, ForeignKey, SQLModel, ARRAY, String
 from sqlalchemy import CheckConstraint, Numeric
 from app.core.mixins.auditable_mixin import UniqueAuditableMixin
+from app.core.timestamps import aware_datetime_field
 from sqlalchemy.orm import declared_attr
 
 
@@ -28,10 +29,7 @@ class ProductoCategoria(SQLModel, table=True):
         primary_key=True, nullable=False)
     )
     es_principal: bool = Field(default=False, description="Indica si es categoría principal del producto")
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        nullable=False
-    )
+    created_at: datetime = aware_datetime_field(default_now=True)
 
     categoria: "Categoria" = Relationship()
 
@@ -55,10 +53,7 @@ class ProductoIngrediente(SQLModel, table=True):
         sa_column=Column(Integer, ForeignKey("unidades_medida.id", ondelete="RESTRICT"), nullable=False)
     )
     es_removible: bool = Field(default=False, description="Indica si el ingrediente es removible")
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        nullable=False
-    )
+    created_at: datetime = aware_datetime_field(default_now=True)
     
     ingrediente: "Ingrediente" = Relationship()
 
@@ -77,6 +72,7 @@ class Producto(UniqueAuditableMixin, SQLModel, table=True):
         parent_args = super().__table_args__
         return parent_args + (
             CheckConstraint("precio_base >= 0", name="ck_producto_precio_no_negativo"),
+            CheckConstraint("stock_cantidad >= 0", name="ck_producto_stock_no_negativo"),
         )
 
     id: Optional[int] = Field(default=None, primary_key=True)

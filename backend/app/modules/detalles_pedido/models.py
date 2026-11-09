@@ -1,9 +1,11 @@
 from sqlalchemy import ARRAY
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 
 from sqlmodel import SQLModel, Field
+
+from app.core.timestamps import aware_datetime_field
 from sqlalchemy import Column, Numeric, CheckConstraint, ForeignKey, Integer, SmallInteger, String
 
 class DetallePedido(SQLModel, table=True):
@@ -31,4 +33,4 @@ class DetallePedido(SQLModel, table=True):
     personalizacion_snapshot: Optional[List[str]] = Field(default=None, sa_column=Column(ARRAY(String)))
 
 #============== Audit ================
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = aware_datetime_field(default_now=True)

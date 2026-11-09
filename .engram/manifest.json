@@ -16,6 +16,14 @@
       "sessions": 1,
       "memories": 1,
       "prompts": 0
+    },
+    {
+      "id": "bc2e0a0b",
+      "created_by": "jacop",
+      "created_at": "2026-11-07T20:18:00.4230217Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
     }
   ]
 }

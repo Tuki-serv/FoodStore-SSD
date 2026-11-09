@@ -1,6 +1,9 @@
 """Arranque de la app: factory, OpenAPI, montaje bajo `/api/v1`, errores uniformes y CORS."""
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import MetaData
 
+from app.core.config import settings
 from app.main import create_app
 
 
@@ -56,3 +59,17 @@ def test_cors_preflight_con_origen_no_permitido_no_lo_autoriza(plain_client: Tes
     )
 
     assert "access-control-allow-origin" not in response.headers
+
+
+@pytest.mark.parametrize("environment", ["development", "production", "test"])
+def test_arranque_de_la_app_no_crea_tablas_con_ningun_environment(
+    monkeypatch: pytest.MonkeyPatch, environment: str
+) -> None:
+    llamadas: list[object] = []
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    monkeypatch.setattr(MetaData, "create_all", lambda self, *args, **kwargs: llamadas.append(self))
+
+    with TestClient(create_app()):
+        pass
+
+    assert llamadas == []

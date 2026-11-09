@@ -33,52 +33,33 @@ def _abort_if_unsafe_environment() -> None:
 _abort_if_unsafe_environment()
 
 from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine, text  # noqa: E402
-from sqlalchemy.engine import Engine, make_url  # noqa: E402
-from sqlalchemy.exc import OperationalError  # noqa: E402
-from sqlmodel import Session, SQLModel, select  # noqa: E402
+from sqlalchemy.engine import Engine  # noqa: E402
+from sqlmodel import Session, select  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
 from app.core.database import build_engine, get_session  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
+from app.db.migrations import drop_all_tables, upgrade_to_head  # noqa: E402
 from app.main import app  # noqa: E402
 from app.modules.usuarios.models import Usuario  # noqa: E402
+from tests.support.db_admin import ensure_database_exists  # noqa: E402
 
 
 # ===========================================================================
 # 1. BASE DE DATOS Y ENGINE DE TEST (PostgreSQL real)
 # ===========================================================================
-def _ensure_database_exists(database_url: str) -> None:
-    """Crea la base de tests si falta, conectando a la base de mantenimiento `postgres` (AUTOCOMMIT)."""
-    url = make_url(database_url)
-    maintenance = create_engine(
-        url.set(database="postgres"), isolation_level="AUTOCOMMIT", connect_args={"connect_timeout": 10}
-    )
-    try:
-        with maintenance.connect() as conn:
-            exists = conn.execute(
-                text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": url.database}
-            ).scalar()
-            if not exists:
-                conn.execute(text(f'CREATE DATABASE "{url.database}"'))
-    except OperationalError as exc:
-        pytest.exit(
-            f"No se pudo conectar a PostgreSQL ({url.host}:{url.port}). ¿Está levantado "
-            f"'docker compose up -d db' (desde la raíz del proyecto) y son correctas las credenciales de backend/tests/.env.test? "
-            f"{exc}",
-            returncode=2,
-        )
-    finally:
-        maintenance.dispose()
-
-
 @pytest.fixture(name="engine_test", scope="session")
 def engine_test_fixture():
-    """Engine sobre `foodstore_test`: crea la base si falta y recrea el esquema una vez por sesión."""
-    _ensure_database_exists(settings.DATABASE_URL)
+    """Engine sobre `foodstore_test`: crea la base si falta y la migra desde vacío (`alembic upgrade head`)."""
+    ensure_database_exists(settings.DATABASE_URL)
     engine: Engine = build_engine(settings)
-    SQLModel.metadata.drop_all(engine)
-    SQLModel.metadata.create_all(engine)
+    try:
+        with engine.begin() as conn:
+            drop_all_tables(conn)
+            upgrade_to_head(conn)
+    except Exception as exc:
+        engine.dispose()
+        pytest.exit(f"Falló alembic upgrade head sobre foodstore_test: {exc}", returncode=2)
     yield engine
     engine.dispose()
 

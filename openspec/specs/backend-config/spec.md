@@ -151,7 +151,7 @@ El repo SHALL incluir un `.env.example` con todas las variables de la configurac
 - **THEN** no aparece ninguna de `MP_WEBHOOK_URL`, `NGROK_URL` ni `VITE_FRONTEND_URL`
 
 ### Requirement: Entorno de tests aislado
-Con `ENVIRONMENT=test`, `DATABASE_URL` SHALL apuntar a una base PostgreSQL dedicada a tests. El nombre de la base, tomado del path de la URL, SHALL terminar en `_test`. La suite SHALL negarse a ejecutarse si la URL efectiva no cumple esa condición o si falta la configuración de tests, para proteger los datos de desarrollo.
+Con `ENVIRONMENT=test`, `DATABASE_URL` SHALL apuntar a una base PostgreSQL dedicada a tests. El nombre de la base, tomado del path de la URL, SHALL terminar en `_test`. Toda base auxiliar que use la suite (por ejemplo, la de los tests de migraciones) SHALL cumplir la misma condición. La suite SHALL negarse a ejecutarse si la URL efectiva no cumple esa condición o si falta la configuración de tests, para proteger los datos de desarrollo.
 
 #### Scenario: Base de tests válida
 - **WHEN** la suite arranca con `ENVIRONMENT=test` y una URL a `foodstore_test`
@@ -159,7 +159,11 @@ Con `ENVIRONMENT=test`, `DATABASE_URL` SHALL apuntar a una base PostgreSQL dedic
 
 #### Scenario: Base de desarrollo rechazada
 - **WHEN** la suite arranca con `ENVIRONMENT=test` y una URL a una base cuyo nombre no termina en `_test`
-- **THEN** la sesión de pytest aborta antes de crear o borrar tablas, con un mensaje que explica el motivo
+- **THEN** la sesión de pytest aborta antes de aplicar migraciones, crear o borrar tablas, con un mensaje que explica el motivo
+
+#### Scenario: Base auxiliar de migraciones protegida
+- **WHEN** los tests de migraciones preparan su base auxiliar
+- **THEN** su nombre termina en `_test` y, si no fuera así, el test aborta antes de conectarse a ella
 
 #### Scenario: Falta el archivo de configuración de tests
 - **WHEN** la suite arranca sin `backend/tests/.env.test`
