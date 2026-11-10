@@ -58,33 +58,37 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 
 | Origen | Destino válido (**objetivo**, spec `[INT]`) | Código actual (**deuda**) |
 |--------|-----------------------------------|-------------------------------------------|
-| PENDIENTE | CONFIRMADO (auto, pago aprobado), CANCELADO | CONFIRMADO, CANCELADO |
+| PENDIENTE | CONFIRMADO (auto por pago aprobado en `MERCADOPAGO`; manual solo ADMIN/PEDIDOS en `EFECTIVO`/`TRANSFERENCIA`, DD-22), CANCELADO | CONFIRMADO (manual para cualquier forma de pago), CANCELADO |
 | CONFIRMADO | EN_PREP, CANCELADO | EN_PREP, CANCELADO |
 | EN_PREP | EN_CAMINO, CANCELADO (solo ADMIN `[DESC]` / ADMIN-PEDIDOS `[INT]`) | **ENTREGADO**, CANCELADO |
 | EN_CAMINO | ENTREGADO | (estado inexistente) |
 | ENTREGADO / CANCELADO | — (terminales) | — |
 
 - **RN-PE-01** (INT RN-01 / DESC RN-01): Solo se avanza al siguiente estado de la secuencia; sin saltos ni retrocesos. Excepción: CANCELADO desde estados no terminales. Se valida en el **Service** contra un mapa de transiciones **por rol** antes de cada INSERT en historial; ningún router puede saltearlo.
-- **RN-PE-02** (DESC RN-02): PENDIENTE→CONFIRMADO es **exclusivamente automática**, disparada por el webhook cuando `mp_status = "approved"`. *Deuda DT-15:* el mapa actual permite también a ADMIN/PEDIDOS confirmar manualmente por `PATCH /estado` (IN-20; ver PA-06 para efectivo/transferencia).
+- **RN-PE-02** (DESC RN-02; decisión PA-06, DD-22): PENDIENTE→CONFIRMADO es **automática** (webhook con `mp_status = "approved"`, actor Sistema) para pedidos `MERCADOPAGO`. Para pedidos `EFECTIVO`/`TRANSFERENCIA` la confirma **a mano** un usuario ADMIN o PEDIDOS (`PATCH /estado`); ningún otro rol la hace y un pedido `MERCADOPAGO` no se confirma a mano. *Deuda DT-15:* el mapa actual permite a ADMIN/PEDIDOS confirmar manualmente cualquier pedido, sin distinguir la forma de pago (IN-20).
 - **RN-PE-03** (INT RN-01 / DESC RN-05): Un estado con `es_terminal = true` no admite transiciones; intento → **409** "No se puede cambiar un pedido en estado terminal".
 - **RN-PE-04** (INT RN-02): El primer registro del historial tiene `estado_desde = NULL`.
 - **RN-PE-05** (INT RN-03): `HistorialEstadoPedido` es **append-only**: ninguna capa emite UPDATE ni DELETE.
 - **RN-PE-06** (INT RN-04): `total`, nombre y precio en `DetallePedido` son un **snapshot inmutable** al crear el pedido.
 - **RN-PE-07** (INT RN-05): El `motivo` es **obligatorio** si el nuevo estado es CANCELADO (400 en el código actual).
 - **RN-PE-08**: Transición inválida por flujo/rol → 409 "No se puede cambiar de X a Y".
-- **RN-PE-09**: Creación de pedido (una sola transacción UoW; el descuento de stock de este paso es comportamiento del código actual, ver RN-ST y DT-04): valida forma de pago existente y habilitada; **rechaza líneas duplicadas** (mismo producto + misma personalización → 400); por línea valida producto existente, no eliminado, `disponible` y stock suficiente; congela `precio_snapshot`, `nombre_snapshot`, `subtotal_snapshot` y nombres de ingredientes removidos; calcula `subtotal`, `descuento = 0`, `costo_envio = 50.00`, `total`; crea pedido en PENDIENTE, detalles e historial inicial; **descuenta el stock**; commit o rollback total. Mínimo 1 ítem; `cantidad >= 1`.
+- **RN-PE-09**: Creación de pedido (una sola transacción UoW; el descuento de stock de este paso es comportamiento del código actual; el objetivo es no descontar al crear, ver RN-ST y DT-04): valida forma de pago existente y habilitada; **rechaza líneas duplicadas** (mismo producto + misma personalización → 400); por línea valida producto existente, no eliminado, `disponible` y stock suficiente; congela `precio_snapshot`, `nombre_snapshot`, `subtotal_snapshot` y nombres de ingredientes removidos; calcula `subtotal`, `descuento = 0`, `costo_envio = 50.00`, `total`; crea pedido en PENDIENTE, detalles e historial inicial; **descuenta el stock** (*solo código actual, deuda DT-04*; objetivo DD-20: crear **no** descuenta, solo verifica); commit o rollback total. Mínimo 1 ítem; `cantidad >= 1`.
 - **RN-PE-10**: Cancelación por el cliente: solo pedidos propios (403 si ajeno) en **PENDIENTE o CONFIRMADO** (el CLIENT no tiene transiciones desde EN_PREP).
 - **RN-PE-11**: Cancelación por ADMIN/PEDIDOS: desde PENDIENTE, CONFIRMADO y EN_PREP (en spec EN_PREP→CANCELADO es solo ADMIN `[DESC]`).
 - **RN-PE-12**: Solo ADMIN puede eliminar un pedido (soft delete).
 - **RN-PE-13**: Listado: CLIENT ve solo los propios; ADMIN/PEDIDOS ven todos; filtros por estado/fecha y paginación `page/size` (objetivo); *deuda DT-18:* el código actual solo ofrece `offset/limit`.
+- **RN-PE-14** (PA-07 parcial, DD-23): `EN_PREP→EN_CAMINO` y `EN_CAMINO→ENTREGADO` los hacen ADMIN y PEDIDOS. El rol `COCINA` (extra del código, no especificado) no se toca: se decide al final (Fase 2).
 
 ## Dominio: Stock (RN-ST)
 
-- **RN-ST-00 (objetivo, spec `[INT]`)**: al crear el pedido se valida que el producto esté `disponible` y con stock suficiente. La spec **no define cuándo se descuenta** el stock: pregunta abierta PA-03.
-- **RN-ST-01** (`[DESC]` RN-03, **no normativa**, opción candidata a PA-03): decrementar atómicamente `stock_cantidad` al llegar a CONFIRMADO; si falla, revertir y dejar PENDIENTE.
-- **RN-ST-01-real** (*deuda DT-04, código actual*): el stock se **descuenta al crear el pedido (PENDIENTE)**, con `get_for_update` y 409 si falta. Los pedidos impagos reservan stock sin TTL. (IN-05)
-- **RN-ST-02** (`[DESC]` RN-04, no normativa): restaurar el stock al cancelar (solo si ya estaba descontado). *Código actual:* se restaura en **toda** cancelación (PENDIENTE incluida), saltando productos eliminados.
+- **RN-ST-00** (spec `[INT]`): al crear el pedido se valida que el producto esté `disponible` y con stock suficiente (errores claros: no disponible, sin stock). La spec no define cuándo se descuenta: lo decidió el usuario (PA-03, DD-20, ver abajo).
+- **RN-ST-01** (**objetivo, DD-20**; lo implementa C-10): el stock se descuenta **al confirmarse el pedido** (pago aprobado por MercadoPago o confirmación manual), de forma **atómica dentro de la misma transacción** de la transición PENDIENTE→CONFIRMADO, con bloqueo de fila. Crear el pedido no descuenta. Todo el descuento vive en un único método/servicio de stock invocado desde la transición de la FSM.
+- **RN-ST-01-real** (*deuda DT-04, código actual*): el stock se **descuenta al crear el pedido (PENDIENTE)**, con `get_for_update` y 409 si falta. Los pedidos impagos reservan stock sin TTL. (IN-05) C-10 lo reemplaza por RN-ST-01.
+- **RN-ST-02** (**objetivo, DD-20**): se devuelve el stock solo al cancelar un pedido **CONFIRMADO o posterior** (CONFIRMADO o EN_PREP; los demás estados no son cancelables). Cancelar un PENDIENTE no devuelve nada porque nunca se descontó. *Código actual:* se restaura en **toda** cancelación (PENDIENTE incluida), saltando productos eliminados.
 - **RN-ST-03**: Los decrementos/incrementos deben ser transaccionales y atómicos.
+- **RN-ST-04** (**objetivo, DD-20**): sin TTL ni auto-cancelación de pedidos impagos: un PENDIENTE no reserva stock y puede quedar abierto indefinidamente.
+- **RN-ST-05** (**objetivo, DD-20**, caso «pago aprobado sin stock»): si MercadoPago aprueba el pago pero al confirmar ya no hay stock (dos pedidos pagan el último producto), el pedido pasa a **CANCELADO** con motivo «sin stock» (actor Sistema, `usuario_id` NULL), el pago queda marcado para **devolución manual** (la devolución automática sigue fuera de alcance, PA-08) y el webhook responde **200** (no es un error a reintentar).
+- **RN-ST-06** (**objetivo, DD-20**): confirmación manual (`EFECTIVO`/`TRANSFERENCIA`) sin stock suficiente: la transición se rechaza con error claro (409) y el pedido sigue PENDIENTE.
 
 ## Dominio: Pagos (RN-PA)
 
@@ -95,7 +99,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 
 | `mp_status` | Estado local | Acción sobre el pedido |
 |-------------|----------------------|------------------------|
-| `approved` | `aprobado` | PENDIENTE→CONFIRMADO automático (y stock según RN-ST) |
+| `approved` | `aprobado` | PENDIENTE→CONFIRMADO automático con descuento de stock en la misma transacción (RN-ST-01); sin stock: CANCELADO «sin stock» y pago a devolución manual (RN-ST-05) |
 | `pending` / `in_process` / `authorized` | `pendiente` | Sin cambios; permanece PENDIENTE |
 | `rejected` | `rechazado` | Sin cambios; el cliente puede reintentar con otro método |
 | `cancelled` / `refunded` / `charged_back` | `rechazado` | Sin cambios (spec: "se podría considerar" cancelar el pedido si no hay otros pagos) |
@@ -113,5 +117,5 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 ## Dominio: Excepciones globales
 
 - Una transición de pedido registra siempre historial con `usuario_id` del actor (objetivo: NULL para el Sistema; *deuda DT-13:* el webhook actual usa el id del dueño del pedido como actor — IN-21).
-- Confirmación manual de PENDIENTE→CONFIRMADO por rol humano contradice RN-PE-02 (deuda DT-15, IN-20).
+- Confirmación manual de PENDIENTE→CONFIRMADO: válida solo para ADMIN/PEDIDOS y solo en `EFECTIVO`/`TRANSFERENCIA` (RN-PE-02, DD-22); el código actual la permite para cualquier forma de pago (deuda DT-15, IN-20).
 - Si el stock cae a 0 el producto **no** se marca `disponible=false` automáticamente (no hay regla; ver pregunta abierta).

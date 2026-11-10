@@ -50,12 +50,12 @@ Cliente → Frontend → POST /auth/login → [RateLimit] → UsuarioService →
 3. Router valida el body y abre `PedidoUnitOfWork`; `PedidoService.crear_pedido` ejecuta dentro de **una transacción**:
    1. valida forma de pago (existe y habilitada) y existencia del estado PENDIENTE;
    2. rechaza líneas duplicadas (producto + personalización);
-   3. por ítem: producto existe, no eliminado, `disponible`, stock suficiente;
+   3. por ítem: producto existe, no eliminado, `disponible`, stock suficiente (solo se **verifica**: el objetivo no descuenta al crear);
    4. congela snapshots (precio, nombre, subtotal, nombres de ingredientes removidos);
    5. total = subtotal − descuento(0) + envío(50.00);
    6. INSERT `Pedido`(PENDIENTE) + flush; INSERT `DetallePedido` × N;
    7. INSERT `HistorialEstadoPedido`(`estado_desde=NULL`, `estado_hacia=PENDIENTE`, "Pedido creado");
-   8. *(deuda DT-04, código actual; la spec no define el momento del descuento: PA-03)* descuenta stock con bloqueo de fila (`get_for_update`) — 409 si falta;
+   8. *(deuda DT-04, solo código actual; **objetivo DD-20, lo implementa C-10**: este paso no existe, el stock se descuenta al confirmar el pedido, ver Flujo 5 y Flujo 6)* descuenta stock con bloqueo de fila (`get_for_update`) — 409 si falta;
    9. `__exit__` → commit. Cualquier excepción → rollback total.
 4. API responde 201 `PedidoReadFull`.
 5. Frontend `POST /api/v1/pagos/crear {pedido_id}`: backend arma preferencia MP (`external_reference = pedido_id`, `back_urls`, `notification_url`), guarda `Pago(estado=pendiente, idempotency_key=uuid)` y responde `{pago_id, preference_id, init_point, public_key}`. Objetivo: el cliente paga con el formulario embebido (Checkout API + `CardPayment`). *Deuda DT-01:* el código actual redirige a `init_point` (Checkout Pro). *Deuda DT-05:* este endpoint hoy no exige autenticación.
@@ -69,7 +69,7 @@ Cliente → FE → POST /pagos/crear ──▶ MP (preference) ──▶ init_po
 MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update ──▶ Pedido PENDIENTE→CONFIRMADO ──▶ WS
 ```
 
-**Casos de error**: producto no disponible/sin stock → 400/409 y rollback; MP sin configurar → 400; pago rechazado → pedido sigue PENDIENTE y el cliente reintenta; pago pendiente → sin cambios.
+**Casos de error**: producto no disponible/sin stock al crear → 400/409 y rollback; MP sin configurar → 400; pago rechazado → pedido sigue PENDIENTE y el cliente reintenta; pago pendiente → sin cambios. **Objetivo (DD-20):** si el pago se aprueba pero ya no hay stock al confirmar, el pedido pasa a CANCELADO con motivo «sin stock» (actor Sistema) y el pago queda marcado para devolución manual. **Pedidos `EFECTIVO`/`TRANSFERENCIA` (DD-22):** no hay paso de pago online; el pedido queda PENDIENTE hasta que ADMIN/PEDIDOS lo confirmen a mano (ver Flujo 6), y ahí se descuenta el stock.
 
 ## Flujo 5: Webhook IPN de MercadoPago (Sistema)
 
@@ -81,7 +81,7 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 2. Consulta `sdk.payment().get(id)` → `mp_status`, `status_detail`, `external_reference`, `merchant_order_id`.
 3. Mapea estado (RN-PA-04). Busca el `Pago` por `external_reference` (último del pedido) → luego por `mp_payment_id` → luego por `merchant_order_id`.
 4. Si `pago.estado != "pendiente"` → `already_processed` (dedupe). Si no, actualiza campos del pago.
-5. Si `approved`: `PedidoService.cambiar_estado_pedido(CONFIRMADO, motivo="Pago confirmado via Webhook MercadoPago", rol="ADMIN")` → registra historial, valida FSM.
+5. Si `approved`: `PedidoService.cambiar_estado_pedido(CONFIRMADO, motivo="Pago confirmado via Webhook MercadoPago", rol="ADMIN")` → registra historial, valida FSM. **Objetivo (DD-20, C-10):** la confirmación pasa por la transición de la FSM (actor Sistema) y descuenta el stock en la misma transacción; si no hay stock, el pedido pasa a CANCELADO «sin stock», el pago queda marcado para devolución manual y el webhook responde 200 (no es un error a reintentar).
 6. El router emite eventos WebSocket a `role:KDS` y `pedido:{id}` (background tasks).
 7. Responde 200 `{status: processed|ignored|already_processed|error}` — **siempre 200**, incluso con error, para evitar reintentos.
 
@@ -91,13 +91,15 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 
 1. Gestor lista `GET /pedidos/` (todos) o `/pedidos/cocina/pedidos` (CONFIRMADO/EN_PREP, más viejos primero).
 2. `PATCH /pedidos/{id}/estado {nuevo_estado, motivo?}` (objetivo; *deuda DT-17:* el código actual usa `estado_hacia`) → Service valida: pedido existe y no eliminado, estado actual y destino existen, no terminal (409), transición permitida para el **rol** (objetivo: conjunto de roles; *deuda DT-14:* hoy `roles[0]`) (409), motivo si CANCELADO (400).
-3. Actualiza `Pedido.estado_codigo`; si CANCELADO → restaura stock; inserta historial (actor = usuario).
+3. Actualiza `Pedido.estado_codigo`; inserta historial (actor = usuario). **Objetivo (DD-20):** al pasar a CONFIRMADO descuenta el stock (en la misma transacción; sin stock suficiente la transición se rechaza con error claro y el pedido sigue PENDIENTE); al pasar a CANCELADO desde CONFIRMADO o posterior devuelve el stock, y desde PENDIENTE no hay nada que devolver. *Deuda DT-04, código actual:* si CANCELADO restaura stock en toda cancelación.
+   - **Confirmación manual (DD-22):** PENDIENTE→CONFIRMADO la hace un usuario ADMIN o PEDIDOS solo para pedidos `EFECTIVO`/`TRANSFERENCIA`; los `MERCADOPAGO` solo se confirman automáticamente por el webhook.
+   - **Despacho (DD-23):** `EN_PREP→EN_CAMINO` y `EN_CAMINO→ENTREGADO` los hacen ADMIN y PEDIDOS.
 4. Tras commit, emite WS (`PEDIDO_CONFIRMADO`, `PEDIDO_EN_PREPARACION`, `PEDIDO_CANCELADO` o `ESTADO_ACTUALIZADO`) a `role:KDS` y `pedido:{id}`.
 5. Secuencia objetivo (spec): PENDIENTE→CONFIRMADO→EN_PREP→EN_CAMINO→ENTREGADO. *Deuda DT-03:* el código actual omite EN_CAMINO.
 
 ## Flujo 7: Cancelación por el cliente
 
-Objetivo (spec): `DELETE /pedidos/{id}` cancela el pedido propio (DT-17). Código actual: `PATCH /pedidos/mis-pedidos/{id}/cancelar {motivo}` → verifica propiedad (403) → valida transición CLIENT (solo desde PENDIENTE/CONFIRMADO) y motivo → estado CANCELADO, restaura stock, historial. Si ya había un pago aprobado, **no hay reembolso automático documentado** (pregunta abierta).
+Objetivo (spec): `DELETE /pedidos/{id}` cancela el pedido propio (DT-17). Código actual: `PATCH /pedidos/mis-pedidos/{id}/cancelar {motivo}` → verifica propiedad (403) → valida transición CLIENT (solo desde PENDIENTE/CONFIRMADO) y motivo → estado CANCELADO, historial; **objetivo (DD-20):** devuelve el stock solo si el pedido estaba CONFIRMADO (un PENDIENTE no descontó nada); *código actual:* restaura stock en toda cancelación. Si ya había un pago aprobado, **no hay reembolso automático documentado** (pregunta abierta).
 
 ## Flujo 8: Tiempo real (KDS y seguimiento) — extra del código, no especificado
 

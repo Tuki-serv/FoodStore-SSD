@@ -36,7 +36,7 @@ Las contradicciones entre fuentes están centralizadas en [10_preguntas_abiertas
 3. Entender las reglas → [05](05_reglas_de_negocio.md)
 4. Entender la arquitectura → [02](02_descripcion_general.md), [08](08_arquitectura_propuesta.md)
 5. Implementar → [07](07_flujos_principales.md), [06](06_funcionalidades.md), [11](11_pagos_mercadopago.md)
-6. Antes de codificar → [10](10_preguntas_abiertas.md) (resolver PA-01, PA-03, PA-04, PA-06, PA-07; PA-02 ya resuelta) y revisar la deuda en [09](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada)
+6. Antes de codificar → [10](10_preguntas_abiertas.md) (PA-01..PA-06 y la parte de despacho de PA-07 ya están resueltas; solo queda abierta la parte COCINA/KDS de PA-07, que se decide al final) y revisar la deuda en [09](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada)
 
 ## Resumen Ejecutivo
 

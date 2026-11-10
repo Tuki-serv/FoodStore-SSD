@@ -85,19 +85,21 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 ### US-017 — Crear pedido (checkout)
 - [ ] Seleccionar dirección (o retiro en local) y forma de pago; el pedido se crea en PENDIENTE en una sola transacción con snapshots e historial inicial
 - [ ] Errores claros: producto no disponible, sin stock, forma de pago deshabilitada, líneas duplicadas
-**Reglas**: RN-PE-06, RN-PE-09, RN-ST-01
+- [ ] Crear el pedido solo verifica disponibilidad y stock; el stock se descuenta al confirmarse (DD-20)
+**Reglas**: RN-PE-06, RN-PE-09, RN-ST-00, RN-ST-01
 
 ### US-018 — Ver mis pedidos y seguimiento
 - [ ] Listado paginado y detalle propio (ítems con snapshots, totales); timeline de estados con polling 30 s en spec o WebSocket `[Pendiente-FE]`
 
 ### US-019 — Cancelar mi pedido
-- [ ] Solo en PENDIENTE/CONFIRMADO, con motivo obligatorio; restaura stock
+- [ ] Solo en PENDIENTE/CONFIRMADO, con motivo obligatorio; devuelve el stock solo si estaba CONFIRMADO (DD-20)
 **Reglas**: RN-PE-07, RN-PE-10, RN-ST-02
 
 ## Épica 5: Gestión operativa de pedidos
 
 ### US-020 — Avanzar estado (PEDIDOS/ADMIN)
 - [ ] Transición validada por FSM y por rol; observación/motivo opcional; registra historial; notifica por WebSocket
+- [ ] Confirmación manual PENDIENTE→CONFIRMADO solo para `EFECTIVO`/`TRANSFERENCIA` (DD-22); EN_CAMINO lo despachan ADMIN y PEDIDOS (DD-23)
 **Reglas**: RN-PE-01..08
 
 ### US-021 — Ver todos los pedidos e historial
