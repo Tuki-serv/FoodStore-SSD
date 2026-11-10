@@ -82,7 +82,7 @@ GATE 0: C-01 ✓                                          ← FORK
 GATE 1: C-04 ✓ / C-06 ✓
   → C-02 ✓ auth-sesion-tokens-bearer-refresh [Agente A — CRITICO, tras C-06]
   → C-05 pagos-webhook-firma-idempotencia     [Agente B — si C-04 ✓]
-  → C-07 datos-seed-y-catalogos               [Agente C — si C-06 ✓]
+  → C-07 ✓ datos-seed-y-catalogos             [Agente C — si C-06 ✓]
 
 GATE 1b: C-02 ✓
   → C-08 rbac-multirol-permisos-stock         [Agente A — si C-02 ✓]
@@ -128,7 +128,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 |------|--------------------------------------|-------------------------------------|-----------------------------|
 | 1 | C-01 ✓ | — | — |
 | 2 | C-03 | C-04 | C-06 ✓ |
-| 3 | C-02 ✓ | C-05 | C-07 |
+| 3 | C-02 ✓ | C-05 | C-07 ✓ |
 | 4 | C-08 | — | C-13a |
 | 5 | C-09 | — | — |
 | 6 | C-10 | C-12 | C-11 |
@@ -252,7 +252,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/10_preguntas_abiertas.md` (PA-10, PA-15)
 
 ### [C-07] `datos-seed-y-catalogos`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-10-c-07-datos-seed-y-catalogos/`)
 - **Scope**:
   - Cubre DT-23 y la parte de seed de DT-03. `backend/app/db/seed.py` idempotente: Roles (ADMIN, STOCK, PEDIDOS, CLIENT), EstadoPedido con 6 estados incl. `EN_CAMINO` y orden correcto (`CANCELADO` sin `orden=99`), FormaPago `MERCADOPAGO/EFECTIVO/TRANSFERENCIA` (no `TARJETA`), admin con `Admin1234!`.
   - Si hay cambios de catálogo/órdenes que requieran esquema, migración nueva: la siguiente a la cabeza vigente (hoy `002`; no fijar el número en el change).
@@ -671,4 +671,4 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: en paralelo C-04, C-03 y C-07 (C-06 y C-02 ya cerrados), más C-13a para el frontend; luego C-08 y C-05.
+**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: en paralelo C-08, C-04 y C-03 (C-06, C-02 y C-07 ya cerrados), más C-13a para el frontend; luego C-09 y C-05.
