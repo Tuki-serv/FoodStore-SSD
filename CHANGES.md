@@ -151,7 +151,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
   - `knowledge-base/10_preguntas_abiertas.md` (PA-09, PA-10, PA-15)
 
 ### [C-02] `auth-sesion-tokens-bearer-refresh`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-10-c-02-auth-sesion-tokens-bearer-refresh/`)
 - **Scope**:
   - Cubre DT-07, DT-11, DT-12.
   - Transporte del access token por `Authorization: Bearer`; la cookie HttpOnly pasa a ser el medio del refresh (PA-04 resuelta; `secure`/`samesite` configurables).
