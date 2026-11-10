@@ -63,6 +63,12 @@ class base_service(Generic[ModelType, CreateSchemaType, UpdateSchemaType, UoWTyp
             }
         
 
+    @staticmethod
+    def _pagina_vacia(page: int, size: int) -> dict:
+        """Respuesta paginada sin resultados (p. ej. un filtro que la visibilidad del lector deja vacío)."""
+        return {"items": [], "total": 0, "page": page, "size": size, "pages": 0}
+
+
     def _get_or_404(self, item_id, allow_deleted: bool = False) -> ModelType:
         item = self.repo.get_by_id(item_id)
         if not item or (not allow_deleted and getattr(item, "deleted_at", None) is not None):
@@ -70,9 +76,10 @@ class base_service(Generic[ModelType, CreateSchemaType, UpdateSchemaType, UoWTyp
         return item
 
 
-    def get_by_id(self, item_id: int, allow_deleted: bool = False) -> ModelType:
+    def get_by_id(self, item_id: int, allow_deleted: bool = False, *, ver_eliminados: bool) -> ModelType:
+        """`allow_deleted` solo se respeta si el lector puede ver eliminados (`ver_eliminados`, obligatorio: sin default)."""
         with self.uow:
-            return self._get_or_404(item_id, allow_deleted)
+            return self._get_or_404(item_id, allow_deleted and ver_eliminados)
         
 
     def create(self, item_in: CreateSchemaType) -> ModelType:

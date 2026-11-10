@@ -44,7 +44,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 
 - **RN-PR-01**: `precio_base >= 0` (validado en Python y CHECK en BD). `[INT]`
 - **RN-PR-02**: `stock_cantidad >= 0`. `disponible` es un toggle manual **independiente del stock**. `[INT]`
-- **RN-PR-03**: El público solo ve productos `disponible = true` y no eliminados; STOCK/ADMIN pueden ver los no disponibles. `[DESC]`
+- **RN-PR-03**: El público solo ve productos `disponible = true` y no eliminados; STOCK/ADMIN pueden ver los no disponibles; solo ADMIN ve eliminados. Los filtros `estado`/`disponible`/`include_deleted` intersectan con lo visible (nunca lo amplían: resultado vacío o 404) y un access inválido en la lectura pública responde 401 (C-08). `[DESC]`
 - **RN-PR-04**: Los ingredientes llevan `es_alergeno` (se muestra como badge de alérgenos); `ProductoIngrediente.es_removible` define qué se puede excluir al personalizar. `[DESC,INT]`
 - **RN-PR-05**: Nombres únicos entre activos para productos, ingredientes y unidades de medida.
 - **RN-PR-06**: Borrado de producto/ingrediente = soft delete; un producto con pedidos asociados no rompe integridad (`DetallePedido.producto_id RESTRICT`). `[DESC]`
@@ -110,7 +110,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 ## Dominio: API y Datos transversales (RN-GL)
 
 - **RN-GL-01**: Todas las rutas bajo `/api/v1`; errores en formato `{detail, code, field}` en toda la API (*deuda DT-18:* el rate limit devuelve otra forma); validación Pydantic → 422 `VALIDATION_ERROR`.
-- **RN-GL-02**: Los listados excluyen registros con `deleted_at` (los endpoints admin pueden incluirlos vía filtro `EstadoFiltro`: `ACTIVO|ELIMINADO|TODOS`).
+- **RN-GL-02**: Los listados excluyen registros con `deleted_at`; los eliminados (productos, ingredientes, categorías, unidades) solo los ve ADMIN vía el filtro `EstadoFiltro` (`ACTIVO|ELIMINADO|TODOS`): para el resto, `TODOS` equivale a `ACTIVO` y `ELIMINADO` da vacío (intersección, C-08).
 - **RN-GL-03**: Nunca se expone el modelo SQLModel como respuesta; schemas separados Create/Update/Read. Ningún `service` hace `session.commit()` directo (lo hace el UoW) — CE-10.
 - **RN-GL-04**: Precios y totales en `Decimal` (NUMERIC(10,2)), nunca float (excepto al enviar a MP: `float(monto)`).
 

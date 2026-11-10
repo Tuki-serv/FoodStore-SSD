@@ -213,6 +213,18 @@ def admin_auth_headers_fixture(client: TestClient) -> dict:
 def user_auth_headers_fixture(client: TestClient, normal_user: dict, normal_user_data: dict) -> dict:
     return _get_user_auth_headers(client, normal_user_data)
 
+@pytest.fixture(name="usuario_con_roles")
+def usuario_con_roles_fixture(client: TestClient, session: Session):
+    """Fábrica: `usuario_con_roles(["CLIENT", "STOCK"], claims_roles=None)` -> `(usuario_id, headers)`."""
+    from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
+
+    def _crear(roles: list[str], *, claims_roles: list[str] | None = None) -> tuple[int, dict[str, str]]:
+        usuario = crear_usuario_con_roles(session, roles)
+        return usuario.id, bearer_de_usuario(usuario, claims_roles or roles)
+
+    return _crear
+
+
 # Fixtures para Pedidos y Productos para ahorrar código en tests
 @pytest.fixture(name="producto_db")
 def producto_db_fixture(session: Session):

@@ -1,15 +1,18 @@
 from fastapi import HTTPException
 from typing import Optional, cast
+from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.core.cloudinary.service import eliminar_imagen, eliminar_multiples_imagenes
-from app.core.enums import EstadoFiltro
+from app.core.enums import EstadoFiltro, restringir_estado
 from app.core.service import base_service
 from app.modules.productos.models import Producto, ProductoCategoria, ProductoIngrediente
 from app.modules.productos.schemas import (
     CategoriaBasicRead,
     ProductoCreate,
+    ProductoDisponibilidadUpdate,
     ProductoReadFull,
+    ProductoStockUpdate,
     ProductoUpdate,
     ProductoIngredienteCreate,
     ProductoIngredienteRead
@@ -119,8 +122,19 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         disponible: Optional[bool] = None,
         categoria_ids: Optional[list[int]] = None,
         ingrediente_ids: Optional[list[int]] = None,
-        q: Optional[str] = None
+        q: Optional[str] = None,
+        *,
+        ver_no_disponibles: bool,
+        ver_eliminados: bool,
     ):
+        # Visibilidad: el público solo ve disponibles y no eliminados; los filtros intersectan, nunca amplían.
+        estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
+        if estado_efectivo is None or (not ver_no_disponibles and disponible is False):
+            return self._pagina_vacia(page, size)
+        estado = estado_efectivo
+        if not ver_no_disponibles:
+            disponible = True
+
         with self.uow:
             # 1. Traducimos página a offset para el repo
             offset = (page - 1) * size
@@ -149,9 +163,18 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                 "pages": pages
             }
 
-    def get_by_id_full(self, producto_id: int, allow_deleted: bool = False) -> ProductoReadFull:
+    def get_by_id_full(
+        self,
+        producto_id: int,
+        allow_deleted: bool = False,
+        *,
+        ver_no_disponibles: bool,
+        ver_eliminados: bool,
+    ) -> ProductoReadFull:
         with self.uow:
-            producto = self._get_or_404(producto_id, allow_deleted)
+            producto = self._get_or_404(producto_id, allow_deleted and ver_eliminados)
+            if not ver_no_disponibles and not producto.disponible:
+                raise HTTPException(status_code=404, detail=f"{self.model.__name__} no encontrado/a")
             return self._to_read_full(producto)
 
     def create(self, data: ProductoCreate) -> ProductoReadFull:
@@ -349,9 +372,18 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                 unidad_medida_id=data.unidad_medida_id
             )
 
-    def toggle_disponibilidad(self, producto_id: int) -> ProductoReadFull:
+    def _aplicar_cambio_parcial(self, producto_id: int, cambio: BaseModel) -> ProductoReadFull:
+        """Aplica un cambio parcial a un producto no eliminado (404 si no existe o está eliminado)."""
         with self.uow:
             producto = self._get_or_404(producto_id)
-            producto.disponible = not producto.disponible
+            self._apply_update_fields(producto, cambio)
             self.repo.update(producto)
             return self._to_read_full(producto)
+
+    def fijar_disponibilidad(self, producto_id: int, disponible: bool) -> ProductoReadFull:
+        """Fija `disponible` (idempotente; no toca el stock: RN-PR-02)."""
+        return self._aplicar_cambio_parcial(producto_id, ProductoDisponibilidadUpdate(disponible=disponible))
+
+    def fijar_stock(self, producto_id: int, stock_cantidad: int) -> ProductoReadFull:
+        """Setea `stock_cantidad` en forma absoluta (idempotente; no toca `disponible`)."""
+        return self._aplicar_cambio_parcial(producto_id, ProductoStockUpdate(stock_cantidad=stock_cantidad))

@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlmodel import Session
 
-from app.core.deps import require_role
+from app.core.deps import lector_privilegiado, require_role
 from app.core.database import get_session
 from app.core.schemas import PaginatedResponse
 from app.modules.ingredientes.schemas import (
@@ -16,6 +16,9 @@ from app.core.enums import EstadoFiltro
 
 router = APIRouter()
 
+# Lectura pública: los eliminados solo los ve ADMIN (el rol se declara acá).
+VeEliminados = Annotated[bool, Depends(lector_privilegiado(["ADMIN"]))]
+
 def get_ingrediente_service(session: Session = Depends(get_session)) -> IngredienteService:
     return IngredienteService(session)
 
@@ -28,6 +31,7 @@ def create_ingrediente(data: IngredienteCreate, svc: IngredienteService = Depend
 
 @router.get("/", response_model=PaginatedResponse[IngredienteReadFull], summary="Listar ingredientes (paginado y filtrado)")
 def list_ingredientes(
+    ver_eliminados: VeEliminados,
     page: Annotated[int, Query(ge=1, description="Número de página")] = 1,
     size: Annotated[int, Query(ge=1, le=100, description="Cantidad de items por página")] = 20,
     estado: Annotated[EstadoFiltro, Query(description="Filtrar por estado (activo/eliminado)")] = EstadoFiltro.ACTIVO,
@@ -35,16 +39,19 @@ def list_ingredientes(
     svc: IngredienteService = Depends(get_ingrediente_service)
 ):
     # ¡Unificamos dos endpoints en uno solo!
-    return svc.get_all_ingredientes(page=page, size=size, is_alergeno=is_alergeno, estado=estado)
+    return svc.get_all_ingredientes(
+        page=page, size=size, is_alergeno=is_alergeno, estado=estado, ver_eliminados=ver_eliminados
+    )
 
 
 @router.get("/{ingrediente_id}", response_model=IngredienteReadFull, summary="Obtener ingrediente")
 def get_ingrediente(
     ingrediente_id: Annotated[int, Path(ge=1)],
+    ver_eliminados: VeEliminados,
     incluir_eliminado: Annotated[bool, Query(description="Permitir ver el registro aunque esté eliminado")] = False,
     svc: IngredienteService = Depends(get_ingrediente_service)
 ):
-    return svc.get_by_id_full(ingrediente_id, allow_deleted=incluir_eliminado)
+    return svc.get_by_id_full(ingrediente_id, allow_deleted=incluir_eliminado, ver_eliminados=ver_eliminados)
 
 
 @router.patch("/{ingrediente_id}", response_model=IngredienteRead, summary="Actualizar ingrediente", dependencies=[Depends(require_role(["ADMIN"]))])

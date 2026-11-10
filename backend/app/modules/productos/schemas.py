@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Optional, List
+from pydantic import ConfigDict
 from sqlmodel import SQLModel, Field
 
 
@@ -83,6 +84,22 @@ class ProductoUpdate(SQLModel):
     ingredientes: Optional[list[ProductoIngredienteCreate]] = Field(
         default=None, description="Lista opcional de ingredientes para actualizar"
     )
+
+
+class ProductoDisponibilidadUpdate(SQLModel):
+    """Body de `PATCH /{id}/disponibilidad`: fija el valor (idempotente), no lo invierte."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    disponible: bool = Field(..., description="Nuevo valor de disponibilidad del producto")
+
+
+class ProductoStockUpdate(SQLModel):
+    """Body de `PATCH /{id}/stock`: seteo absoluto del conteo de inventario (idempotente)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    stock_cantidad: int = Field(..., ge=0, description="Cantidad total en stock tras el conteo manual")
 
 
 # ─── Response schemas ────────────────────────────────────────────────────────────────────

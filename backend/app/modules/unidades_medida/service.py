@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from typing import Optional
 from sqlmodel import Session
 
-from app.core.enums import EstadoFiltro
+from app.core.enums import EstadoFiltro, restringir_estado
 from app.core.service import base_service
 from app.modules.unidades_medida.models import UnidadMedida
 from app.modules.unidades_medida.schemas import UnidadMedidaCreate, UnidadMedidaUpdate, UnidadMedidaRead
@@ -40,7 +40,14 @@ class UnidadMedidaService(base_service[UnidadMedida, UnidadMedidaCreate, UnidadM
     #         return {"data": items, "total": total}
 
 
-    def get_all_unidades(self, page: int = 1, size: int = 20, estado: EstadoFiltro = EstadoFiltro.ACTIVO):
+    def get_all_unidades(
+        self, page: int = 1, size: int = 20, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool
+    ):
+        estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
+        if estado_efectivo is None:
+            return self._pagina_vacia(page, size)
+        estado = estado_efectivo
+
         with self.uow:
             offset = (page - 1) * size
             limit = size

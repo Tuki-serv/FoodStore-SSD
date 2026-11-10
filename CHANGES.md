@@ -85,7 +85,7 @@ GATE 1: C-04 ✓ / C-06 ✓
   → C-07 ✓ datos-seed-y-catalogos             [Agente C — si C-06 ✓]
 
 GATE 1b: C-02 ✓
-  → C-08 rbac-multirol-permisos-stock         [Agente A — si C-02 ✓]
+  → C-08 ✓ rbac-multirol-permisos-stock         [Agente A — si C-02 ✓]
 
 GATE 2: C-07 ✓ + C-08 ✓
   → C-09 pedidos-fsm-en-camino                [Agente A]
@@ -129,7 +129,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 | C-01 ✓ | — | — |
 | 2 | C-03 | C-04 | C-06 ✓ |
 | 3 | C-02 ✓ | C-05 | C-07 ✓ |
-| 4 | C-08 | — | C-13a |
+| 4 | C-08 ✓ | — | C-13a |
 | 5 | C-09 | — | — |
 | 6 | C-10 | C-12 | C-11 |
 | 7 | C-25a | — | C-13b |
@@ -267,7 +267,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/06_funcionalidades.md` (US-029)
 
 ### [C-08] `rbac-multirol-permisos-stock`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-10-c-08-rbac-multirol-permisos-stock/`)
 - **Scope**:
   - Cubre DT-14, DT-16. Autorización multi-rol: evaluar todos los roles del usuario (no `roles[0]`); eliminar `KeyError` para STOCK.
   - Además de `roles[0]`, revisar las dependencias de roles sobre los claims del access: `require_role` (en `backend/app/core/deps.py`) evalúa los roles cargados de la BD, mientras que el access lleva el claim `roles` (puede quedar desactualizado hasta 30 min); dejar escrito cuál es la fuente de autoridad y que ambas rutas sean coherentes.
@@ -295,6 +295,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Tests: cada transición válida/inválida por rol y forma de pago, historial, cancelación solo en PENDIENTE/CONFIRMADO con motivo.
   - Punto de partida (C-02): roles evaluados desde `get_current_active_user`/`require_role`; helpers de test con Bearer.
   - Punto de partida (C-07): el catálogo ya tiene `EN_CAMINO`(4) y `CANCELADO`(6); la fixture de tests usa `seed_catalogos`; `PATCH /estado` a `EN_CAMINO` responde 409 hasta que C-09 agregue las transiciones.
+  - Punto de partida (C-08): `PedidoService.cambiar_estado_pedido`, `cancelar_pedido_propio` y `_validar_transicion` reciben `roles: AbstractSet[str]` y consultan `TRANSICIONES` con `union_por_roles` (`backend/app/core/permissions.py`); el contenido de `TRANSICIONES` quedó **intacto** (sigue ADMIN/PEDIDOS/CLIENT con 5 estados). Un rol sin fila (`COCINA`, `STOCK`) da 409, no 500. El webhook llama con `roles=frozenset({"ADMIN"})`. Tests: `tests/integration/test_pedidos_multirol.py` y la matriz `tests/support/rbac_matriz.py` (actualizar ahí las filas de pedidos).
 - **Dependencias**: `C-07, C-08`
 - **Governance**: ALTO
 - **Leer antes**:
@@ -315,6 +316,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Confirmación manual de un pedido `EFECTIVO`/`TRANSFERENCIA` sin stock suficiente: la transición se rechaza con error claro y el pedido sigue PENDIENTE.
   - Encapsulado en un único método/servicio de stock (`StockService`) invocado desde la transición de la FSM (el punto de entrada que deja C-09), de modo que ni el router ni el webhook toquen el stock directamente.
   - Tests: descuento al confirmar (auto y manual), no descuento al crear ni al cancelar PENDIENTE, devolución al cancelar CONFIRMADO+, «pago aprobado sin stock», rechazo de confirmación manual sin stock, **concurrencia** (dos pedidos sobre el último stock), atomicidad en UoW.
+  - Punto de partida (C-08): `PATCH /productos/{id}/stock` (`{"stock_cantidad": n}`, seteo **absoluto**, ADMIN/STOCK) no bloquea la fila: al introducir el descuento atómico, decidir si el seteo manual usa `get_for_update` para no pisar un descuento concurrente (o si se pasa a delta).
 - **Dependencias**: `C-09`
 - **Governance**: ALTO
 - **Leer antes**:
@@ -333,6 +335,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Migración nueva (la siguiente a la cabeza vigente, hoy `002`) solo si cambia el esquema.
   - Punto de partida (C-02): `GET /auth/me` es el contrato de sesión; `GET`/`PATCH /usuarios/me` quedan como perfil (el `GET` duplicado se retira en C-14/C-25a).
   - Tests: contrato por endpoint, paginación, forma de errores, borrado con productos.
+  - Punto de partida (C-08): las unicidades, el 409 y los `HTTPException` en services siguen pendientes (C-08 no los tocó); `GET /productos/{id}/ingredientes` y `DELETE /productos/{id}/ingredientes/{ing_id}` (spec §5.2, OQ-5) tienen a C-11 como dueño; actualizar en la matriz `tests/support/rbac_matriz.py` las filas con dueño C-11 (`GET /pedidos/{id}`, historial, `DELETE`).
 - **Dependencias**: `C-09`
 - **Governance**: MEDIO
 - **Decisión pendiente**: `[PENDIENTE DE DECISIÓN: PA-14]` estandarización de contrato (se asume la spec v5.0).
@@ -392,6 +395,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Rehidratación de sesión con `GET /auth/me` (contrato de sesión de C-02).
   - Tests: interceptor (refresh + reintento, un solo refresh concurrente), guards de ruta.
   - **Decisión a tomar en el propose**: la spec `[INT]` pide que `authStore` persista solo `accessToken`, mientras que C-02 (D3/PA-04) dejó escrito que el access vive solo en memoria. Hay que elegir y, si cambia, actualizar la KB (`knowledge-base/05` RN-AU-10, `08` §Seguridad, `10` IN-07).
+  - Punto de partida (C-08): los roles para la UI se toman de `GET /auth/me` (el claim `roles` del access es informativo y no autoriza); las lecturas públicas (`GET /productos`, `/categorias`, `/ingredientes`, `/unidades-medida`) con un access inválido responden 401, así que el interceptor renueva y reintenta.
 - **Dependencias**: `C-13a, C-02, C-11`
 - **Governance**: ALTO
 - **UI**: sin mockup propio (usa el shell aprobado de C-13a).
@@ -467,6 +471,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Vistas condicionadas por rol (RBAC alineado con C-08).
   - Imágenes y unidades de medida (US-013, US-014) quedan en C-28.
   - Tests: permisos por rol en UI, CRUD de productos, actualización de stock/disponibilidad.
+  - Punto de partida (C-08): contratos de inventario: `PATCH /productos/{id}/disponibilidad` con body `{"disponible": bool}` (idempotente) y `PATCH /productos/{id}/stock` con `{"stock_cantidad": int>=0}` (absoluto), ambos ADMIN/STOCK; STOCK ve productos no disponibles pero no eliminados.
 - **Dependencias**: `C-17a, C-08`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` pantallas de administración de productos y stock.
@@ -619,6 +624,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 - **Scope**:
   - Cubre DT-02 y US-023. Según decisión: (a) formalizar rol `COCINA` (seed, `require_role`, permisos de FSM CONFIRMADO→EN_PREP, `GET /pedidos/cocina/pedidos`) y pantalla KDS; o (b) retirar `COCINA` del código y reasignar.
   - Tests según la opción elegida.
+  - Punto de partida (C-08): `COCINA` sigue habilitado en `require_role` de `PATCH /pedidos/{id}/estado` y `GET /pedidos/cocina/pedidos`; como `TRANSICIONES` no tiene fila `COCINA`, hoy recibe 409 en `/estado`.
 - **Dependencias**: `C-09, C-08` (y `C-27` para vista en vivo)
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` pantalla KDS (solo opción a).
@@ -635,6 +641,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Reemplazar el polling de 30 s en C-21/C-22 si se aprueba.
   - Autenticar el handshake con el access (Bearer/`sid`): los endpoints WS de `pedidos/router.py` leen la cookie `access_token`, que C-02 dejó de emitir, así que hoy no se pueden autenticar (roto desde C-02).
   - Tests: conexión, disconnect, rooms, autorización.
+  - Punto de partida (C-08): el único `roles[0]` que queda en el backend es el handler WebSocket `websocket_endpoint` (`/cocina/ws`) de `pedidos/router.py`; los permisos del resto se evalúan con la unión de roles.
 - **Dependencias**: `C-09, C-02`
 - **Governance**: ALTO
 - **Leer antes**:
@@ -667,8 +674,8 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 3** (C-01, C-02, C-06). **Pendientes obligatorios: 25** (9 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 5** (C-01, C-02, C-06, C-07, C-08). **Pendientes obligatorios: 23** (7 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: en paralelo C-08, C-04 y C-03 (C-06, C-02 y C-07 ya cerrados), más C-13a para el frontend; luego C-09 y C-05.
+**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-09 `pedidos-fsm-en-camino` (desbloqueado por C-07 ✓ y C-08 ✓), en paralelo con C-04, C-03 y C-13a; C-05 después de C-04.

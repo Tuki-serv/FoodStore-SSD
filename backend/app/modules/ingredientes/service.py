@@ -3,7 +3,7 @@ from typing import cast, Optional
 from sqlmodel import Session
 
 from app.core.cloudinary.service import eliminar_imagen
-from app.core.enums import EstadoFiltro
+from app.core.enums import EstadoFiltro, restringir_estado
 # IMPORTANTE: Acá importás tu base_service desde donde lo tengas
 from app.core.service import base_service
 from app.modules.ingredientes.models import Ingrediente
@@ -57,7 +57,12 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
     #         total = self.repo.count_filtered(estado, is_alergeno)
     #         return {"data": [self._to_read_full(i) for i in items], "total": total}
 
-    def get_all_ingredientes(self, page: int = 1, size: int = 20, is_alergeno: Optional[bool] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO):
+    def get_all_ingredientes(self, page: int = 1, size: int = 20, is_alergeno: Optional[bool] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool):
+        estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
+        if estado_efectivo is None:
+            return self._pagina_vacia(page, size)
+        estado = estado_efectivo
+
         with self.uow:
             offset = (page - 1) * size
             limit = size
@@ -76,9 +81,11 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
             }
 
 
-    def get_by_id_full(self, ingrediente_id: int, allow_deleted: bool = False) -> IngredienteReadFull:
+    def get_by_id_full(
+        self, ingrediente_id: int, allow_deleted: bool = False, *, ver_eliminados: bool
+    ) -> IngredienteReadFull:
         with self.uow:
-            item = self._get_or_404(ingrediente_id, allow_deleted)
+            item = self._get_or_404(ingrediente_id, allow_deleted and ver_eliminados)
             return self._to_read_full(item)
         
 
