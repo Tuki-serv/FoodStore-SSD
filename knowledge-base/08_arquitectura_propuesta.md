@@ -35,7 +35,7 @@ Food-Store-Prueba/                # raíz = gestión + orquestación (docker-com
 ├── frontend/                    # React + TS (llega en C-13)
 └── backend/
     ├── Dockerfile  .dockerignore
-    ├── alembic.ini  alembic/ (env.py, script.py.mako, versions/001_esquema_inicial.py)   # migraciones (C-06)
+    ├── alembic.ini  alembic/ (env.py, script.py.mako, versions/001_esquema_inicial.py, 002_sesiones_y_refresh_rotado.py)   # migraciones (C-06)
     ├── requirements.txt  pytest.ini  .env  .env.example   # .env no se versiona
     ├── tests/.env.test  tests/.env.test.example           # .env.test no se versiona; los tests lo leen de ahí
     ├── README.md
@@ -51,7 +51,9 @@ Food-Store-Prueba/                # raíz = gestión + orquestación (docker-com
     │   │   ├── mixins/auditable_mixin.py
     │   │   └── rate_limit/          # middleware + TokenBucket/RateLimiter
     │   ├── modules/
-    │   │   ├── usuarios/            # auth_router, usuarios_router, admin_router
+    │   │   ├── auth/                # auth_router (register, login, refresh, logout, logout-all, me), AuthService, cookies, AuthUnitOfWork (C-02)
+    │   │   ├── refreshtokens/       # models Sesion + RefreshToken, repositorios (sin router ni service) (C-02)
+    │   │   ├── usuarios/            # usuarios_router (perfil), admin_router, UsuarioService
     │   │   ├── direcciones_entrega/ categorias/ productos/ ingredientes/ unidades_medida/
     │   │   ├── pedidos/ detalles_pedido/ estados_pedido/ formas_pago/ historiales_estado_pedido/
     │   │   ├── pagos/ estadisticas/ health/
@@ -89,7 +91,7 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 
 ## Seguridad
 
-- **Autenticación**: JWT HS256 (access 30 min, enviado como `Authorization: Bearer`) + refresh (7 d, hash SHA-256 en BD, rotación con `revoked_at`). *Deuda DT-11:* el código actual usa cookie HttpOnly `access_token` (SameSite=lax, `secure=False` → debe ser `True` en producción HTTPS) y tiene el Bearer deshabilitado.
+- **Autenticación (C-02)**: JWT HS256 (access 30 min, claims `sub`, `roles`, `sid`, `type`) enviado solo como `Authorization: Bearer` y guardado en memoria por el frontend (`authStore`). El refresh es un valor opaco (hash SHA-256 en BD) en la cookie HttpOnly `refresh_token` con `Path=/api/v1/auth`, `SameSite`/`Secure` configurables (`REFRESH_COOKIE_SAMESITE`, `REFRESH_COOKIE_SECURE`). Cada login abre una **sesión** de 7 días fijos; el refresh rota en cada renovación con historial (`revoked_at` = rotado), con período de gracia (`REFRESH_REUSE_GRACE_SECONDS`) y detección de reuso que cierra todas las sesiones del usuario. Logout y logout-all marcan la sesión (nunca borran). CORS con credenciales: `CORS_ORIGINS` no admite `*`.
 - **Autorización**: RBAC con `require_role([...])`; propiedad de recursos verificada en Service (403).
 - **Validación de input**: Pydantic v2 (Create/Update/Read separados); CHECK constraints en BD; 422 uniforme `VALIDATION_ERROR`.
 - **Passwords**: bcrypt (passlib), cost >= 12, `CHAR(60)`.
@@ -111,9 +113,12 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 | `SECRET_KEY` | Firma JWT (>= 32 chars) | `openssl rand -hex 32` | **Y** |
 | `ALGORITHM` | Algoritmo JWT | `HS256` | **Y** |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Vida del access token | `30` | **Y** |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | Vida del refresh token | `7` | **Y** |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Vencimiento fijo de la sesión (C-02; la rotación no lo extiende) | `7` | **Y** |
+| `REFRESH_REUSE_GRACE_SECONDS` | Segundos tras rotar un refresh en que todavía se acepta sin considerarlo reuso (entero >= 0; 0 desactiva la gracia) | `30` | **Y** |
+| `REFRESH_COOKIE_SECURE` | Atributo `Secure` de la cookie del refresh (`false` solo en `.env.test`) | `true` | **Y** |
+| `REFRESH_COOKIE_SAMESITE` | `lax\|strict\|none` (`none` exige `REFRESH_COOKIE_SECURE=true`; si no, la carga falla) | `lax` | **Y** |
 | `LOG_LEVEL` | Nivel de log | `INFO` | **Y** |
-| `CORS_ORIGINS` | Orígenes permitidos, **array JSON** de strings | `["http://localhost:5173"]` | **Y** |
+| `CORS_ORIGINS` | Orígenes permitidos, **array JSON** de strings. No puede contener `*` (la cookie del refresh exige CORS con credenciales; si lo contiene la carga falla) | `["http://localhost:5173"]` | **Y** |
 | `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST` | Límite general (obligatorias hasta que C-03 las retire) | `60`, `10` | **Y** |
 | `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` | Límite de endpoints de auth | `5`, `5` | **Y** |
 | `MP_ACCESS_TOKEN` | Access token MP (backend) | `TEST-...` | N (opcional: pagos) |

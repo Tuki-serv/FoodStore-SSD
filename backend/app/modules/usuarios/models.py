@@ -59,25 +59,4 @@ class Usuario(UniqueAuditableMixin, SQLModel, table=True):
 
     # Relaciones
     roles: List[Rol] = Relationship(back_populates="usuarios", link_model=UsuarioRol, sa_relationship_kwargs={"foreign_keys": "[UsuarioRol.usuario_id, UsuarioRol.rol_codigo]"})
-    refresh_tokens: List["RefreshToken"] = Relationship(back_populates="usuario")
     direcciones: List["DireccionEntrega"] = Relationship(back_populates="usuario")
-
-
-# ==========================================
-# 3. ENTIDADES ASOCIADAS (Dominio 1)
-# ==========================================
-
-class RefreshToken(SQLModel, table=True):
-    __tablename__ = "refresh_token"
-    
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-    # usuario_id: int = Field(foreign_key="usuario.id")
-    usuario_id: int = Field(foreign_key="usuario.id", nullable=False, sa_type=BigInteger)
-    
-    token_hash: str = Field(sa_column=Column(CHAR(64), unique=True, nullable=False))
-    expires_at: datetime = aware_datetime_field()
-    revoked_at: Optional[datetime] = aware_datetime_field(nullable=True)
-    created_at: datetime = aware_datetime_field(default_now=True)
-
-    usuario: Usuario = Relationship(back_populates="refresh_tokens")

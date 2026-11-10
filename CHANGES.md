@@ -151,10 +151,10 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
   - `knowledge-base/10_preguntas_abiertas.md` (PA-09, PA-10, PA-15)
 
 ### [C-02] `auth-sesion-tokens-bearer-refresh`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-10-c-02-auth-sesion-tokens-bearer-refresh/`)
 - **Scope**:
   - Cubre DT-07, DT-11, DT-12.
-  - Transporte del access token por `Authorization: Bearer`; retirar cookie HttpOnly como único medio (cookie `secure` configurable solo si PA-04 la mantiene como complemento).
+  - Transporte del access token por `Authorization: Bearer`; la cookie HttpOnly pasa a ser el medio del refresh (PA-04 resuelta; `secure`/`samesite` configurables).
   - `GET /auth/me` (reemplaza `/usuarios/me` como contrato de sesión).
   - `POST /auth/refresh`: rotación del refresh token, hash SHA-256, uso de `revoked_at`; comparación de fechas aware vs naive corregida.
   - `POST /auth/logout`: revoca (marca `revoked_at`), no borra la fila; 204.
@@ -164,7 +164,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
   - Su migración es la siguiente después de la 001 de C-06 (`alembic revision --autogenerate --rev-id 002`). Toda FK nueva hacia `usuario.id` (por ejemplo `sesion.usuario_id`) es `BIGINT` (`sa_type=BigInteger`); el test de metadata de C-06 lo exige.
 - **Dependencias**: `C-01, C-06`
 - **Governance**: CRITICO
-- **Decisión pendiente**: `[PENDIENTE DE DECISIÓN: PA-04]` dónde guarda el frontend el refresh token (el backend lo soporta por body; no bloquea).
+- **Nota para C-13**: el frontend debe usar `withCredentials` hacia `/api/v1/auth` (el refresh viaja en cookie HttpOnly).
 - **Leer antes**:
   - `knowledge-base/05_reglas_de_negocio.md` §Autenticación (RN-AU)
   - `knowledge-base/03_actores_y_roles.md`
@@ -556,6 +556,7 @@ Si **PA-01 = "sin frontend"**: se descartan C-13..C-24; C-25 pasa a depender sol
 - **Scope**:
   - Cubre DT-08. Corregir `await manager.disconnect(...)` sobre método síncrono; rooms por rol/pedido; autenticación del handshake; notificación de cambios de estado.
   - Reemplazar el polling de 30 s en C-21/C-22 si se aprueba.
+  - Autenticar el handshake con el access (Bearer/`sid`): los endpoints WS de `pedidos/router.py` leen la cookie `access_token`, que C-02 dejó de emitir, así que hoy no se pueden autenticar (roto desde C-02).
   - Tests: conexión, disconnect, rooms, autorización.
 - **Dependencias**: `C-09, C-02`
 - **Governance**: ALTO

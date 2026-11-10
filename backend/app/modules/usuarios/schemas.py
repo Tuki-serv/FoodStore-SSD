@@ -43,13 +43,3 @@ class UserPublicAdminPanel(UserPublic):
 class UserPaginationResponse(SQLModel):
     data: List[UserPublicAdminPanel]  # Aquí sí usamos UserPublic para filtrar cada usuario de la lista
     total: int
-
-# --- Respuesta del Login ---
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
-
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str

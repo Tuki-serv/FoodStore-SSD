@@ -3,6 +3,7 @@ from sqlmodel import Session, SQLModel, func, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 from app.core.enums import EstadoFiltro
 from datetime import datetime, timezone
+from uuid import UUID
 
 T = TypeVar("T", bound=SQLModel)
 
@@ -26,7 +27,7 @@ class BaseRepository(Generic[T]):
 
 
     #===========Read============
-    def get_by_id(self, record_id: int) -> Optional[T]:
+    def get_by_id(self, record_id: int | UUID) -> Optional[T]:
         return self.session.get(self.model, record_id)
     
 
@@ -65,6 +66,10 @@ class BaseRepository(Generic[T]):
     def update(self, data: T) -> T:
         self.session.add(data)
         return data
+
+    def flush(self) -> None:
+        """Envía a la base los cambios pendientes sin confirmar la transacción."""
+        self.session.flush()
     
 
     #==========Delete===========

@@ -37,7 +37,7 @@ def test_build_alembic_config_sin_conexion_no_define_attributes_connection() -> 
 def test_historial_de_migraciones_tiene_una_sola_cabeza() -> None:
     script = ScriptDirectory.from_config(build_alembic_config())
 
-    assert ensure_single_head(script) == "001"
+    assert ensure_single_head(script) == "002"
 
 
 def _script_dir_con_revisiones(tmp_path: Path, revisiones: dict[str, str | None]) -> ScriptDirectory:

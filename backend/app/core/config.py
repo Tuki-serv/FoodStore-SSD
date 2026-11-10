@@ -9,6 +9,7 @@ Convención (ver knowledge-base/09, DD-18):
 """
 from typing import Literal, Optional
 
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,7 +25,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
-    REFRESH_TOKEN_EXPIRE_DAYS: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int  # vencimiento fijo de la sesión
+    REFRESH_REUSE_GRACE_SECONDS: int = Field(ge=0)
+    REFRESH_COOKIE_SECURE: bool
+    REFRESH_COOKIE_SAMESITE: Literal["lax", "strict", "none"]
 
     # ─── Logging ─────────────────────────────────────────────────────────────
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -49,6 +53,23 @@ class Settings(BaseSettings):
     CLOUDINARY_NAME: Optional[str] = None
     CLOUDINARY_API_KEY: Optional[str] = None
     CLOUDINARY_API_SECRET: Optional[str] = None
+
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def _cors_sin_comodin(cls, origenes: list[str]) -> list[str]:
+        # La cookie del refresh exige CORS con credenciales: el estándar no admite `*` con credenciales.
+        if "*" in origenes:
+            raise ValueError("CORS_ORIGINS no puede contener '*' (se usa con credenciales)")
+        return origenes
+
+    @model_validator(mode="after")
+    def _samesite_none_exige_secure(self) -> "Settings":
+        if self.REFRESH_COOKIE_SAMESITE == "none" and not self.REFRESH_COOKIE_SECURE:
+            raise ValueError(
+                "REFRESH_COOKIE_SAMESITE=none exige REFRESH_COOKIE_SECURE=true "
+                "(los navegadores rechazan la cookie)"
+            )
+        return self
 
     @property
     def rate_limit_default_burst(self) -> int:

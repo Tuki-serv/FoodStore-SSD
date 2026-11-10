@@ -26,7 +26,7 @@ def test_seed_sobre_base_en_version_vieja_lanza_error_y_no_inserta_filas(migrati
         conn.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"))
         conn.execute(text("INSERT INTO alembic_version VALUES ('000')"))
 
-    with pytest.raises(SchemaNotReadyError, match=r"actual: 000, esperada: 001"):
+    with pytest.raises(SchemaNotReadyError, match=r"actual: 000, esperada: 002"):
         seed(migrations_db)
 
     assert _tablas(migrations_db) == {"alembic_version"}
