@@ -30,9 +30,9 @@ Backend real (, **estado tras C-06 (DT-09 resuelta):** Alembic con migración 00
 
 ```
 Food-Store-Prueba/                # raíz = gestión + orquestación (docker-compose.yml, .env/.env.example de compose; openspec/, knowledge-base/, docs/, design-system/, CHANGES.md, CLAUDE.md, AGENTS.md, README.md)
-├── docker-compose.yml           # D10: orquesta db (postgres:15, host 5433), pgadmin (5050), backend (build ./backend); frontend en C-13
+├── docker-compose.yml           # D10: orquesta db (postgres:15, host 5433), pgadmin (5050), backend (build ./backend); frontend en C-13a
 ├── .env  .env.example           # SOLO variables de compose (POSTGRES_*, PGADMIN_*); .env no se versiona
-├── frontend/                    # React + TS (llega en C-13)
+├── frontend/                    # React + TS (llega en C-13a)
 └── backend/
     ├── Dockerfile  .dockerignore
     ├── alembic.ini  alembic/ (env.py, script.py.mako, versions/001_esquema_inicial.py, 002_sesiones_y_refresh_rotado.py)   # migraciones (C-06)

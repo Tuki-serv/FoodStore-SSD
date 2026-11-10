@@ -40,7 +40,7 @@ services:
       db:
         condition: service_healthy
 
-  # frontend:  (se agrega en C-13)
+  # frontend:  (se agrega en C-13a)
 
 volumes:
   postgres_data:

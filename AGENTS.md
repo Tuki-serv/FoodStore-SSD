@@ -5,7 +5,7 @@
 
 Food Store es una tienda de comida online (React + TypeScript + FastAPI + PostgreSQL) con catálogo jerárquico, carrito persistente, pedidos gobernados por una máquina de estados con historial append-only, pago con MercadoPago (webhook IPN idempotente) y un panel de administración con métricas, protegido por JWT y RBAC de cuatro roles. Se desarrolla como TPI con SDD, evaluado sobre 200 puntos.
 
-**Estructura del repo (C-01, D9):** la raíz es solo de gestión (`openspec/`, `knowledge-base/`, `docs/`, `design-system/`, `CHANGES.md`, `todoAMd/`); el código vive en `backend/` (`app/`, `tests/`, `pytest.ini`, `requirements.txt`, `Dockerfile`, `.env`) y `frontend/` (llega en C-13). `docker-compose.yml` y su `.env` (solo variables de compose) viven en la **raíz** y orquestan todo el proyecto (`db`, `pgadmin`, `backend`; `frontend` en C-13): `docker compose up -d db` se corre desde la raíz. Los comandos de backend (`pip install`, `alembic upgrade head`, `pytest`, `uvicorn app.main:app`, `python -m app.db.seed`) se corren desde `backend/`; los tests leen `backend/tests/.env.test`. Los tests nunca van en la raíz.
+**Estructura del repo (C-01, D9):** la raíz es solo de gestión (`openspec/`, `knowledge-base/`, `docs/`, `design-system/`, `CHANGES.md`, `todoAMd/`); el código vive en `backend/` (`app/`, `tests/`, `pytest.ini`, `requirements.txt`, `Dockerfile`, `.env`) y `frontend/` (llega en C-13a). `docker-compose.yml` y su `.env` (solo variables de compose) viven en la **raíz** y orquestan todo el proyecto (`db`, `pgadmin`, `backend`; `frontend` en C-13a): `docker compose up -d db` se corre desde la raíz. Los comandos de backend (`pip install`, `alembic upgrade head`, `pytest`, `uvicorn app.main:app`, `python -m app.db.seed`) se corren desde `backend/`; los tests leen `backend/tests/.env.test`. Los tests nunca van en la raíz.
 
 ---
 
@@ -61,7 +61,7 @@ La fuente de verdad del dominio vive en `knowledge-base/` (índice: [README](kno
 
 Otros recursos: [design-system/README.md](design-system/README.md) (Revision 1 aprobada; política `system-and-mockups`: todo change visual necesita un mockup aprobado antes de `/opsx:apply`), [openspec/](openspec/) (changes y specs).
 
-> ⚠️ **Resolver ANTES de codear** las preguntas de prioridad **Alta** de `10_preguntas_abiertas.md`: PA-01 (¿incluye frontend completo o solo backend?), PA-03 (¿descontar stock al crear el pedido o al pagar? ¿TTL de PENDIENTE?), PA-04 (dónde guarda el frontend el refresh token), PA-06 (cómo se confirman pedidos EFECTIVO/TRANSFERENCIA), PA-07 (quién despacha `EN_CAMINO`; rol `COCINA`/KDS: ¿se incorpora o se elimina?). PA-02 ya está resuelta. Los changes afectados llevan marca `[PENDIENTE DE DECISIÓN: PA-xx]` en CHANGES.md.
+> ⚠️ **Decisiones del usuario (2026-11-10)**: PA-01 (alcance con frontend completo), PA-03 (stock se descuenta al confirmar el pedido, sin TTL), PA-05 (Checkout API con `CardPayment`), PA-06 (confirmación manual de `EFECTIVO`/`TRANSFERENCIA` por ADMIN/PEDIDOS) y PA-04 (refresh en cookie HttpOnly, C-02) están **resueltas** (DD-19..DD-23). De prioridad **Alta** solo sigue abierta la parte de **PA-07** sobre el rol `COCINA`/KDS/WebSocket (¿se incorporan o se eliminan?), que se decide al final y no se toca ahora; `EN_CAMINO` lo despachan ADMIN y PEDIDOS. Leé `10_preguntas_abiertas.md` antes de codear en Fase 2; las de prioridad Media/Baja (p. ej. PA-08, PA-14) no bloquean y los changes afectados las marcan con `[PENDIENTE DE DECISIÓN: PA-xx]` en CHANGES.md.
 
 ---
 
@@ -90,10 +90,10 @@ Notas:
 
 El plan completo está en [CHANGES.md](CHANGES.md). Resumen:
 
-- **Total**: 28 changes (C-01..C-28) en 3 fases: Fase 0 corrección de deuda técnica del backend (C-01..C-12), Fase 1 frontend y cierre (C-13..C-25), Fase 2 extras opcionales/bloqueados por PA-07 y PA-19 (C-26..C-28).
-- **Camino crítico** (9): `C-01 → C-06 → C-07 → C-09 → C-11 → C-13 → C-19 → C-20 → C-25` (C-20 requiere además C-12). Los changes de seguridad (C-02, C-04, C-05) tienen prioridad de ejecución en Fase 0.
+- **Total**: 31 changes (C-01..C-28; C-13, C-17 y C-25 partidos en `a`/`b`) en 3 fases: Fase 0 corrección de deuda técnica del backend (12: C-01..C-12), Fase 1 frontend y cierre (16: C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b), Fase 2 extras opcionales/bloqueados por la parte COCINA/KDS de PA-07 y por PA-19 (3: C-26..C-28). Cerrados: C-01, C-02 y C-06; pendientes obligatorios: 25.
+- **Camino crítico** (11): `C-01 → C-06 → C-07 → C-09 → C-11 → C-13b → C-16 → C-18 → C-19 → C-20 → C-25b` (C-20 requiere además C-12; C-13b requiere además C-13a y C-02). Los changes de seguridad (C-02, C-04, C-05) tienen prioridad de ejecución en Fase 0.
 - **Primer change**: `C-01` (baseline-backend).
-- Marcas: `[UI-MOCKUP]` = mockup aprobado antes de apply; `[PENDIENTE DE DECISIÓN: PA-xx]` = no bloquea, se ajusta luego.
+- Marcas: `[UI-MOCKUP]` = mockup aprobado antes de apply; `[PENDIENTE DE DECISIÓN: PA-xx]` = pregunta aún abierta (hoy PA-08, PA-14); no bloquea, se ajusta luego.
 
 **Antes de cualquier `/opsx:propose`**: leé [CHANGES.md](CHANGES.md), identificá dependencias del change y los archivos de "Leer antes".
 

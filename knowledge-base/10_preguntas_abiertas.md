@@ -1,6 +1,6 @@
 # Preguntas Abiertas
 
-Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]` Descripcion.docx, `[INT]` integrador.docx v5.0. Generado en modo silencioso (sin consultar al usuario): todo lo ambiguo o contradictorio queda registrado aquí.
+Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resueltas el 2026-11-10 (DD-19..DD-22) y PA-07 resuelta en parte (DD-23); PA-19 agregada. Fuentes: `[DESC]` Descripcion.docx, `[INT]` integrador.docx v5.0. Generado en modo silencioso (sin consultar al usuario): todo lo ambiguo o contradictorio queda registrado aquí.
 
 > **Regla de resolución (DD-16 / DD-17, confirmada por el usuario):** `integrador.docx` v5.0 es normativo frente a `Descripcion.docx`, y la **spec es el objetivo**; el código es el estado actual con deuda técnica. Por eso, en las "Resolución" de abajo, el objetivo es la spec v5.0 salvo donde se indique "abierta" (la spec calla). La tabla consolidada de deuda está en [09 — Deuda técnica](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada) (DT-01..DT-25).
 
@@ -35,7 +35,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 **A** (`[DESC]` RN-03/04): se decrementa al pasar a **CONFIRMADO**; se restaura al cancelar un pedido ya confirmado.
 **B** (código actual): se decrementa al **crear el pedido** (PENDIENTE) y se restaura en cualquier cancelación. `[INT]` solo exige verificar `disponible`/stock al crear.
 **Impacto**: Pedidos impagos "reservan" stock indefinidamente (no hay expiración de PENDIENTE); en el código actual un pedido PENDIENTE sin pagar bloquea inventario.
-**Resolución (abierta, deuda DT-04)**: `[INT]` solo exige verificar `disponible`/stock al crear; el momento del descuento no está especificado (la regla de `[DESC]` no es normativa). Decidir reserva al crear (con TTL/auto-cancelación) o decremento en CONFIRMADO. Ver PA-03.
+**Resolución (cerrada por el usuario el 2026-11-10, DD-20; deuda DT-04 hasta que la implemente C-10)**: `[INT]` solo exige verificar `disponible`/stock al crear; el momento del descuento lo decidió el usuario (PA-03): se **verifica al crear, se descuenta al confirmarse el pedido** (pago aprobado o confirmación manual) y se devuelve solo al cancelar un CONFIRMADO o posterior; sin TTL ni auto-cancelación de pedidos impagos. Es el **objetivo**: el código actual todavía descuenta al crear (DT-04).
 
 ### IN-06 — Dos numeraciones "RN-01..05"
 **A** (`[DESC]`): RN-01 sin saltos; RN-02 CONFIRMADO solo automático; RN-03 decremento de stock; RN-04 restauración; RN-05 terminales.
@@ -77,7 +77,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 **A** (`[DESC]`,`[INT]`): exactamente 4 roles.
 **B** (código actual): `require_role([..."COCINA"])` en `PATCH /pedidos/{id}/estado`, `GET /cocina/pedidos` y el WebSocket de cocina; el rol no se siembra.
 **Impacto**: Imposible asignar el rol vía seed; código muerto o rol faltante.
-**Resolución (abierta; deuda DT-02)**: la spec define solo 4 roles; `COCINA` es un **extra del código, no especificado**. Pendiente decidir si se incorpora a la spec o se elimina. Ver PA-07.
+**Resolución (abierta; deuda DT-02)**: la spec define solo 4 roles; `COCINA` es un **extra del código, no especificado**. El usuario decidió (2026-11-10, DD-23) **dejarlo para el final**: no se toca ni se elimina ahora; si sobra tiempo se decide si se incorpora a la spec o se elimina (C-26/C-27, Fase 2). El despacho de `EN_CAMINO` ya está resuelto: ADMIN y PEDIDOS. Ver PA-07.
 
 ### IN-13 — Multi-rol vs uso de `roles[0]`
 **A** (spec): un usuario puede tener varios roles. **B** (código actual): `current_user.roles[0].codigo` decide permisos de transición/WS; un usuario con `CLIENT` + `ADMIN` puede actuar con el rol equivocado; `TRANSICIONES[rol]` da `KeyError` si el rol es `STOCK`/`COCINA`.
@@ -111,7 +111,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 
 ### IN-20 — CONFIRMADO "solo automático" vs transición manual
 **A** (`[DESC]` RN-02): nadie puede confirmar manualmente. **B** (código actual): ADMIN y PEDIDOS tienen `PENDIENTE→CONFIRMADO` en `TRANSICIONES` (útil para pagos en efectivo, pero rompe la regla).
-**Resolución (spec = objetivo; deuda DT-15)**: CONFIRMADO automático por pago; la confirmación manual del código actual es deuda salvo que PA-06 la habilite para efectivo/transferencia.
+**Resolución (cerrada por el usuario el 2026-11-10, PA-06, DD-22; deuda DT-15 hasta C-09)**: CONFIRMADO automático por pago para `MERCADOPAGO`; la confirmación manual PENDIENTE→CONFIRMADO queda permitida **solo a ADMIN y PEDIDOS y solo para `EFECTIVO`/`TRANSFERENCIA`**. La deuda del código actual es que la permite para cualquier forma de pago.
 
 ### IN-21 — Actor del historial en transiciones automáticas
 **A** (`[DESC]`,`[INT]`): `usuario_id` NULL cuando es el Sistema. **B** (código actual): el webhook registra como actor al **dueño del pedido** y usa `rol="ADMIN"` para saltear permisos.
@@ -132,7 +132,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 
 ### IN-25 — Modalidad de integración con MercadoPago
 **A** (`[DESC]`,`[INT]`): Checkout API con Orders, token de tarjeta del navegador, `POST /pagos/crear` con token, `idempotency_key` verificado en el webhook; `[DESC]` además `crear-preferencia`. **B** (código actual): Checkout Pro (preferencia + `init_point` + redirect, `back_urls` vía ngrok), `POST /pagos/crear {pedido_id}`, `idempotency_key` solo se genera (no se usa para deduplicar); sin validación de firma; sin autenticación.
-**Resolución (spec = objetivo; deuda DT-01, DT-05, DT-06, DT-20)**: Checkout API/Orders con token de tarjeta, `idempotency_key` verificado, firma del webhook validada y endpoints autenticados (rúbrica: "SDK con idempotency_key UUID; webhook topic=payment que avanza pedido; tabla Pago completa"). Checkout Pro es el código actual.
+**Resolución (spec = objetivo; PA-05 resuelta, DD-21; deuda DT-01, DT-05, DT-06, DT-20)**: Checkout API/Orders con token de tarjeta, `idempotency_key` verificado, firma del webhook validada y endpoints autenticados (rúbrica: "SDK con idempotency_key UUID; webhook topic=payment que avanza pedido; tabla Pago completa"). Checkout Pro es el código actual.
 
 ### IN-26 — Tarjetas de prueba con vencimiento en el pasado
 **Detalle** (`[INT]` §8.3): vencimiento `11/25`; la fecha actual del proyecto es posterior (hoy 2026-11). Las tarjetas sandbox de MP aceptan "cualquier fecha futura".
@@ -146,13 +146,13 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 
 | ID | Prioridad | Pregunta | Bloquea | Decisor |
 |----|-----------|----------|---------|---------|
-| PA-01 | Alta | ¿El alcance de esta entrega incluye el frontend React completo (el código actual solo trae backend) o solo se completa/audita el backend? | Planificación de changes | Equipo / docente |
+| PA-01 | **RESUELTA** | ¿El alcance de esta entrega incluye el frontend React completo (el código actual solo trae backend) o solo se completa/audita el backend? **Respuesta del usuario (2026-11-10, DD-19):** el alcance incluye el frontend React completo; se hacen todos los changes de Fase 1 | — | Equipo / docente |
 | PA-02 | **RESUELTA** | ¿Qué documento es normativo? **Respuesta del usuario: `integrador.docx` v5.0 prevalece** → DD-16 (cierra SU-02) | — | Usuario |
-| PA-03 | Alta | ¿Descontar stock al crear el pedido (con expiración de PENDIENTE) o al confirmarse el pago? ¿Hay TTL para pedidos impagos? | Change de pedidos/stock | Product Owner / Tech Lead |
-| PA-04 | Alta | **RESUELTA (C-02):** el refresh vive en una cookie HttpOnly (`Path=/api/v1/auth`) que el frontend nunca lee; el access vive en memoria del frontend (`authStore`). C-13 debe usar `withCredentials` hacia `/api/v1/auth` | Auth frontend + backend | Tech Lead |
-| PA-05 | Media | Objetivo spec: Checkout API/Orders con `CardPayment`, firma de webhook validada, endpoints de pago autenticados (DT-01/05/06). Abierto: ¿se acepta Checkout Pro como etapa intermedia hasta migrar? | Change de pagos | Tech Lead |
-| PA-06 | Alta | ¿Cómo se confirman pedidos con `EFECTIVO`/`TRANSFERENCIA` si CONFIRMADO es solo automático por pago MP? ¿Quién marca el cobro? | FSM y pagos | Product Owner |
-| PA-07 | Alta | `EN_CAMINO` entra al seed/FSM (spec, DT-03); abierto: ¿quién despacha (ADMIN/PEDIDOS)? El rol `COCINA` y el KDS son **extras del código, no especificados**: ¿se incorporan a la spec o se eliminan? (IN-12, DT-02) | Change de pedidos | Product Owner |
+| PA-03 | **RESUELTA** | ¿Descontar stock al crear el pedido (con expiración de PENDIENTE) o al confirmarse el pago? ¿Hay TTL para pedidos impagos? **Respuesta del usuario (2026-11-10, DD-20):** el stock se descuenta **al confirmarse** el pedido (pago aprobado o confirmación manual), no al crearlo. Crear solo verifica `disponible` y stock; cancelar un PENDIENTE no devuelve nada; cancelar un CONFIRMADO o posterior devuelve el stock; **sin TTL ni auto-cancelación**. Caso «pago aprobado sin stock»: el pedido pasa a CANCELADO con motivo «sin stock» (actor Sistema), el pago queda marcado para devolución manual (la devolución automática sigue fuera de alcance: PA-08) y el webhook responde 200. Confirmación manual sin stock: se rechaza con error claro y el pedido sigue PENDIENTE. Lo implementa C-10 | — | Product Owner / Tech Lead |
+| PA-04 | Alta | **RESUELTA (C-02):** el refresh vive en una cookie HttpOnly (`Path=/api/v1/auth`) que el frontend nunca lee; el access vive en memoria del frontend (`authStore`). C-13b debe usar `withCredentials` hacia `/api/v1/auth` | Auth frontend + backend | Tech Lead |
+| PA-05 | **RESUELTA** | Objetivo spec: Checkout API/Orders con `CardPayment`, firma de webhook validada, endpoints de pago autenticados (DT-01/05/06). ¿Se acepta Checkout Pro como etapa intermedia hasta migrar? **Respuesta del usuario (2026-11-10, DD-21):** no; se migra a Checkout API con `CardPayment` y C-12 se hace como está planeado, sin etapa intermedia ni alternativa de redirect | — | Tech Lead |
+| PA-06 | **RESUELTA** | ¿Cómo se confirman pedidos con `EFECTIVO`/`TRANSFERENCIA` si CONFIRMADO es solo automático por pago MP? ¿Quién marca el cobro? **Respuesta del usuario (2026-11-10, DD-22):** los confirma a mano un usuario ADMIN o PEDIDOS (transición manual PENDIENTE→CONFIRMADO permitida solo para esas formas de pago); los de `MERCADOPAGO` solo se confirman automáticamente | — | Product Owner |
+| PA-07 | Alta (parcial) | **Resuelto (2026-11-10, DD-23):** `EN_CAMINO` entra al seed/FSM (spec, DT-03) y lo despachan ADMIN y PEDIDOS. **Abierto, para el final:** el rol `COCINA`, el KDS y el WebSocket son **extras del código, no especificados**; no se tocan ni se eliminan ahora y se decide si sobra tiempo si se incorporan a la spec o se eliminan (IN-12, DT-02; C-26 y C-27 en Fase 2; PA-19 sigue abierta) | Solo Fase 2 (C-26, C-27) | Product Owner |
 | PA-08 | Media | ¿Se reembolsa automáticamente un pago aprobado si el pedido se cancela (CONFIRMADO)? ¿Se cancela el pedido si el pago es `cancelled`? | Pagos / cancelación | Product Owner |
 | PA-09 | **RESUELTA** | Auditoría de productos, ingredientes y Cloudinary en C-01. Auditoría (`openspec/changes/archive/2026-11-06-c-01-baseline-backend/design.md`): escritura ADMIN correcta; **gaps** (no corregidos en C-01): STOCK no puede actualizar `stock_cantidad` (solo `PUT` ADMIN); `PATCH /{id}/disponibilidad` es un toggle sin body, no idempotente; la lectura pública acepta `estado`/`include_deleted` y expone eliminados (viola RN-PR-03); `HTTPException` en services; unicidad incluye eliminados y responde 400 en vez de 409. Insumo de C-08/C-11; Cloudinary perezoso/opcional resuelto en C-01 (D8), `HTTPException` en core → C-28 | Auditoría de catálogo | Equipo técnico |
 | PA-10 | **RESUELTA** | Los tests no usan SQLite: corren sobre **PostgreSQL 15 real** (`foodstore_test`, mismo contenedor de desarrollo, puerto 5433) con guardia `_test`, transacción externa + savepoint por test y `alembic upgrade head` por sesión. Ver DD-18 / SU-07 | Estrategia de pruebas / bonus | Equipo técnico |
