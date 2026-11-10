@@ -294,6 +294,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Toda transición a CONFIRMADO (automática o manual) pasa por un único punto de entrada de la FSM, para que C-10 enganche ahí el descuento atómico de stock.
   - Tests: cada transición válida/inválida por rol y forma de pago, historial, cancelación solo en PENDIENTE/CONFIRMADO con motivo.
   - Punto de partida (C-02): roles evaluados desde `get_current_active_user`/`require_role`; helpers de test con Bearer.
+  - Punto de partida (C-07): el catálogo ya tiene `EN_CAMINO`(4) y `CANCELADO`(6); la fixture de tests usa `seed_catalogos`; `PATCH /estado` a `EN_CAMINO` responde 409 hasta que C-09 agregue las transiciones.
 - **Dependencias**: `C-07, C-08`
 - **Governance**: ALTO
 - **Leer antes**:
@@ -348,6 +349,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Reintento tras rechazo; `GET /pagos/{pedido_id}` con `mp_status_detail`.
   - Cubre DT-26: `pagos.external_reference` como UUID único y obligatorio (generado por el backend), con su migración (la siguiente a la cabeza vigente, hoy `002`).
   - Mantener el webhook de C-05 como confirmación.
+  - Punto de partida (C-07): `TARJETA` quedó deshabilitada en el catálogo de formas de pago (no se siembra); la tarjeta es un medio dentro de `MERCADOPAGO`.
   - Tests con sandbox mockeado: aprobado, rechazado, pendiente, reintento.
   - Al retirar el redirect de Checkout Pro se eliminan `FRONTEND_URL` y `BACKEND_PUBLIC_URL` (opcionales, introducidas en C-01). El chequeo «MercadoPago no configurado» (503, formato uniforme `{detail, code, field}`) debe conservarse en el flujo nuevo.
 - **Dependencias**: `C-05, C-09`

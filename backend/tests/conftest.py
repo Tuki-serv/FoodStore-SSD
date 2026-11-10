@@ -41,7 +41,8 @@ from app.core.database import build_engine, get_session  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.db.migrations import drop_all_tables, upgrade_to_head  # noqa: E402
 from app.main import app  # noqa: E402
-from app.modules.usuarios.models import Usuario  # noqa: E402
+from app.db.seed import seed_catalogos  # noqa: E402
+from app.modules.usuarios.models import Rol, Usuario  # noqa: E402
 from tests.support.db_admin import ensure_database_exists  # noqa: E402
 
 
@@ -121,12 +122,21 @@ def plain_client_fixture():
 
 
 def _create_test_admin(session: Session) -> None:
-    # Usamos un admin fijo para los tests en base al que la app puede tener
+    """Siembra la base de tests: catálogos del seed (`seed_catalogos`) + el rol extra `COCINA` + el admin de la fixture.
+
+    Este admin (`admin@foodstore.com` / `admin123`) es de la fixture de tests, no el admin que crea el seed
+    (`Admin1234!`): los helpers de login de la suite dependen de esta credencial.
+    """
     existing = session.exec(
         select(Usuario).where(Usuario.email == "admin@foodstore.com")
     ).first()
     if existing is not None:
         return
+
+    seed_catalogos(session)
+    # DD-23: `COCINA` no es del catálogo del seed; la fixture lo conserva tal como estaba.
+    session.add(Rol(codigo="COCINA", nombre="Cocina", descripcion="Recibe pedidos para preparar"))
+    session.flush()
 
     admin = Usuario(
         email="admin@foodstore.com",
@@ -134,51 +144,10 @@ def _create_test_admin(session: Session) -> None:
         nombre="Admin",
         apellido="Test"
     )
-    # Importante: Como en Food Store el RBAC lo manejamos con roles de muchos a muchos,
-    # debemos asociar el rol ADMIN si hiciera falta. Pero si la app asume
-    # roles por tabla relacional, lo creamos manualmente aquí.
-    from app.modules.usuarios.models import Rol
-    roles_necesarios = [
-        {"codigo": "ADMIN",   "nombre": "Administrador",    "descripcion": "Acceso total sin restricciones"},
-        {"codigo": "STOCK",   "nombre": "Gestor de Stock",   "descripcion": "Actualiza stock y disponible"},
-        {"codigo": "PEDIDOS", "nombre": "Gestor de Pedidos", "descripcion": "Avanza estados CONFIRMADO->ENTREGADO"},
-        {"codigo": "CLIENT",  "nombre": "Cliente",           "descripcion": "Opera solo sus propios datos"},
-        {"codigo": "COCINA",  "nombre": "Cocina",            "descripcion": "Recibe pedidos para preparar"},
-    ]
-    
-    roles_db = {}
-    for rol_data in roles_necesarios:
-        rol = session.exec(select(Rol).where(Rol.codigo == rol_data["codigo"])).first()
-        if not rol:
-            rol = Rol(**rol_data)
-            session.add(rol)
-        roles_db[rol_data["codigo"]] = rol
-    
-    admin.roles.append(roles_db["ADMIN"])
-    
+    admin.roles.append(session.get(Rol, "ADMIN"))
     session.add(admin)
     session.commit()
 
-    # Seed Estados
-    from app.modules.estados_pedido.models import EstadoPedido
-    estados = [
-        {"codigo": "PENDIENTE", "descripcion": "Pendiente", "orden": 1, "es_terminal": False},
-        {"codigo": "CONFIRMADO", "descripcion": "Confirmado", "orden": 2, "es_terminal": False},
-        {"codigo": "EN_PREP", "descripcion": "En Preparacion", "orden": 3, "es_terminal": False},
-        {"codigo": "ENTREGADO", "descripcion": "Entregado", "orden": 5, "es_terminal": True},
-        {"codigo": "CANCELADO", "descripcion": "Cancelado", "orden": 99, "es_terminal": True},
-    ]
-    for st_data in estados:
-        if not session.exec(select(EstadoPedido).where(EstadoPedido.codigo == st_data["codigo"])).first():
-            session.add(EstadoPedido(**st_data))
-
-    # Seed FormaPago
-    from app.modules.formas_pago.models import FormaPago
-    fp_data = {"codigo": "EFECTIVO", "descripcion": "Efectivo", "habilitado": True}
-    if not session.exec(select(FormaPago).where(FormaPago.codigo == fp_data["codigo"])).first():
-        session.add(FormaPago(**fp_data))
-    
-    session.commit()
 
 # ===========================================================================
 # 4. FIXTURES DE DATOS (Normal User, Payloads, etc)

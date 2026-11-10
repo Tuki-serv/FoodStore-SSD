@@ -74,17 +74,17 @@ Ingrediente N──1 UnidadMedida ; Producto N──0..1 UnidadMedida (unidad_ve
 
 > **Regla de la KB (DD-16/DD-17):** la spec (integrador v5.0) es el objetivo; el código actual es el estado actual con deuda técnica. Tabla consolidada: [09](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada).
 
-Obligatorio tras migrar; sin él la app no funciona. **Objetivo:** `python -m app.db.seed` (`backend/app/db/seed.py`, CE-05). Las filas "(`seed.py` real)" son el código actual y constituyen deuda (DT-03, DT-23):
+Obligatorio tras migrar; sin él la app no funciona. `python -m app.db.seed` (`backend/app/db/seed.py`, CE-05) deja la base con este contenido (implementado en C-07; resuelve la parte de seed de DT-03 y DT-23):
 
 | Entidad | Registros |
 |---------|-----------|
-| Rol | `ADMIN`, `STOCK`, `PEDIDOS`, `CLIENT` (descripciones: acceso total / actualiza stock y disponible / avanza estados / opera solo sus datos). `COCINA` **no** está sembrado (correcto según spec; ver DT-02) |
-| EstadoPedido (spec) | `PENDIENTE`(1), `CONFIRMADO`(2), `EN_PREP`(3), `EN_CAMINO`(4), `ENTREGADO`(5, terminal), `CANCELADO`(6, terminal) |
-| EstadoPedido (`seed.py` real, **deuda DT-03**) | `PENDIENTE`(1), `CONFIRMADO`(2), `EN_PREP`(3), `ENTREGADO`(5, terminal), `CANCELADO`(99, terminal) — **sin `EN_CAMINO`** (IN-03) |
-| FormaPago (spec) | `MERCADOPAGO`, `EFECTIVO`, `TRANSFERENCIA`, todas habilitadas |
-| FormaPago (`seed.py` real, **deuda DT-23**) | `EFECTIVO`, `MERCADOPAGO`, `TARJETA` |
-| Usuario admin | `admin@foodstore.com` con rol ADMIN. Objetivo: `Admin1234!` (cambiar en producción); código actual (deuda DT-23): `admin123` |
-| Usuarios de prueba (`seed.py`, extra no especificado) | `cliente@foodstore.com/cliente123`, `pedidos@foodstore.com/pedidos123`, `stock@foodstore.com/stock123` |
-| Datos demo (`seed.py`, extra no especificado) | 7 unidades de medida (kg, g, L, mL, u, doc, m²); categorías Hamburguesas/Bebidas/Postres + subcategorías Veganas, Sin TACC, Gaseosas; 12 ingredientes (alérgenos: Pan Brioche, Queso Cheddar, Mayonesa); 6 productos (Clásica 1500, BBQ Bacon 1900, Vegana 1800, Sin TACC 1700, Coca-Cola 800, Limonada 700) con relaciones y `es_removible` |
+| Rol | `ADMIN`, `STOCK`, `PEDIDOS`, `CLIENT` (descripciones: acceso total / actualiza stock y disponible / avanza estados / opera solo sus datos). `COCINA` **no** se siembra y el seed no lo toca si existe (DD-23) |
+| EstadoPedido | `PENDIENTE`(1), `CONFIRMADO`(2), `EN_PREP`(3), `EN_CAMINO`(4), `ENTREGADO`(5, terminal), `CANCELADO`(6, terminal). La FSM con `EN_CAMINO` llega en C-09 |
+| FormaPago | `MERCADOPAGO`, `EFECTIVO`, `TRANSFERENCIA`, todas habilitadas al crearse. `TARJETA` no se siembra: la tarjeta es un medio dentro de `MERCADOPAGO` |
+| Usuario admin | `admin@foodstore.com` con rol ADMIN y contraseña `Admin1234!` (credencial de desarrollo; cambiar en producción) |
+| Usuarios de prueba (extra no especificado) | `cliente@foodstore.com/cliente123`, `pedidos@foodstore.com/pedidos123`, `stock@foodstore.com/stock123` |
+| Datos demo (extra no especificado) | 7 unidades de medida (kg, g, L, mL, u, doc, m²); categorías Hamburguesas/Bebidas/Postres + subcategorías Veganas, Sin TACC, Gaseosas; 12 ingredientes (alérgenos: Pan Brioche, Queso Cheddar, Mayonesa); 6 productos (Clásica 1500, BBQ Bacon 1900, Vegana 1800, Sin TACC 1700, Coca-Cola 800, Limonada 700) con relaciones y `es_removible` |
 
-> **DT-09 (resuelta en C-06):** el `seed.py` exige el esquema migrado (`alembic upgrade head`; si no, falla con ese mensaje y no crea tablas) y es idempotente (verifica existencia antes de insertar). `reset.py` borra por reflexión todas las tablas, incluida `alembic_version`.
+**Reconciliación sobre bases existentes (C-07):** el seed lleva los catálogos a estos valores en el lugar (por ejemplo `CANCELADO.orden` 99 → 6, agrega `EN_CAMINO`) sin tocar pedidos ni historial. Una forma de pago fuera del catálogo (`TARJETA`) queda con `habilitado = false` y no se borra (hay pedidos que la referencian); el `habilitado` de las formas del catálogo no se modifica. Un usuario existente (por ejemplo un admin con `admin123`) no se modifica: para tener `Admin1234!` hay que recrear la base.
+
+> **DT-09 (resuelta en C-06; idempotencia real en C-07):** el `seed.py` exige el esquema migrado (`alembic upgrade head`; si no, falla con ese mensaje y no crea tablas). Hasta C-06 la nota decía que era idempotente, pero no lo era: la segunda corrida fallaba al duplicar categorías, ingredientes y productos. Desde C-07 es idempotente (comparación fila a fila entre dos corridas), respeta las bajas lógicas y corre en una sola transacción (si falla, no queda nada a medias). `reset.py` borra por reflexión todas las tablas, incluida `alembic_version`.

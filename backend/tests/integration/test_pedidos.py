@@ -1,6 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
+
+from app.db.seed import seed_catalogos
+from app.modules.formas_pago.models import FormaPago
+from app.modules.pedidos.models import Pedido
 
 # ===========================================================================
 # TESTS: Pedidos
@@ -29,6 +33,37 @@ class TestCrearPedido:
         assert response.status_code == 201
         data = response.json()
         assert data["estado_codigo"] == "PENDIENTE"
+
+    def test_crear_pedido_con_transferencia_del_catalogo_del_seed(
+        self, client: TestClient, user_auth_headers: dict, producto_db, direccion_db
+    ):
+        payload = {
+            "direccion_id": direccion_db.id,
+            "forma_pago_codigo": "TRANSFERENCIA",
+            "items": [{"producto_id": producto_db.id, "cantidad": 1}],
+        }
+        response = client.post("/api/v1/pedidos/", json=payload, headers=user_auth_headers)
+        assert response.status_code == 201
+        assert response.json()["forma_pago_codigo"] == "TRANSFERENCIA"
+
+    def test_crear_pedido_con_tarjeta_deshabilitada_por_el_seed_responde_400_y_no_crea_pedido(
+        self, client: TestClient, session: Session, user_auth_headers: dict, producto_db, direccion_db
+    ):
+        session.add(FormaPago(codigo="TARJETA", descripcion="Tarjeta", habilitado=True))
+        session.commit()
+        seed_catalogos(session)
+        pedidos_antes = len(session.exec(select(Pedido)).all())
+
+        payload = {
+            "direccion_id": direccion_db.id,
+            "forma_pago_codigo": "TARJETA",
+            "items": [{"producto_id": producto_db.id, "cantidad": 1}],
+        }
+        response = client.post("/api/v1/pedidos/", json=payload, headers=user_auth_headers)
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Forma de pago no está habilitada"
+        assert len(session.exec(select(Pedido)).all()) == pedidos_antes
 
     @pytest.mark.parametrize("payload,error_field", [
         pytest.param({"direccion_id": 1, "items": [
