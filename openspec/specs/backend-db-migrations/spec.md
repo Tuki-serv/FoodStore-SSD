@@ -158,7 +158,7 @@ El seed SHALL ejecutarse solo si la base está en la última versión del esquem
 
 #### Scenario: Base migrada
 - **WHEN** se ejecuta `python -m app.db.seed` contra una base en la última versión
-- **THEN** inserta los datos de catálogo como hasta ahora
+- **THEN** siembra los catálogos de roles, estados de pedido y formas de pago definidos en `backend-db-seed`, el admin inicial y los datos de demostración, sin crear ni alterar tablas
 
 ### Requirement: El reset deja la base lista para migrar
 El reset de la base de desarrollo SHALL borrar todas las tablas del esquema, incluida la tabla de control de versión de las migraciones, de modo que `alembic upgrade head` vuelva a construir el esquema desde cero.

@@ -122,6 +122,25 @@ alembic current           # versión actual de la base
 alembic history           # historial de migraciones
 ```
 
+## Seed (datos iniciales)
+
+`python -m app.db.seed` (desde `backend/`, con la base migrada) siembra los catálogos de la spec (roles, 6 estados de pedido, formas de pago `MERCADOPAGO`/`EFECTIVO`/`TRANSFERENCIA`), el admin inicial y datos de demostración. Es **idempotente**: se puede correr las veces que haga falta sin duplicar datos, respeta lo dado de baja y corre en una sola transacción (si falla, no queda nada a medias). Sobre una base vieja **corrige los catálogos en el lugar** (agrega `EN_CAMINO`, `CANCELADO.orden` = 6, deja `TARJETA` deshabilitada) sin tocar pedidos.
+
+| Usuario | Contraseña | Rol |
+|---------|------------|-----|
+| `admin@foodstore.com` | `Admin1234!` | ADMIN |
+| `cliente@foodstore.com` | `cliente123` | CLIENT |
+| `pedidos@foodstore.com` | `pedidos123` | PEDIDOS |
+| `stock@foodstore.com` | `stock123` | STOCK |
+
+Son credenciales de **desarrollo**; cambiarlas en producción. El seed no modifica usuarios existentes: si tu base ya tenía el admin con `admin123`, recrear la base para obtener `Admin1234!`:
+
+```bash
+python -m app.db.reset    # borra TODAS las tablas: se pierden los datos
+alembic upgrade head
+python -m app.db.seed
+```
+
 ### Base de desarrollo creada antes de Alembic (con `create_all`)
 
 Recrearla: los datos de desarrollo son los del seed.

@@ -22,7 +22,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 **A** (`[DESC]`,`[INT]`): 6 estados incluyendo `EN_CAMINO` (`[DESC]` llama al tercero `EN_PREPARACIÓN`; `[INT]` `EN_PREP`).
 **B** (código actual): `seed.py` solo siembra 5 estados (sin `EN_CAMINO`; `orden` ENTREGADO=5, CANCELADO=99); la FSM permite `EN_PREP → ENTREGADO`.
 **Impacto**: El flujo de despacho y el seguimiento al cliente no existen; la rúbrica pide FSM de 6 estados.
-**Resolución (spec = objetivo; deuda DT-03)**: Agregar `EN_CAMINO` al seed y a `TRANSICIONES` (`EN_PREP → EN_CAMINO → ENTREGADO`), usar el código `EN_PREP`.
+**Resolución (spec = objetivo; deuda DT-03)**: Agregar `EN_CAMINO` al seed y a `TRANSICIONES` (`EN_PREP → EN_CAMINO → ENTREGADO`), usar el código `EN_PREP`. **Catálogo con `EN_CAMINO` hecho en C-07** (`CANCELADO.orden=6`); las transiciones llegan en C-09.
 
 ### IN-04 — Quién puede cancelar y desde qué estados
 **A** (`[DESC]`): PENDIENTE→CANCELADO por Cliente/PEDIDOS/ADMIN; CONFIRMADO→CANCELADO por PEDIDOS/ADMIN (no el cliente); EN_PREP→CANCELADO solo ADMIN.
@@ -95,7 +95,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 
 ### IN-16 — Forma de pago y catálogo de formas
 **A** (`[DESC]`): Tarjeta de crédito/débito (+ opcional Efectivo). **B** (`[INT]`): `MERCADOPAGO`, `EFECTIVO`, `TRANSFERENCIA`. **C** (código actual): `EFECTIVO`, `MERCADOPAGO`, `TARJETA`.
-**Resolución (spec = objetivo; deuda DT-23)**: catálogo `MERCADOPAGO`, `EFECTIVO`, `TRANSFERENCIA`; flujo de cobro de EFECTIVO/TRANSFERENCIA abierto (PA-06).
+**Resolución (spec = objetivo; deuda DT-23)**: catálogo `MERCADOPAGO`, `EFECTIVO`, `TRANSFERENCIA`; flujo de cobro de EFECTIVO/TRANSFERENCIA abierto (PA-06). **Catálogo hecho en C-07**: `TARJETA` queda deshabilitada (no se borra) en bases viejas y no se siembra en bases nuevas.
 
 ### IN-17 — Eliminación de categorías
 **A** (`[INT]`): "soft delete con validación" (`ON DELETE SET NULL` en `parent_id`). **B** (código actual): re-asigna las hijas al padre de la eliminada, sin validar productos asociados.
