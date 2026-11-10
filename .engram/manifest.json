@@ -40,6 +40,14 @@
       "sessions": 1,
       "memories": 5,
       "prompts": 0
+    },
+    {
+      "id": "e75f3d47",
+      "created_by": "jacop",
+      "created_at": "2026-11-10T17:31:43.44793Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
     }
   ]
 }
