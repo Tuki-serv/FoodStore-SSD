@@ -85,7 +85,7 @@ GATE 1: C-04 ✓ / C-06 ✓
   → C-07 ✓ datos-seed-y-catalogos             [Agente C — si C-06 ✓]
 
 GATE 1b: C-02 ✓
-  → C-08 rbac-multirol-permisos-stock         [Agente A — si C-02 ✓]
+  → C-08 ✓ rbac-multirol-permisos-stock         [Agente A — si C-02 ✓]
 
 GATE 2: C-07 ✓ + C-08 ✓
   → C-09 pedidos-fsm-en-camino                [Agente A]
@@ -129,7 +129,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 | C-01 ✓ | — | — |
 | 2 | C-03 | C-04 | C-06 ✓ |
 | 3 | C-02 ✓ | C-05 | C-07 ✓ |
-| 4 | C-08 | — | C-13a |
+| 4 | C-08 ✓ | — | C-13a |
 | 5 | C-09 | — | — |
 | 6 | C-10 | C-12 | C-11 |
 | 7 | C-25a | — | C-13b |
@@ -267,7 +267,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/06_funcionalidades.md` (US-029)
 
 ### [C-08] `rbac-multirol-permisos-stock`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-10-c-08-rbac-multirol-permisos-stock/`)
 - **Scope**:
   - Cubre DT-14, DT-16. Autorización multi-rol: evaluar todos los roles del usuario (no `roles[0]`); eliminar `KeyError` para STOCK.
   - Además de `roles[0]`, revisar las dependencias de roles sobre los claims del access: `require_role` (en `backend/app/core/deps.py`) evalúa los roles cargados de la BD, mientras que el access lleva el claim `roles` (puede quedar desactualizado hasta 30 min); dejar escrito cuál es la fuente de autoridad y que ambas rutas sean coherentes.
@@ -674,8 +674,8 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 3** (C-01, C-02, C-06). **Pendientes obligatorios: 25** (9 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 5** (C-01, C-02, C-06, C-07, C-08). **Pendientes obligatorios: 23** (7 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: en paralelo C-08, C-04 y C-03 (C-06, C-02 y C-07 ya cerrados), más C-13a para el frontend; luego C-09 y C-05.
+**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-09 `pedidos-fsm-en-camino` (desbloqueado por C-07 ✓ y C-08 ✓), en paralelo con C-04, C-03 y C-13a; C-05 después de C-04.
