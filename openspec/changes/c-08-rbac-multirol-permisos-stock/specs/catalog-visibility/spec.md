@@ -76,11 +76,15 @@ Las lecturas de productos, `/api/v1/ingredientes`, `/api/v1/categorias` y `/api/
 - **THEN** recibe 404
 
 ### Requirement: Un access inválido en una lectura pública es un error
-Si una lectura pública del catálogo trae el header `Authorization` con un access inválido, vencido o sin `sid`, la respuesta SHALL ser 401, en lugar de tratar el pedido como anónimo. Un pedido sin el header SHALL atenderse como anónimo.
+Si una lectura pública del catálogo trae el header `Authorization` con un access inválido, vencido, sin `sid` o de un usuario dado de baja (`deleted_at`), la respuesta SHALL ser 401 con el mismo cuerpo que un access inválido, en lugar de tratar el pedido como anónimo. Un pedido sin el header SHALL atenderse como anónimo.
 
 #### Scenario: Access inválido
 - **WHEN** un pedido llama a `GET /api/v1/productos` con `Authorization: Bearer no-es-un-jwt`
 - **THEN** recibe 401
+
+#### Scenario: Usuario dado de baja
+- **WHEN** un usuario con `deleted_at` llama a `GET /api/v1/productos` (o a cualquier listado o detalle de ingredientes, categorías o unidades de medida) con su access
+- **THEN** recibe 401, con el mismo cuerpo que un access inválido (no el 404 de las rutas protegidas)
 
 #### Scenario: Sin header
 - **WHEN** un pedido sin `Authorization` llama a `GET /api/v1/productos`

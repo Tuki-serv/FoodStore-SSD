@@ -3,7 +3,7 @@ from typing import cast, Optional
 from sqlmodel import Session
 
 from app.core.cloudinary.service import eliminar_imagen
-from app.core.enums import EstadoFiltro
+from app.core.enums import EstadoFiltro, restringir_estado
 from app.core.service import base_service
 from app.modules.categorias.models import Categoria
 from app.modules.categorias.schemas import (
@@ -85,7 +85,12 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
     #         total = self.repo.count_filtered(state=estado, is_main=is_main, parent_id=parent_id)
     #         return {"data": [self._to_read_full(i) for i in items], "total": total}
 
-    def get_all_categorias(self, page: int = 1, size: int = 20, is_main: Optional[bool] = None, parent_id: Optional[int] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO):
+    def get_all_categorias(self, page: int = 1, size: int = 20, is_main: Optional[bool] = None, parent_id: Optional[int] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool):
+        estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
+        if estado_efectivo is None:
+            return self._pagina_vacia(page, size)
+        estado = estado_efectivo
+
         with self.uow:
             if parent_id is not None:
                 self._get_or_404(parent_id, allow_deleted=True)
@@ -107,9 +112,11 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
             }
 
 
-    def get_by_id_full(self, categoria_id: int, allow_deleted: bool = False) -> CategoriaReadFull:
+    def get_by_id_full(
+        self, categoria_id: int, allow_deleted: bool = False, *, ver_eliminados: bool
+    ) -> CategoriaReadFull:
         with self.uow:
-            item = self._get_or_404(categoria_id, allow_deleted)
+            item = self._get_or_404(categoria_id, allow_deleted and ver_eliminados)
             return self._to_read_full(item)
 
 

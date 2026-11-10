@@ -2,13 +2,15 @@ from typing import Annotated, Optional, List
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlmodel import Session
 
-from app.core.deps import require_role
+from app.core.deps import lector_privilegiado, require_role
 from app.core.database import get_session
 from app.core.enums import EstadoFiltro
 from app.core.schemas import PaginatedResponse
 from app.modules.productos.schemas import (
     ProductoCreate,
+    ProductoDisponibilidadUpdate,
     ProductoReadFull,
+    ProductoStockUpdate,
     ProductoUpdate,
     ProductoUpdateImagenes, 
     ProductoIngredienteCreate
@@ -16,6 +18,10 @@ from app.modules.productos.schemas import (
 from app.modules.productos.service import ProductoService
 
 router = APIRouter(tags=["Productos"])
+
+# Lectura pública: no disponibles solo ADMIN/STOCK; eliminados solo ADMIN (los roles se declaran acá).
+VeNoDisponibles = Annotated[bool, Depends(lector_privilegiado(["ADMIN", "STOCK"]))]
+VeEliminados = Annotated[bool, Depends(lector_privilegiado(["ADMIN"]))]
 
 def get_producto_service(session: Session = Depends(get_session)) -> ProductoService:
     return ProductoService(session)
@@ -27,6 +33,8 @@ def get_producto_service(session: Session = Depends(get_session)) -> ProductoSer
 
 @router.get("/", response_model=PaginatedResponse[ProductoReadFull], summary="Buscar y filtrar productos")
 def list_productos(
+    ver_no_disponibles: VeNoDisponibles,
+    ver_eliminados: VeEliminados,
     page: Annotated[int, Query(ge=1, description="Número de página")] = 1,
     size: Annotated[int, Query(ge=1, le=100, description="Cantidad de items por página")] = 20,
     estado: Annotated[EstadoFiltro, Query(description="Filtrar por estado lógico")] = EstadoFiltro.ACTIVO,
@@ -49,16 +57,25 @@ def list_productos(
         disponible=disponible,
         categoria_ids=categoria_ids, 
         ingrediente_ids=ingrediente_ids,
-        q=q
+        q=q,
+        ver_no_disponibles=ver_no_disponibles,
+        ver_eliminados=ver_eliminados,
     )
 
 @router.get("/{producto_id}", response_model=ProductoReadFull, summary="Obtener producto por ID")
 def get_producto(
     producto_id: Annotated[int, Path(ge=1)],
+    ver_no_disponibles: VeNoDisponibles,
+    ver_eliminados: VeEliminados,
     include_deleted: Annotated[bool, Query(description="Permitir ver el registro aunque esté eliminado")] = False,
     svc: ProductoService = Depends(get_producto_service)
 ):
-    return svc.get_by_id_full(producto_id, allow_deleted=include_deleted)
+    return svc.get_by_id_full(
+        producto_id,
+        allow_deleted=include_deleted,
+        ver_no_disponibles=ver_no_disponibles,
+        ver_eliminados=ver_eliminados,
+    )
 
 
 # ══════════════════════════════════════════════════════
@@ -82,12 +99,22 @@ def update_producto(
     return svc.update(producto_id, data)
 
 
-@router.patch("/{producto_id}/disponibilidad", response_model=ProductoReadFull, summary="Activar/desactivar disponibilidad", dependencies=[Depends(require_role(["ADMIN", "STOCK"]))])
-def toggle_disponibilidad(
+@router.patch("/{producto_id}/disponibilidad", response_model=ProductoReadFull, summary="Fijar disponibilidad (true/false)", dependencies=[Depends(require_role(["ADMIN", "STOCK"]))])
+def fijar_disponibilidad(
     producto_id: Annotated[int, Path(ge=1)],
+    data: ProductoDisponibilidadUpdate,
     svc: ProductoService = Depends(get_producto_service)
 ):
-    return svc.toggle_disponibilidad(producto_id)
+    return svc.fijar_disponibilidad(producto_id, data.disponible)
+
+
+@router.patch("/{producto_id}/stock", response_model=ProductoReadFull, summary="Fijar stock (seteo absoluto)", dependencies=[Depends(require_role(["ADMIN", "STOCK"]))])
+def fijar_stock(
+    producto_id: Annotated[int, Path(ge=1)],
+    data: ProductoStockUpdate,
+    svc: ProductoService = Depends(get_producto_service)
+):
+    return svc.fijar_stock(producto_id, data.stock_cantidad)
 
 
 @router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar producto", dependencies=[Depends(require_role(["ADMIN"]))])

@@ -213,7 +213,7 @@ class PaymentService:
                                 motivo="Pago confirmado via Webhook MercadoPago"
                             ),
                             usuario_id=user_id_to_log,  # Use the order's user to avoid FK error
-                            rol="ADMIN"
+                            roles=frozenset({"ADMIN"})
                         )
                         
                         # TODO: Rúbrica MP (Webhook que procesa topic=payment, avanza pedido y notifica WS).

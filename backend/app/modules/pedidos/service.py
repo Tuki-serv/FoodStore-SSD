@@ -1,5 +1,7 @@
+from collections.abc import Set as AbstractSet
 from decimal import Decimal
 from fastapi import HTTPException
+from app.core.permissions import union_por_roles
 from app.modules.detalles_pedido.models import DetallePedido
 from app.core.websocket import ConnectionManager
 from app.modules.detalles_pedido.schemas import DetallePedidoRead
@@ -178,7 +180,7 @@ class PedidoService:
         pedido_id: int,
         data: PedidoCambioEstado,
         usuario_id: int,
-        rol: str,
+        roles: AbstractSet[str],
         ws_manager: ConnectionManager | None = None,
     ) -> PedidoReadFull:
         with self._uow as uow:
@@ -200,7 +202,7 @@ class PedidoService:
                 estado_destino_codigo=estado_destino.codigo,
                 estado_actual_es_terminal=estado_actual.es_terminal,
                 motivo=data.motivo,
-                rol=rol,
+                roles=roles,
             )
             
             estado_origen = pedido.estado_codigo
@@ -210,7 +212,7 @@ class PedidoService:
             
             # Auditoría por consola (Log)
             logger.info(
-                f"AUDITORÍA FSM: Usuario ID {usuario_id} (Rol: {rol}) "
+                f"AUDITORÍA FSM: Usuario ID {usuario_id} (Roles: {sorted(roles)}) "
                 f"avanzó pedido {pedido_id} de '{estado_origen}' a '{estado_destino.codigo}'. "
                 f"Motivo: {data.motivo}"
             )
@@ -286,17 +288,15 @@ class PedidoService:
         estado_destino_codigo: str,
         estado_actual_es_terminal: bool,
         motivo: str | None,
-        rol: str,
+        roles: AbstractSet[str],
     ) -> None:
         if estado_actual_es_terminal:
             raise HTTPException(
                 status_code=409,
                 detail="No se puede cambiar un pedido en estado terminal",
             )
-        transiciones_permitidas = self.TRANSICIONES[rol].get(
-            estado_actual_codigo,
-            set(),
-        )
+        # Unión de lo que permite cada rol del usuario; un rol sin fila (STOCK, COCINA) no aporta nada.
+        transiciones_permitidas = union_por_roles(self.TRANSICIONES, roles, estado_actual_codigo)
         if estado_destino_codigo not in transiciones_permitidas:
             raise HTTPException(
                 status_code=409,
@@ -403,7 +403,7 @@ class PedidoService:
                     status_code=403, detail="No tenés acceso a este pedido")
             return self._armar_pedido_read_full(uow, pedido)
 
-    def cancelar_pedido_propio(self, pedido_id: int, usuario_id: int, rol: str, data: PedidoCambioEstado) -> PedidoReadFull:
+    def cancelar_pedido_propio(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str], data: PedidoCambioEstado) -> PedidoReadFull:
         with self._uow as uow:
             pedido = self._obtener_pedido_o_404(uow, pedido_id)
             if pedido.usuario_id != usuario_id:
@@ -416,7 +416,7 @@ class PedidoService:
                 estado_destino_codigo=self.ESTADOS['cancelado'],
                 estado_actual_es_terminal=estado_actual.es_terminal,
                 motivo=data.motivo,
-                rol=rol,
+                roles=roles,
             )
             estado_desde = pedido.estado_codigo
             pedido.estado_codigo = self.ESTADOS['cancelado']

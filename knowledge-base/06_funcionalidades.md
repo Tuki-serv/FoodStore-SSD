@@ -55,15 +55,15 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 - [ ] Crear/editar/eliminar con validación de nombre único, anti-ciclos y re-asignación de hijas
 **Reglas**: RN-CA-01..05
 
-### US-010 — Gestión de productos (ADMIN/STOCK)
-- [ ] Crear con precio, stock inicial, categorías e ingredientes; validar que existan; editar; soft delete; cambiar `disponible` (`PATCH /{id}/disponibilidad` en spec)
+### US-010 — Gestión de productos (ADMIN)
+- [ ] Crear con precio, stock inicial, categorías e ingredientes; validar que existan; editar; soft delete; cambiar `disponible` (`PATCH /{id}/disponibilidad` con `{"disponible": bool}`, ADMIN y STOCK; ver US-012)
 **Reglas**: RN-PR-01..06
 
 ### US-011 — Gestión de ingredientes y alérgenos
 - [ ] CRUD de ingredientes con `es_alergeno` y unidad de medida; asociar a productos con `es_removible`, cantidad y unidad
 
 ### US-012 — Gestión de stock (STOCK)
-- [ ] Actualizar `stock_cantidad` y `disponible`
+- [ ] Actualizar `stock_cantidad` con `PATCH /productos/{id}/stock` (`{"stock_cantidad": n}`, seteo absoluto, `n >= 0`) y `disponible` con `PATCH /productos/{id}/disponibilidad` (`{"disponible": bool}`); ambos idempotentes, ADMIN y STOCK
 
 ### US-013 — Subida de imágenes (ADMIN)
 - [ ] Subir/eliminar imágenes en Cloudinary; guardar `imagen_url` + `public_id`

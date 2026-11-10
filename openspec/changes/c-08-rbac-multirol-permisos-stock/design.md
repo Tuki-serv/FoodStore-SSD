@@ -206,6 +206,12 @@ El `detail` del 403 de `require_role` pasa a «Permisos insuficientes», sin rol
 ### D14. Documentación
 `knowledge-base/03` (matriz sin el `*` de STOCK, contratos de stock y disponibilidad, fuente de autoridad, visibilidad; la nota de «Rutas públicas» que mezcla categorías e ingredientes con DT-05), `09` (DT-14 y DT-16 resueltas; DD-11 sin el trade-off de `roles[0]`; decisión nueva DD-24 «Autoridad de los roles: la BD»), `10` (IN-13 e IN-14 cerradas; gaps 1, 2, 3 y 8 de PA-09 cerrados por C-08), `02` (resumen de API de productos), `06` (US-010 y US-012 alineadas a `[INT]`) y `CHANGES.md` (puntos de partida de C-08 en C-09, C-11, C-17b, C-26 y C-27).
 
+### D15. Usuario dado de baja en una lectura pública: 401 (cierre del verify de C-08)
+`lector_privilegiado` responde 401, igual que un access inválido (OQ-8), cuando el access es de un usuario con `deleted_at`. Motivo: en una lectura pública el 404 «Cuenta de usuario desactivada» distinguía a un usuario dado de baja de uno inexistente y rompía la regla de que un access inválido da 401 (el interceptor del frontend renueva y reintenta). `require_role` y `get_current_active_user` no cambian: en rutas protegidas el 404 existente queda como está.
+
+### D16. Parámetros de visibilidad keyword-only y obligatorios (cierre del verify de C-08)
+`ver_eliminados` y `ver_no_disponibles` en `base_service.get_by_id` y en los services de productos, ingredientes, categorías y unidades de medida no tienen default y son keyword-only. Motivo: un llamador que los olvide falla con `TypeError` en lugar de mostrar datos eliminados o no disponibles (defaults permisivos). Todos los llamadores (los routers de los cuatro recursos) ya los pasaban explícitamente; el comportamiento no cambia.
+
 ## UI Mockups
 
 - Design system revision: N/A
@@ -233,15 +239,25 @@ El `detail` del 403 de `require_role` pasa a «Permisos insuficientes», sin rol
 
 Decisiones del usuario con el valor por defecto que aplican specs y tasks (si cambian, se ajustan con `/opsx:update` antes de apply):
 
-- **OQ-1 — Fuente de autoridad de los roles** (contradicción spec ↔ código): la spec §4.1 paso 5 dice «`require_role` verifica roles **del token**»; el código usa la BD. **Por defecto: BD (D1)**, porque quitar un rol tiene efecto inmediato. Si se elige el claim, cambian el requisito «Los roles guardados en la base son la autoridad» y las tareas 2.4–2.5.
-- **OQ-2 — Contrato de stock** (la spec `[INT]` no lo define): `PATCH /productos/{id}/stock` con `{"stock_cantidad": n}` **absoluto** (por defecto) frente a `{cantidad}` con delta `+N/-N` (US-021, `[DESC]`, no normativo).
-- **OQ-3 — Alcance de la visibilidad**: por defecto, la restricción de eliminados se aplica también a categorías y unidades de medida (RN-GL-02), además de productos e ingredientes (PA-09), y STOCK ve productos **no disponibles** pero no **eliminados**. Alternativa: limitar C-08 a productos e ingredientes.
-- **OQ-4 — Direcciones** (contradicción KB ↔ spec ↔ código): la matriz de `knowledge-base/03` restringe direcciones a CLIENT (ADMIN «— (propias)», STOCK/PEDIDOS «—»); la spec dice «CRUD por usuario» sin rol; el código permite a cualquier autenticado sus propias direcciones. **Por defecto: sin cambio** (no es una escalada: cada uno solo ve las suyas). Se corrige la nota de la KB.
-- **OQ-5 — Endpoints de la spec que no existen**: `GET /productos/{id}/ingredientes` (público) y `DELETE /productos/{id}/ingredientes/{ing_id}` (ADMIN). No son de permisos: **por defecto se asignan a C-11** (contrato de API). Hay que confirmar el dueño.
-- **OQ-6 — PA-12** (auto-deshabilitar con stock 0): sigue abierta. C-08 mantiene `disponible` independiente del stock (RN-PR-02 `[INT]`).
-- **OQ-7 — Cancelación propia multi-rol**: por defecto se usa la unión de roles (un `CLIENT + ADMIN` puede cancelar su pedido `EN_PREP` por `/mis-pedidos`). Alternativa: evaluar `/mis-pedidos/.../cancelar` solo con la fila `CLIENT`.
-- **OQ-8 — Access inválido en lectura pública**: por defecto 401 (D8). Alternativa: tratarlo como anónimo.
+- **OQ-1 — Fuente de autoridad de los roles** (contradicción spec ↔ código): la spec §4.1 paso 5 dice «`require_role` verifica roles **del token**»; el código usa la BD. **Por defecto: BD (D1)**, porque quitar un rol tiene efecto inmediato. Si se elige el claim, cambian el requisito «Los roles guardados en la base son la autoridad» y las tareas 2.4–2.5. **Respuesta del usuario (2026-11-10): Confirmado: por defecto (BD; el claim `roles` es informativo y no autoriza).**
+- **OQ-2 — Contrato de stock** (la spec `[INT]` no lo define): `PATCH /productos/{id}/stock` con `{"stock_cantidad": n}` **absoluto** (por defecto) frente a `{cantidad}` con delta `+N/-N` (US-021, `[DESC]`, no normativo). **Respuesta del usuario (2026-11-10): Confirmado: por defecto (seteo absoluto `PATCH /productos/{id}/stock` con `{"stock_cantidad": int>=0}`).**
+- **OQ-3 — Alcance de la visibilidad**: por defecto, la restricción de eliminados se aplica también a categorías y unidades de medida (RN-GL-02), además de productos e ingredientes (PA-09), y STOCK ve productos **no disponibles** pero no **eliminados**. Alternativa: limitar C-08 a productos e ingredientes. **Respuesta del usuario (2026-11-10): Confirmado: por defecto.**
+- **OQ-4 — Direcciones** (contradicción KB ↔ spec ↔ código): la matriz de `knowledge-base/03` restringe direcciones a CLIENT (ADMIN «— (propias)», STOCK/PEDIDOS «—»); la spec dice «CRUD por usuario» sin rol; el código permite a cualquier autenticado sus propias direcciones. **Por defecto: sin cambio** (no es una escalada: cada uno solo ve las suyas). Se corrige la nota de la KB. **Respuesta del usuario (2026-11-10): Confirmado: por defecto.**
+- **OQ-5 — Endpoints de la spec que no existen**: `GET /productos/{id}/ingredientes` (público) y `DELETE /productos/{id}/ingredientes/{ing_id}` (ADMIN). No son de permisos: **por defecto se asignan a C-11** (contrato de API). Hay que confirmar el dueño. **Respuesta del usuario (2026-11-10): Confirmado: por defecto (dueño C-11).**
+- **OQ-6 — PA-12** (auto-deshabilitar con stock 0): sigue abierta. C-08 mantiene `disponible` independiente del stock (RN-PR-02 `[INT]`). **Respuesta del usuario (2026-11-10): Confirmado: por defecto.**
+- **OQ-7 — Cancelación propia multi-rol**: por defecto se usa la unión de roles (un `CLIENT + ADMIN` puede cancelar su pedido `EN_PREP` por `/mis-pedidos`). Alternativa: evaluar `/mis-pedidos/.../cancelar` solo con la fila `CLIENT`. **Respuesta del usuario (2026-11-10): Confirmado: por defecto (unión de roles en la cancelación propia).**
+- **OQ-8 — Access inválido en lectura pública**: por defecto 401 (D8). Alternativa: tratarlo como anónimo. **Respuesta del usuario (2026-11-10): Confirmado: por defecto (401).**
 
 Contradicciones de documentación detectadas (se corrigen en el grupo de docs, sin decisión pendiente):
 - `knowledge-base/06` US-010 dice «Gestión de productos (ADMIN/STOCK)» y `docs/Historias de Usuario.md` da a STOCK el CRUD de productos, categorías e ingredientes (`[DESC]`). IN-14 ya resolvió que manda `[INT]`; se alinea el título de US-010.
 - `knowledge-base/03` §Rutas públicas lista `GET /categorias`, `/ingredientes` y `/unidades-medida` como «riesgo» bajo DT-05, pero la matriz los marca «Público R». Se mantiene público y se corrige la nota.
+
+## Desvíos registrados en apply (2026-11-10)
+
+Sin cambios de comportamiento respecto de specs y D1–D14. Ajustes menores de implementación:
+- **DRY en `base_service`**: se agregó `_pagina_vacia(page, size)` y `get_by_id(..., ver_eliminados=True)` (genéricos) para no repetir la respuesta vacía ni el `allow_deleted and ver_eliminados` en los cuatro módulos de catálogo; productos, ingredientes y categorías aplican el mismo `and` en su `get_by_id_full`.
+- **Cobertura de la matriz**: «toda ruta registrada» se verifica contra `app.openapi()["paths"]` (API pública de FastAPI) porque `app.routes` ya no expone las rutas incluidas como hojas en esta versión (`_IncludedRouter`). Los WebSocket no están en OpenAPI y quedan documentados en `EXCLUIDAS`.
+- **Matriz**: la columna `credencial_propia` marca `login` y `refresh` (públicos que igual responden 401 sin credenciales). Cloudinary se reemplaza por stubs en el test de la matriz (borde externo). Son ~600 casos (~145 s): se marcó `slow` sin excluirla de la corrida por defecto.
+- **Productos**: `_aplicar_cambio_parcial` (helper compartido de 5.8) se escribió junto con 5.2; la fila de `/stock` tuvo su RED confirmado quitando temporalmente la ruta.
+- **Lectura pública**: `GET /productos/{id}` usa dos dependencias `lector_privilegiado` (no disponibles: ADMIN/STOCK; eliminados: ADMIN), por lo que un access válido carga el usuario dos veces; costo despreciable, sin cambio de contrato.
+- **Roles en la fixture**: el orden de `roles` que devuelve la BD no está garantizado; los tests de pedidos multi-rol no dependen del orden (se prueba la unión).

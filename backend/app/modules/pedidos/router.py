@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app.core.security import decode_access_token
 from app.core.database import get_session
-from app.core.deps import get_current_active_user, require_role
+from app.core.deps import get_current_active_user, get_current_roles, require_role
 from app.modules.usuarios.schemas import UserPublic
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork, get_uow
 from app.modules.pedidos.schemas import PedidoCambioEstado, PedidoCreate, PedidoReadFull, PedidoList, PedidoListAdmin
@@ -17,6 +17,7 @@ from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
 router = APIRouter()
 
 CurrentUser = Annotated[UserPublic, Depends(get_current_active_user)]
+CurrentRoles = Annotated[frozenset[str], Depends(get_current_roles)]
 
 
 def get_pedido_service(session: Session = Depends(get_session)) -> PedidoService:
@@ -62,9 +63,10 @@ def cancelar_mi_pedido(
     pedido_id: int,
     data: PedidoCambioEstado,
     current_user: CurrentUser,
+    roles: CurrentRoles,
     service: PedidoService = Depends(get_pedido_service),
 ) -> PedidoReadFull:
-    return service.cancelar_pedido_propio(pedido_id, current_user.id, current_user.roles[0].codigo, data)
+    return service.cancelar_pedido_propio(pedido_id, current_user.id, roles, data)
 
 
 # ══════════════════════════════════════════════════════
@@ -101,6 +103,7 @@ async def cambiar_estado_pedido(
     pedido_id: int,
     data: PedidoCambioEstado,
     current_user: CurrentUser,
+    roles: CurrentRoles,
     ws_manager: ConnectionManager = Depends(get_connection_manager),
     service: PedidoService = Depends(get_pedido_service),
 ) -> PedidoReadFull:
@@ -108,7 +111,7 @@ async def cambiar_estado_pedido(
         pedido_id, 
         data, 
         current_user.id, 
-        current_user.roles[0].codigo,
+        roles,
         ws_manager
     )
 

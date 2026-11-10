@@ -87,7 +87,7 @@ Resumen por recurso (rutas reales del backend salvo indicación; contraste con s
 | Admin usuarios | `POST /admin/usuarios/createUser`, `GET /admin/usuarios/` (paginado, filtro `rol_codigo`), `PATCH /{id}`, `DELETE /{id}` (soft) | `ADMIN` |
 | Direcciones | `POST/GET /direcciones/`, `GET/PATCH/DELETE /direcciones/{id}`, `PATCH /{id}/principal` | Autenticado, solo propias |
 | Categorías | `POST`, `PATCH/{id}`, `DELETE/{id}` (ADMIN); `GET /`, `GET /arbol`, `GET /{id}` (público) | Ver 03 |
-| Productos | `GET` (público), `GET /{id}`, `POST/PUT/PATCH/DELETE`, ingredientes del producto | Spec: ADMIN/STOCK (ver PA-09) |
+| Productos | `GET` (público), `GET /{id}`, `POST/PUT/DELETE` (ADMIN), `PATCH /{id}/disponibilidad {disponible: bool}` y `PATCH /{id}/stock {stock_cantidad: int>=0}` (ADMIN/STOCK), `PATCH /{id}/imagenes`, `POST /{id}/ingredientes` | Lectura pública solo de disponibles y no eliminados (ADMIN/STOCK ven no disponibles; solo ADMIN eliminados) |
 | Ingredientes | CRUD `/ingredientes` | Escritura `ADMIN`; lectura pública |
 | Unidades de medida | CRUD `/unidades-medida` | Escritura `ADMIN` |
 | Uploads | `POST /uploads/imagen`, `DELETE /uploads/imagen/{public_id}` | `ADMIN` |

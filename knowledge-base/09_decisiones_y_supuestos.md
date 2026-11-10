@@ -50,7 +50,7 @@
 
 ### DD-11 — FSM con permisos por rol en un único diccionario
 **Decisión**: `TRANSICIONES[rol][estado_actual] = {destinos}` en `PedidoService`.
-**Justificación**: Un solo lugar define qué puede hacer cada rol. **Trade-off**: usa solo `roles[0]` del usuario.
+**Justificación**: Un solo lugar define qué puede hacer cada rol. **Trade-off**: simple, sin reglas por forma de pago; desde C-08 se consulta con la unión de los roles del usuario (`union_por_roles`), ya no con `roles[0]`.
 
 ### DD-12 — (CÓDIGO ACTUAL, deuda DT-10) Rate limiting propio (token bucket en memoria)
 **Objetivo (spec)**: slowapi, 5 fallos/15 min/IP en login. **Código actual**: Middleware + `RateLimiter` en lugar de slowapi. **Trade-offs**: no escala a múltiples workers (requeriría Redis); semántica distinta a la spec (IN-10).
@@ -103,6 +103,9 @@ El esquema se crea y modifica solo con migraciones (`alembic upgrade head` desde
 ### DD-23 — Despacho `EN_CAMINO` por ADMIN/PEDIDOS; `COCINA`/KDS/WebSocket al final (PA-07 parcial)
 **Decisión (confirmada por el usuario, 2026-11-10)**: `EN_CAMINO` lo despachan ADMIN y PEDIDOS. El rol `COCINA`, el KDS y el WebSocket quedan para el final: se decide si sobra tiempo y no se tocan ni se eliminan ahora. C-26 y C-27 siguen en Fase 2 opcional; PA-19 sigue abierta.
 
+### DD-24 — Autoridad de los roles: la BD en cada pedido; el claim `roles` es informativo (C-08, OQ-1)
+**Decisión (confirmada por el usuario, 2026-11-10)**: `require_role` y los services deciden con los roles leídos de la BD en cada pedido (`get_current_roles`); el claim `roles` del access solo informa a la UI y nunca autoriza. Quitar o agregar un rol tiene efecto en el pedido siguiente. **Contradice** el texto de la spec §4.1 paso 5 («verifica roles del token»); manda la seguridad (sin escalada de privilegios hasta 30 min tras quitar un rol) y el costo es nulo porque el usuario ya se carga en cada pedido. El 403 es neutral («Permisos insuficientes»). Ver `openspec/changes/c-08-rbac-multirol-permisos-stock/design.md` (D1, D3).
+
 ## Deuda técnica / divergencias código vs spec (tabla consolidada)
 
 Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada inconsistencia en [10](10_preguntas_abiertas.md).
@@ -122,9 +125,9 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 | DT-11 (resuelta por C-02) | Transporte del access token | Bearer en header (interceptor Axios), token en `authStore` (solo `accessToken` persistido), `GET /auth/me` | Solo cookie HttpOnly, Bearer deshabilitado, `/usuarios/me`, `secure=False` | IN-07, DD-09 | [08](08_arquitectura_propuesta.md) |
 | DT-12 (resuelta por C-02) | Email duplicado | 409 Conflict | 403 | IN-09 | [05](05_reglas_de_negocio.md) |
 | DT-13 | Actor del historial | `usuario_id` NULL = Sistema | Webhook registra al dueño del pedido con `rol="ADMIN"` | IN-21 | [05](05_reglas_de_negocio.md), [07](07_flujos_principales.md) |
-| DT-14 | Multi-rol | Un usuario puede tener varios roles | Permisos de FSM/WS con `roles[0]` (`KeyError` para STOCK/COCINA) | IN-13 | [05](05_reglas_de_negocio.md) |
+| DT-14 | Multi-rol | Un usuario puede tener varios roles | **Resuelta por C-08**: FSM y `/mis-pedidos/.../cancelar` evalúan la unión de roles (`union_por_roles`). Único `roles[0]` restante: el handler WebSocket `/cocina/ws` (C-27) | IN-13 | [05](05_reglas_de_negocio.md) |
 | DT-15 | Confirmación manual | CONFIRMADO automático por pago en `MERCADOPAGO`; manual solo ADMIN/PEDIDOS y solo para `EFECTIVO`/`TRANSFERENCIA` (DD-22, PA-06 resuelta). Dueño: C-09 | ADMIN/PEDIDOS pueden `PENDIENTE→CONFIRMADO` manualmente para cualquier forma de pago | IN-20, PA-06 | [05](05_reglas_de_negocio.md) |
-| DT-16 | Permisos STOCK | Solo stock/`disponible` y lectura de ingredientes | Categorías/ingredientes/unidades solo ADMIN; productos sin verificar (ver PA-09) | IN-14 | [03](03_actores_y_roles.md) |
+| DT-16 | Permisos STOCK | Solo stock/`disponible` y lectura de ingredientes | **Resuelta por C-08**: `PATCH /productos/{id}/stock` y `PATCH /productos/{id}/disponibilidad` para ADMIN/STOCK; la escritura de categorías/ingredientes/unidades ya era solo ADMIN | IN-14 | [03](03_actores_y_roles.md) |
 | DT-17 | Contrato de pedidos | `PATCH /{id}/estado {nuevo_estado, motivo}`, `GET /{id}` propietario, `DELETE /{id}` cancela el propio | `estado_hacia`, `/mis-pedidos/...`, `DELETE` solo ADMIN soft delete | IN-24 | [07](07_flujos_principales.md) |
 | DT-18 | Paginación y errores | `page/size` → `{items,total,page,size,pages}` en todo; errores `{detail, code, field}` | Pedidos usan `offset/limit` y `{data,total}`; rate limit con `{"error":{}}` | IN-11, IN-19 | [02](02_descripcion_general.md) |
 | DT-19 | Borrado de categoría | Soft delete con validación | Re-asigna hijas al abuelo sin validar productos | IN-17 | [05](05_reglas_de_negocio.md) |
