@@ -25,6 +25,8 @@
 
 El WebSocket autentica con la **cookie** porque el navegador no permite enviar `Authorization` al abrir un WebSocket.
 
+> **Roto desde C-02:** C-02 dejó de emitir la cookie `access_token` (el access viaja solo por Bearer y el refresh en la cookie `refresh_token` con `Path=/api/v1/auth`), así que estos handshakes no se pueden autenticar hoy. Se corrige en C-27: autenticar el handshake con el access (por ejemplo en query string o subprotocolo), validando firma, `exp` y `sid`.
+
 ## Eventos emitidos
 
 Se emiten tras commit, a `role:KDS` y a `pedido:{id}`, desde `PedidoService.cambiar_estado_pedido` (transición manual) y desde el router de pagos (webhook, vía `BackgroundTasks`):

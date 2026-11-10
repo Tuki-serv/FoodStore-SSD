@@ -37,12 +37,12 @@
 **Deuda técnica (DT-01)** — variante implementada en el código actual: Checkout Pro (preferencia + redirect) en vez de Checkout API/Orders con tarjeta embebida. Ver [11](11_pagos_mercadopago.md).
 
 ### DD-08 — Doble token con refresh rotado y hasheado
-**Decisión**: Access corto (30 min) + refresh largo (7 d) guardado como SHA-256.
-**Justificación**: Limita exposición si se compromete un refresh token; logout efectivo sin invalidar el access token.
+**Decisión**: Access corto (30 min) + refresh opaco guardado como SHA-256, agrupado en una *sesión* de 7 días fijos. El refresh rota en cada renovación (historial con `revoked_at`), con período de gracia de 30 s (`REFRESH_REUSE_GRACE_SECONDS`) y detección de reuso que cierra todas las sesiones del usuario (C-02).
+**Justificación**: Limita exposición si se compromete un refresh token; logout efectivo sin invalidar el access token (vive hasta 30 min).
 
-### DD-09 — (CÓDIGO ACTUAL, deuda DT-11) Access token en cookie HttpOnly
+### DD-09 — (REEMPLAZADA por C-02) Access token en cookie HttpOnly
 **Decisión**: Mitigar XSS evitando exponer el token a JavaScript.
-> **Deuda técnica (DT-11)**: esto describe el código actual, no el objetivo. **Objetivo (spec, normativo)**: Bearer en header gestionado por interceptor Axios, access token en `authStore`.
+> **Reemplazada (C-02, DT-11 resuelta)**: el access viaja solo por `Authorization: Bearer` y se guarda en `authStore`; la cookie HttpOnly pasó a ser el medio del **refresh** (`Path=/api/v1/auth`, `SameSite`/`Secure` configurables).
 **Trade-offs**: Requiere CORS con credenciales, CSRF (SameSite=lax mitiga parcialmente) y `secure=True` en prod; contradice el diseño del frontend descrito en las specs (IN-07).
 
 ### DD-10 — Costo de envío fijo (50.00) y descuento 0 en v1
@@ -92,12 +92,12 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 | DT-04 | Stock | Verificar `disponible`/stock al crear; momento del descuento: spec silente (PA-03) | Se descuenta al crear pedido PENDIENTE; restaura en toda cancelación | IN-05, PA-03 | [05](05_reglas_de_negocio.md) |
 | DT-05 | Auth de pagos | `/pagos/crear` y `/pagos/{id}` autenticados, solo propietario/ADMIN | Endpoints sin autenticación ni chequeo de propiedad | IN-25 | [11](11_pagos_mercadopago.md) |
 | DT-06 | Firma del webhook | Webhook público pero con validación de firma | Sin validación de firma `x-signature` | IN-25 | [11](11_pagos_mercadopago.md) |
-| DT-07 | Logout / refresh | Refresh hasheado SHA-256, rotación, `revoked_at` | Logout y expiración borran la fila; `revoked_at` no se usa; refresh emite JWT y sobrescribe; comparación aware vs naive | IN-08 | [05](05_reglas_de_negocio.md) |
+| DT-07 (resuelta por C-02) | Logout / refresh | Refresh hasheado SHA-256, rotación, `revoked_at` | Logout y expiración borran la fila; `revoked_at` no se usa; refresh emite JWT y sobrescribe; comparación aware vs naive | IN-08 | [05](05_reglas_de_negocio.md) |
 | DT-08 | WebSocket disconnect | (extra, no especificado) | `await manager.disconnect(...)` sobre método síncrono | — | [12](12_tiempo_real_websocket.md) |
 | DT-09 | Migraciones | Alembic obligatorio (`alembic upgrade head`, CE-04), `backend/app/main.py`, `backend/app/db/seed.py` | **Resuelta en C-06:** Alembic con migración 001, sin `create_all` (antes: `create_all` en lifespan, sin carpeta `alembic/`) | IN-18, DD-15 | [08](08_arquitectura_propuesta.md) |
 | DT-10 | Rate limiting | slowapi, 5 fallos/15 min/IP solo en `POST /auth/login` | Middleware propio, token bucket 5/min en login+register+logout y 60/min global | IN-10, DD-12 | [08](08_arquitectura_propuesta.md) |
-| DT-11 | Transporte del access token | Bearer en header (interceptor Axios), token en `authStore` (solo `accessToken` persistido), `GET /auth/me` | Solo cookie HttpOnly, Bearer deshabilitado, `/usuarios/me`, `secure=False` | IN-07, DD-09 | [08](08_arquitectura_propuesta.md) |
-| DT-12 | Email duplicado | 409 Conflict | 403 | IN-09 | [05](05_reglas_de_negocio.md) |
+| DT-11 (resuelta por C-02) | Transporte del access token | Bearer en header (interceptor Axios), token en `authStore` (solo `accessToken` persistido), `GET /auth/me` | Solo cookie HttpOnly, Bearer deshabilitado, `/usuarios/me`, `secure=False` | IN-07, DD-09 | [08](08_arquitectura_propuesta.md) |
+| DT-12 (resuelta por C-02) | Email duplicado | 409 Conflict | 403 | IN-09 | [05](05_reglas_de_negocio.md) |
 | DT-13 | Actor del historial | `usuario_id` NULL = Sistema | Webhook registra al dueño del pedido con `rol="ADMIN"` | IN-21 | [05](05_reglas_de_negocio.md), [07](07_flujos_principales.md) |
 | DT-14 | Multi-rol | Un usuario puede tener varios roles | Permisos de FSM/WS con `roles[0]` (`KeyError` para STOCK/COCINA) | IN-13 | [05](05_reglas_de_negocio.md) |
 | DT-15 | Confirmación manual | CONFIRMADO automático por pago | ADMIN/PEDIDOS pueden `PENDIENTE→CONFIRMADO` manualmente | IN-20, PA-06 | [05](05_reglas_de_negocio.md) |

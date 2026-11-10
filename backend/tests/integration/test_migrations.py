@@ -5,6 +5,8 @@ import pytest
 from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
+from uuid import uuid4
+
 from sqlalchemy import Column, Integer, MetaData, inspect, text
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError
@@ -82,7 +84,7 @@ def test_modelo_con_columna_extra_sin_migracion_se_informa_como_diferencia(migra
 # ---------------------------------------------------------------------------
 # Contenido de la migración 001
 # ---------------------------------------------------------------------------
-def test_upgrade_crea_exactamente_las_17_tablas_mas_alembic_version(migrations_db: Engine) -> None:
+def test_upgrade_crea_exactamente_las_18_tablas_mas_alembic_version(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     assert _tablas(migrations_db) == set(TABLAS_ESPERADAS) | {"alembic_version"}
@@ -176,7 +178,7 @@ def test_detalle_pedido_guarda_y_lee_los_arrays_de_personalizacion_en_orden(migr
     assert leido.personalizacion_snapshot == ["Cebolla", "Tomate"]
 
 
-def test_las_32_columnas_de_fecha_son_timestamptz_y_no_hay_ninguna_sin_zona(migrations_db: Engine) -> None:
+def test_las_34_columnas_de_fecha_son_timestamptz_y_no_hay_ninguna_sin_zona(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
@@ -272,16 +274,16 @@ def test_ida_y_vuelta_termina_en_head_y_sin_diferencias_con_los_modelos(migratio
         assert _diferencias(conn) == []
 
 
-def test_current_and_head_tras_upgrade_devuelve_001_en_ambas_posiciones(migrations_db: Engine) -> None:
+def test_current_and_head_tras_upgrade_devuelve_002_en_ambas_posiciones(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == ("001", "001")
+        assert current_and_head(conn) == ("002", "002")
 
 
 def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_db: Engine) -> None:
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == (None, "001")
+        assert current_and_head(conn) == (None, "002")
 
 
 # ---------------------------------------------------------------------------
@@ -290,4 +292,162 @@ def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_
 def test_foodstore_test_queda_en_head_al_iniciar_la_sesion(session: Session) -> None:
     actual, head = current_and_head(session.connection())
 
-    assert actual == head == "001"
+    assert actual == head == "002"
+
+
+# ---------------------------------------------------------------------------
+# Migración 002: sesiones y refresh rotado
+# ---------------------------------------------------------------------------
+def _insertar_sesion(conn: Connection, usuario_id: int, **extra) -> str:
+    sid = str(uuid4())
+    valores = {"id": sid, "u": usuario_id, "exp": datetime(2030, 1, 1, tzinfo=timezone.utc), "ahora": BAJA, **extra}
+    conn.execute(
+        text(
+            "INSERT INTO sesion (id, usuario_id, expires_at, created_at, revoked_at, revoked_reason) "
+            "VALUES (:id, :u, :exp, :ahora, :rev_at, :rev_reason)"
+        ),
+        {"rev_at": None, "rev_reason": None, **valores},
+    )
+    return sid
+
+
+def _insertar_refresh(conn: Connection, sesion_id: str, token_hash: str, revoked_at: datetime | None = None) -> None:
+    conn.execute(
+        text(
+            "INSERT INTO refresh_token (sesion_id, token_hash, revoked_at, created_at) "
+            "VALUES (:s, :h, :r, :c)"
+        ),
+        {"s": sesion_id, "h": token_hash, "r": revoked_at, "c": BAJA},
+    )
+
+
+def _crear_usuario(engine: Engine, email: str = "m@x.com") -> int:
+    with Session(engine) as session:
+        usuario = _usuario(email)
+        session.add(usuario)
+        session.commit()
+        return usuario.id
+
+
+def test_tras_upgrade_refresh_token_tiene_sesion_id_uuid_y_no_tiene_expires_at_ni_usuario_id(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        columnas = dict(
+            conn.execute(
+                text(
+                    "SELECT column_name, data_type FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND table_name = 'refresh_token'"
+                )
+            ).all()
+        )
+
+    assert columnas["sesion_id"] == "uuid"
+    assert "expires_at" not in columnas
+    assert "usuario_id" not in columnas
+
+
+def test_ck_sesion_revoked_reason_rechaza_un_motivo_fuera_de_la_lista(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+
+    with migrations_db.connect() as conn:
+        with pytest.raises(IntegrityError, match="ck_sesion_revoked_reason"):
+            _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="OTRO")
+
+
+@pytest.mark.parametrize("motivo", ["LOGOUT", "LOGOUT_ALL", "REUSO"])
+def test_ck_sesion_revoked_reason_acepta_cada_motivo_valido(migrations_db: Engine, motivo: str) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+
+    with migrations_db.begin() as conn:
+        _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason=motivo)
+        cantidad = conn.execute(text("SELECT count(*) FROM sesion WHERE revoked_reason = :m"), {"m": motivo}).scalar()
+
+    assert cantidad == 1
+
+
+def test_ck_sesion_revocacion_consistente_rechaza_revoked_at_sin_motivo(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+
+    with migrations_db.connect() as conn:
+        with pytest.raises(IntegrityError, match="ck_sesion_revocacion_consistente"):
+            _insertar_sesion(conn, usuario_id, rev_at=BAJA)
+
+
+def test_ck_sesion_revocacion_consistente_rechaza_motivo_sin_revoked_at(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+
+    with migrations_db.connect() as conn:
+        with pytest.raises(IntegrityError, match="ck_sesion_revocacion_consistente"):
+            _insertar_sesion(conn, usuario_id, rev_reason="LOGOUT")
+
+
+def test_un_segundo_refresh_activo_en_la_misma_sesion_es_rechazado(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+
+    with migrations_db.connect() as conn:
+        sesion_id = _insertar_sesion(conn, usuario_id)
+        _insertar_refresh(conn, sesion_id, "a" * 64)
+        with pytest.raises(IntegrityError, match="uq_refresh_token_sesion_activo"):
+            _insertar_refresh(conn, sesion_id, "b" * 64)
+
+
+def test_un_refresh_rotado_mas_uno_activo_en_la_misma_sesion_se_aceptan(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+
+    with migrations_db.begin() as conn:
+        sesion_id = _insertar_sesion(conn, usuario_id)
+        _insertar_refresh(conn, sesion_id, "a" * 64, revoked_at=BAJA)
+        _insertar_refresh(conn, sesion_id, "b" * 64)
+        cantidad = conn.execute(text("SELECT count(*) FROM refresh_token")).scalar()
+
+    assert cantidad == 2
+
+
+def test_upgrade_de_001_a_002_con_un_refresh_existente_termina_sin_errores_y_vacia_refresh_token(
+    migrations_db: Engine,
+) -> None:
+    with migrations_db.begin() as conn:
+        command.upgrade(build_alembic_config(conn), "001")
+        conn.execute(
+            text(
+                "INSERT INTO usuario (nombre, apellido, email, password_hash, created_at, updated_at) "
+                "VALUES ('N', 'A', 'v@x.com', :h, now(), now())"
+            ),
+            {"h": HASH},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO refresh_token (usuario_id, token_hash, expires_at, created_at) "
+                "SELECT id, :t, now() + interval '7 days', now() FROM usuario WHERE email = 'v@x.com'"
+            ),
+            {"t": "c" * 64},
+        )
+
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        assert conn.execute(text("SELECT count(*) FROM refresh_token")).scalar() == 0
+        assert conn.execute(text("SELECT count(*) FROM usuario WHERE email = 'v@x.com'")).scalar() == 1
+        assert current_and_head(conn) == ("002", "002")
+
+
+def test_downgrade_de_002_a_001_deja_el_esquema_de_la_001(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "001")
+
+    assert "sesion" not in _tablas(migrations_db)
+    with migrations_db.connect() as conn:
+        columnas = {c["name"] for c in inspect(conn).get_columns("refresh_token")}
+        assert columnas == {"id", "usuario_id", "token_hash", "expires_at", "revoked_at", "created_at"}
+        assert current_and_head(conn)[0] == "001"

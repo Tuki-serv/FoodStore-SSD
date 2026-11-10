@@ -16,6 +16,7 @@ TABLAS_ESPERADAS = frozenset(
         "productos",
         "refresh_token",
         "rol",
+        "sesion",
         "unidades_medida",
         "usuario",
         "usuario_rol",
@@ -38,7 +39,9 @@ COLUMNAS_DE_FECHA_ESPERADAS = frozenset(
         "producto_ingrediente.created_at",
         "usuario_rol.expires_at",
         "usuario_rol.created_at",
-        "refresh_token.expires_at",
+        "sesion.expires_at",
+        "sesion.revoked_at",
+        "sesion.created_at",
         "refresh_token.revoked_at",
         "refresh_token.created_at",
     }
@@ -48,7 +51,7 @@ FK_A_USUARIO_ESPERADAS = frozenset(
     {
         "usuario_rol.usuario_id",
         "usuario_rol.asignado_por_id",
-        "refresh_token.usuario_id",
+        "sesion.usuario_id",
         "direccion_entrega.usuario_id",
         "pedidos.usuario_id",
         "historial_estado_pedido.usuario_id",

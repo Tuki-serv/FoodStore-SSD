@@ -31,7 +31,9 @@ Arquitectura:
         * Modelo Usuario
 """
 
-from typing import Annotated, Optional  # Permite tipado enriquecido para Depends
+from dataclasses import dataclass
+from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status  # Inyección y manejo de errores HTTP
 from fastapi.security import OAuth2PasswordBearer  # Manejo estándar de OAuth2 con Bearer
@@ -41,78 +43,56 @@ from app.core.security import decode_access_token  # Función para decodificar J
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork, get_uow # Patrón Unit of Work para DB
 from app.modules.usuarios.models import Usuario     # Modelo de dominio Usuario
 
-from fastapi import Request
-
-class OAuth2PasswordBearerWithCookie(OAuth2PasswordBearer):
-    async def __call__(self, request: Request) -> str | None:
-        # 1. Obtener el token EXCLUSIVAMENTE de la cookie (HttpOnly)
-        token = request.cookies.get("access_token")
-        
-        # 2. El soporte para el header Authorization fue deshabilitado.
-        # ¿Por qué? Para maximizar la seguridad y forzar el uso de cookies HttpOnly.
-        # Las cookies HttpOnly no pueden ser leídas por JavaScript (mitigando ataques XSS).
-        # Si permitiéramos usar el token vía header, el frontend tendría que manipular
-        # el token en texto plano, arruinando el propósito de la cookie HttpOnly.
-        # 
-        # if not token:
-        #     authorization = request.headers.get("Authorization")
-        #     if authorization and authorization.startswith("Bearer "):
-        #         token = authorization.split(" ")[1]
-                
-        if not token:
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="No autenticado",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            else:
-                return None
-        return token
-
-# Define el esquema OAuth2 que extrae el token de la cookie (o header)
-oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="/api/v1/auth/login")
+# El access viaja SOLO por `Authorization: Bearer` (una cookie `access_token` no autentica).
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
+@dataclass(frozen=True)
+class AccessClaims:
+    """Claims validados del access token (firma, `exp`, `type` y `sid`), sin consultar la BD."""
 
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],  # Token extraído automáticamente
-    uow: Annotated[UsuarioUnitOfWork, Depends(get_uow)],   # Inyección del Unit of Work
-):
-    """
-    Decodifica el JWT y retorna el Usuario correspondiente.
+    usuario_id: int
+    sid: UUID
+    roles: list[str]
 
-    Responsabilidades:
-    - Validar token
-    - Extraer identidad (username)
-    - Buscar usuario en base de datos
-    """
 
-    # Excepción estándar para errores de autenticación (401)
-    credentials_exception = HTTPException(
+def _credentials_exception() -> HTTPException:
+    return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Credenciales inválidas o token expirado",
         headers={"WWW-Authenticate": "Bearer"},  # Obligatorio en OAuth2 por protocolo
     )
 
-    # Decodifica el JWT → devuelve payload o None si es inválido
+
+async def get_access_claims(token: Annotated[str, Depends(oauth2_scheme)]) -> AccessClaims:
+    """Decodifica el access y exige `sub` y `sid` (un access sin `sid` es inválido, aunque esté bien firmado)."""
     payload = decode_access_token(token)
     if payload is None:
-        raise credentials_exception
+        raise _credentials_exception()
 
-    # Extrae el "subject" (usuario) del token
-    user_id: Optional[str] = payload.get("sub")
-    if user_id is None:
-        raise credentials_exception
+    usuario_id = payload.get("sub")
+    sid = payload.get("sid")
+    if usuario_id is None or sid is None:
+        raise _credentials_exception()
+    try:
+        sid_uuid = UUID(str(sid))
+        usuario_id_int = int(usuario_id)
+    except ValueError:
+        raise _credentials_exception()
 
-    # Abre contexto de Unit of Work (manejo de sesión/transacción)
+    return AccessClaims(usuario_id=usuario_id_int, sid=sid_uuid, roles=list(payload.get("roles", [])))
+
+
+async def get_current_user(
+    claims: Annotated[AccessClaims, Depends(get_access_claims)],
+    uow: Annotated[UsuarioUnitOfWork, Depends(get_uow)],   # Inyección del Unit of Work
+):
+    """Retorna el Usuario del access (para roles y estado actuales). 401 si el usuario ya no existe."""
     with uow:
-        # Busca el usuario en base de datos
-        user = uow.usuarios.get_by_id(user_id)
+        user = uow.usuarios.get_by_id(claims.usuario_id)
 
-        # Si no existe el usuario → token inválido
         if user is None:
-            raise credentials_exception
+            raise _credentials_exception()
 
         return user  # Usuario autenticado válido
 

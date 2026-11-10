@@ -3,6 +3,7 @@ Utilidades de seguridad: hashing de contraseñas y manejo de JWT.
 
 - hash_password / verify_password: bcrypt vía passlib.
 - create_access_token / decode_access_token: JWT con python-jose (HS256).
+- new_refresh_token / hash_refresh_token: refresh opaco y su hash SHA-256.
 
 Separado del router para poder reutilizarse en seeds, tests, etc.
 """
@@ -30,6 +31,12 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
 
+# Hash bcrypt (cost 12) de relleno: no es un secreto ni protege nada. El login lo verifica cuando el usuario no
+# existe o está dado de baja, para que la respuesta tarde lo mismo que con una contraseña incorrecta y no permita
+# enumerar emails registrados por diferencia de tiempo. Se calcula una sola vez al importar el módulo.
+DUMMY_PASSWORD_HASH: str = pwd_context.hash("relleno-para-igualar-el-tiempo-de-login")
+
+
 # ─── JWT ──────────────────────────────────────────────────────────────────────
 # 1. FUNCIÓN BASE (Core)
 def create_jwt_token(data: dict, expires_delta: timedelta, token_type: str) -> str:
@@ -44,32 +51,24 @@ def create_jwt_token(data: dict, expires_delta: timedelta, token_type: str) -> s
 
 
 # 2. HANDLER: ACCESS TOKEN
-def create_access_token(data: dict) -> str:
+def create_access_token(*, sub: str, roles: list[str], sid: str) -> str:
     """
-    Crea exclusivamente el Access Token.
+    Crea el Access Token (JWT HS256) con `sub` (id de usuario), `roles` y `sid` (id de la sesión).
     """
     expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return create_jwt_token(data, expires_delta, token_type="access")
+    return create_jwt_token({"sub": sub, "roles": roles, "sid": sid}, expires_delta, token_type="access")
 
 
-# 3. HANDLER: REFRESH TOKEN
-def create_refresh_token(data: dict) -> tuple[str, str, datetime]:
-    """
-    Crea el Refresh Token (JWT), lo encripta y calcula su expiración exacta.
-    Retorna: (refresh_token_plain, token_hash, expires_at)
-    """
-    expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    
-    # A) Generamos el JWT llamando a la función base
-    refresh_token_plain = create_jwt_token(data, expires_delta, token_type="refresh")
-    
-    # B) Generamos el hash para la base de datos
-    token_hash = hashlib.sha256(refresh_token_plain.encode()).hexdigest()
-    
-    # C) Calculamos la expiración para guardarla en la tabla
-    expires_at = datetime.now(timezone.utc) + expires_delta
-    
-    return refresh_token_plain, token_hash, expires_at
+# 3. REFRESH TOKEN: valor opaco; en la BD solo se guarda su hash SHA-256
+def hash_refresh_token(valor: str) -> str:
+    """SHA-256 (hex, 64 caracteres) de un refresh token en texto plano."""
+    return hashlib.sha256(valor.encode()).hexdigest()
+
+
+def new_refresh_token() -> tuple[str, str]:
+    """Genera un refresh opaco aleatorio. Retorna: (valor_plano, hash)."""
+    plano = secrets.token_urlsafe(32)
+    return plano, hash_refresh_token(plano)
 
 
 def decode_access_token(token: str) -> dict | None:

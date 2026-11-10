@@ -10,7 +10,8 @@ from app.core.cloudinary.router import router as imagen_router
 from app.modules.health.router import router as health_router
 
 from app.modules.direcciones_entrega.router import router as direccion_router
-from app.modules.usuarios.router import auth_router, usuarios_router, admin_router
+from app.modules.auth.router import auth_router
+from app.modules.usuarios.router import usuarios_router, admin_router
 
 from app.modules.productos.router import router as producto_router
 from app.modules.ingredientes.router import router as ingrediente_router

@@ -21,7 +21,17 @@ def _error_fields(exc: ValidationError) -> set[str]:
 
 @pytest.mark.parametrize(
     "missing",
-    ["DATABASE_URL", "SECRET_KEY", "ACCESS_TOKEN_EXPIRE_MINUTES", "SQL_ECHO", "ALGORITHM", "CORS_ORIGINS"],
+    [
+        "DATABASE_URL",
+        "SECRET_KEY",
+        "ACCESS_TOKEN_EXPIRE_MINUTES",
+        "SQL_ECHO",
+        "ALGORITHM",
+        "CORS_ORIGINS",
+        "REFRESH_REUSE_GRACE_SECONDS",
+        "REFRESH_COOKIE_SECURE",
+        "REFRESH_COOKIE_SAMESITE",
+    ],
 )
 def test_settings_obligatoria_faltante_falla_nombrandola(
     monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str], missing: str
@@ -92,6 +102,9 @@ def test_settings_configuracion_completa_usa_exactamente_los_valores_provistos(f
     assert cfg.ACCESS_TOKEN_EXPIRE_MINUTES == 15
     assert cfg.LOG_LEVEL == "WARNING"
     assert cfg.SQL_ECHO is False
+    assert cfg.REFRESH_REUSE_GRACE_SECONDS == 30
+    assert cfg.REFRESH_COOKIE_SECURE is False
+    assert cfg.REFRESH_COOKIE_SAMESITE == "lax"
     assert cfg.MP_ACCESS_TOKEN == "mp-token-falso"
     assert cfg.MP_PUBLIC_KEY == "mp-public-falsa"
     assert cfg.CLOUDINARY_NAME == "nube-falsa"
@@ -146,6 +159,99 @@ def test_settings_cors_origins_separado_por_comas_es_rechazado(
         _load()
 
     assert "CORS_ORIGINS" in str(exc_info.value)
+
+
+def test_settings_cors_origins_comodin_es_rechazado(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("CORS_ORIGINS", '["*"]')
+
+    with pytest.raises(ValidationError) as exc_info:
+        _load()
+
+    assert "CORS_ORIGINS" in _error_fields(exc_info.value)
+
+
+def test_settings_cors_origins_comodin_mezclado_es_rechazado(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("CORS_ORIGINS", '["http://localhost:5173","*"]')
+
+    with pytest.raises(ValidationError) as exc_info:
+        _load()
+
+    assert "CORS_ORIGINS" in _error_fields(exc_info.value)
+
+
+# ── Sesión: gracia del refresh y cookie ─────────────────────────────────────
+
+def test_settings_gracia_negativa_falla_nombrandola(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("REFRESH_REUSE_GRACE_SECONDS", "-1")
+
+    with pytest.raises(ValidationError) as exc_info:
+        _load()
+
+    assert "REFRESH_REUSE_GRACE_SECONDS" in _error_fields(exc_info.value)
+
+
+def test_settings_samesite_invalido_falla_nombrandolo(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("REFRESH_COOKIE_SAMESITE", "relaxed")
+
+    with pytest.raises(ValidationError) as exc_info:
+        _load()
+
+    assert "REFRESH_COOKIE_SAMESITE" in _error_fields(exc_info.value)
+
+
+def test_settings_samesite_none_sin_secure_falla_nombrando_ambas(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("REFRESH_COOKIE_SAMESITE", "none")
+    monkeypatch.setenv("REFRESH_COOKIE_SECURE", "false")
+
+    with pytest.raises(ValidationError) as exc_info:
+        _load()
+
+    mensaje = str(exc_info.value)
+    assert "REFRESH_COOKIE_SAMESITE" in mensaje
+    assert "REFRESH_COOKIE_SECURE" in mensaje
+
+
+def test_settings_gracia_valida_se_usa_tal_cual(required_env: dict[str, str]) -> None:
+    assert _load().REFRESH_REUSE_GRACE_SECONDS == 30
+
+
+def test_settings_gracia_cero_es_valida_y_desactiva_la_gracia(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("REFRESH_REUSE_GRACE_SECONDS", "0")
+
+    assert _load().REFRESH_REUSE_GRACE_SECONDS == 0
+
+
+def test_settings_samesite_none_con_secure_carga(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("REFRESH_COOKIE_SAMESITE", "none")
+    monkeypatch.setenv("REFRESH_COOKIE_SECURE", "true")
+
+    cfg = _load()
+
+    assert (cfg.REFRESH_COOKIE_SAMESITE, cfg.REFRESH_COOKIE_SECURE) == ("none", True)
+
+
+def test_settings_samesite_lax_con_secure_expone_ambos_valores(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("REFRESH_COOKIE_SECURE", "true")
+
+    cfg = _load()
+
+    assert (cfg.REFRESH_COOKIE_SAMESITE, cfg.REFRESH_COOKIE_SECURE) == ("lax", True)
 
 
 # ── Variables del flujo de pago: explícitas e independientes ────────────────

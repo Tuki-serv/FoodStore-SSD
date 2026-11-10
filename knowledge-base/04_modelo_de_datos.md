@@ -2,18 +2,18 @@
 
 Esquema en **3FN** con cuatro patrones transversales: **Soft Delete** (`deleted_at TIMESTAMPTZ`), **Snapshot** (precio/nombre/personalización inmutables en pedidos), **Audit Trail append-only** (`HistorialEstadoPedido`) y **auditoría** (`created_at`, `updated_at`). Todas las fechas y horas del esquema son `TIMESTAMPTZ` y siempre UTC (la sesión de PostgreSQL se fija en UTC), no solo `deleted_at`. Nombres de columnas según `[INT]` (`[DESC]` usa `eliminado_en`, `creado_en`, `actualizado_en`; ver IN-01).
 
-En el backend actual, el mixin `UniqueAuditableMixin` aporta `created_at/updated_at/deleted_at` y crea **índices únicos parciales** (`WHERE deleted_at IS NULL`) para los campos únicos (`nombre`, `email`; en `unidades_medida`, `nombre` y `simbolo`), de modo que un registro eliminado no bloquea reutilizar el valor. Tablas con soft delete: usuario, categorias, productos, ingredientes, unidades_medida, pedidos, direccion_entrega. Sin soft delete: detalle_pedido, historial_estado_pedido, pagos, refresh_token, catálogos.
+En el backend actual, el mixin `UniqueAuditableMixin` aporta `created_at/updated_at/deleted_at` y crea **índices únicos parciales** (`WHERE deleted_at IS NULL`) para los campos únicos (`nombre`, `email`; en `unidades_medida`, `nombre` y `simbolo`), de modo que un registro eliminado no bloquea reutilizar el valor. Tablas con soft delete: usuario, categorias, productos, ingredientes, unidades_medida, pedidos, direccion_entrega. Sin soft delete: detalle_pedido, historial_estado_pedido, pagos, sesion, refresh_token, catálogos.
 
 ## Dominios
 
-1. **Identidad y Acceso**: Usuario, Rol, UsuarioRol, RefreshToken, DireccionEntrega.
+1. **Identidad y Acceso**: Usuario, Rol, UsuarioRol, Sesion, RefreshToken, DireccionEntrega.
 2. **Catálogo de Productos**: Categoria, Producto, Ingrediente, UnidadMedida (solo), ProductoCategoria, ProductoIngrediente, FormaPago.
 3. **Ventas, Pagos y Trazabilidad**: EstadoPedido, Pedido, DetallePedido, HistorialEstadoPedido, Pago.
 
 ## ERD
 
 ```
-Usuario 1──N UsuarioRol N──1 Rol            Usuario 1──N RefreshToken      Usuario 1──N DireccionEntrega
+Usuario 1──N UsuarioRol N──1 Rol            Usuario 1──N Sesion 1──N RefreshToken      Usuario 1──N DireccionEntrega
 Usuario 1──N Pedido                         Pedido N──1 EstadoPedido       Pedido N──1 FormaPago
 Pedido N──0..1 DireccionEntrega (SET NULL)  Pedido 1──N DetallePedido N──1 Producto
 Pedido 1──N HistorialEstadoPedido (estado_desde?, estado_hacia → EstadoPedido; usuario_id? → Usuario)
@@ -28,13 +28,17 @@ Ingrediente N──1 UnidadMedida ; Producto N──0..1 UnidadMedida (unidad_ve
 
 ### Dominio 1
 
-**Usuario** (`usuario`): `id` BIGSERIAL PK; `nombre` VARCHAR(80); `apellido` VARCHAR(80) `[INT]`; `email` VARCHAR(254) único (parcial por soft delete), validar `EmailStr`; `celular` VARCHAR(20) opcional (`telefono` en `[DESC]`); `password_hash` **CHAR(60)** (bcrypt cost >= 12, nunca plaintext); auditoría + `deleted_at`. Relaciones: roles N:M, refresh_tokens 1:N, direcciones 1:N.
+**Usuario** (`usuario`): `id` BIGSERIAL PK; `nombre` VARCHAR(80); `apellido` VARCHAR(80) `[INT]`; `email` VARCHAR(254) único (parcial por soft delete), validar `EmailStr`; `celular` VARCHAR(20) opcional (`telefono` en `[DESC]`); `password_hash` **CHAR(60)** (bcrypt cost >= 12, nunca plaintext); auditoría + `deleted_at`. Relaciones: roles N:M, sesiones 1:N (C-02), direcciones 1:N.
 
 **Rol** (`rol`): PK semántica `codigo` VARCHAR(20) (`ADMIN|STOCK|PEDIDOS|CLIENT`); `nombre` único; `descripcion`. (`[DESC]` usa id numérico 1..4: IN-02.)
 
 **UsuarioRol** (`usuario_rol`): PK compuesta `(usuario_id, rol_codigo)`; `asignado_por_id` FK usuario opcional; `expires_at` opcional; `created_at`.
 
-**RefreshToken** (`refresh_token`): `id`; `usuario_id` FK; `token_hash` CHAR(64) único (SHA-256 del token; el token en claro nunca se guarda); `expires_at` (7 días); `revoked_at` NULL = activo; `created_at`. (Comportamiento real de logout/rotación en el código actual: ver 05 y IN-08.)
+**Sesion** (`sesion`, C-02): `id` UUID v4 PK (es el claim `sid` del access token); `usuario_id` BIGINT FK `usuario.id` (indexado); `expires_at` TIMESTAMPTZ (login + 7 días, **fijo**: la rotación no lo extiende); `revoked_at` NULL = abierta; `revoked_reason` `LOGOUT|LOGOUT_ALL|REUSO` (NULL si abierta; CHECK de consistencia con `revoked_at`); `created_at`; `ip` VARCHAR(45) y `user_agent` solo para auditoría. Nunca se borra: se marca.
+
+**RefreshToken** (`refresh_token`, C-02): `id`; `sesion_id` UUID FK `sesion.id` (indexado); `token_hash` CHAR(64) único (SHA-256 del valor opaco; el valor en claro nunca se guarda); `revoked_at` significa **«rotado»** (NULL = activo); `created_at`. Índice único parcial `uq_refresh_token_sesion_activo` (un solo activo por sesión). Los motivos de cierre viven en la sesión.
+
+> **Desviación de la spec (C-02, D5):** la spec lista `usuario_id` y `expires_at` (7 días) en `refresh_token` y no prevé una tabla de sesión. Con vencimiento fijo por sesión, un `expires_at` y un `usuario_id` por refresh duplicarían el dato y abrirían la puerta a que diverjan; se movieron a `sesion`. El comportamiento normativo se conserva: el refresh sirve como máximo 7 días desde el login, se guarda hasheado y se revoca con `revoked_at` (RN-AU-01, 04, 05).
 
 **DireccionEntrega** (`direccion_entrega`): `id`; `usuario_id` FK; `alias` VARCHAR(50) opcional; `linea1` TEXT NN; `linea2`; `ciudad` VARCHAR(100) NN; `provincia`; `codigo_postal` VARCHAR(10); `latitud`/`longitud` float (solo); `es_principal` BOOLEAN default false (solo una por usuario); auditoría + soft delete. (`[DESC]`: calle, número, piso, depto, referencia, `es_predeterminada` — IN-15.)
 

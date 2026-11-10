@@ -25,7 +25,7 @@ def test_nuke_database_sobre_base_migrada_deja_cero_tablas_y_el_upgrade_posterio
     with migrations_db.begin() as conn:
         upgrade_to_head(conn)
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == ("001", "001")
+        assert current_and_head(conn) == ("002", "002")
 
 
 def test_nuke_database_borra_tambien_una_tabla_creada_a_mano_fuera_de_las_migraciones(

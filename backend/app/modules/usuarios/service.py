@@ -1,16 +1,10 @@
-import hashlib
-import secrets
-from app.core.config import settings
-from app.core.timestamps import utc_now
-from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from typing import List, Optional
 
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
-from app.modules.usuarios.schemas import UserCreate, UserUpdateAdmin, UserUpdateClient, Token
-from app.modules.usuarios.models import Rol,Usuario, RefreshToken
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token
+from app.modules.usuarios.schemas import UserCreate, UserUpdateAdmin, UserUpdateClient
+from app.modules.usuarios.models import Rol, Usuario
+from app.core.security import hash_password
 from app.core.enums import EstadoFiltro
 
 class UsuarioService:
@@ -36,7 +30,7 @@ class UsuarioService:
         # La verificación de email se hace aquí para que afecte a ambos flujos
         if self.uow.usuarios.get_by_email(user_in.email):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_409_CONFLICT,
                 detail="El email ya está registrado"
             )
 
@@ -96,50 +90,6 @@ class UsuarioService:
         
 
 
-    def login(self, form_data: OAuth2PasswordRequestForm) -> Token:
-        email_ingresado = form_data.username 
-        password_ingresada = form_data.password
-
-        with self.uow as uow:
-            user = uow.usuarios.get_by_email(email_ingresado)
-            
-            # Validamos existencia, clave y que no esté baneado
-            if not user or not verify_password(password_ingresada, user.password_hash) or user.deleted_at:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Credenciales incorrectas",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-
-            # --- GENERACIÓN DE TOKENS ---
-            
-            # 1. Access Token
-            roles_codigos = [rol.codigo for rol in user.roles]
-            access_token = create_access_token(
-                data={"sub": str(user.id), "roles": roles_codigos}
-            )
-
-            # 2. Refresh Token (Generamos un string seguro aleatorio real)
-            refresh_token_plain = secrets.token_urlsafe(32)
-            token_hash = hashlib.sha256(refresh_token_plain.encode()).hexdigest()
-            expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-
-            nuevo_rt = RefreshToken(
-                usuario_id=user.id,
-                token_hash=token_hash,
-                expires_at=expires_at
-            )
-            
-            uow._session.add(nuevo_rt) 
-
-            return Token(
-                access_token=access_token,
-                refresh_token=refresh_token_plain,
-                token_type="bearer",
-                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-            )
-        
-
     def update_profile(self, usuario_id: int, user_in: UserUpdateClient) -> Usuario:
         with self.uow:
             data = user_in.model_dump(exclude_unset=True)
@@ -165,67 +115,6 @@ class UsuarioService:
                     objetos_roles.append(rol)
 
             return self._update_user_core(user_id, data_dict=data, nuevos_roles=objetos_roles)
-        
-
-    def refresh_token(self, token_ingresado: str) -> Token:
-        with self.uow as uow:
-            token_hash = hashlib.sha256(token_ingresado.encode()).hexdigest()
-            
-            rt_db = uow.refresh_tokens.get_by_hash(token_hash)
-            
-            if not rt_db:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, 
-                    detail="Refresh token inválido"
-                )
-            
-            # 3. Borrado limpio usando el Repositorio
-            if rt_db.expires_at < utc_now():
-                uow.refresh_tokens.delete(rt_db) 
-                
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, 
-                    detail="Refresh token expirado. Por favor inicie sesión nuevamente."
-                )
-            
-            user = uow.usuarios.get_by_id(rt_db.usuario_id)
-            if not user or user.deleted_at:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, 
-                    detail="El usuario asociado no existe o está inactivo"
-                )
-            
-            # --- ROTACIÓN DE TOKENS ---
-            roles_codigos = [rol.codigo for rol in user.roles]
-            nuevo_access = create_access_token(data={"sub": str(user.id), "roles": roles_codigos})
-            
-            nuevo_refresh_plain, nuevo_hash, nueva_expiracion = create_refresh_token(
-                data={"sub": str(user.id)}
-            )
-            
-            rt_db.token_hash = nuevo_hash
-            rt_db.expires_at = nueva_expiracion
-            
-            uow.refresh_tokens.update(rt_db)
-            
-            return Token(
-                access_token=nuevo_access,
-                refresh_token=nuevo_refresh_plain,
-                token_type="bearer",
-                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-            ) 
-
-    def logout(self, token_ingresado: str) -> None:
-        """Revoca el refresh token de la base de datos."""
-        with self.uow as uow:
-            token_hash = hashlib.sha256(token_ingresado.encode()).hexdigest()
-            rt_db = uow.refresh_tokens.get_by_hash(token_hash)
-            
-            # Si existe en la BD, lo borramos para que no se pueda volver a usar
-            if rt_db:
-                uow.refresh_tokens.delete(rt_db)
-
-
 
 
     # ==========================================

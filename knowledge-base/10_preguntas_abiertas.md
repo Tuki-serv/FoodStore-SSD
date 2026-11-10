@@ -47,14 +47,14 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 **A** (`[DESC]`): Bearer en header; authStore persiste access+refresh+usuario en localStorage. (`[INT]`): token en authStore, "NO en localStorage directamente"; `partialize` solo `accessToken`; `GET /auth/me` rehidrata usuario.
 **B** (código actual): solo cookie HttpOnly; Bearer deshabilitado; refresh token devuelto en el body (el cliente debe guardarlo); `/auth/me` no existe (es `/usuarios/me`).
 **Impacto**: El frontend de la spec (interceptor Axios con Bearer) no funciona contra el backend actual; falta definir dónde vive el refresh token.
-**Resolución (spec = objetivo; deuda DT-11)**: Bearer en header + interceptor Axios, token en `authStore` (solo `accessToken` persistido), `GET /auth/me`. El backend debe volver a aceptar Bearer; la cookie HttpOnly es código actual. Ver PA-04 (dónde guardar el refresh token).
+**Resolución (spec = objetivo; DT-11 resuelta por C-02)**: Bearer en header + interceptor Axios, token en `authStore` (solo `accessToken` persistido), `GET /auth/me`. El backend acepta solo Bearer (la cookie `access_token` ya no autentica). El refresh vive en una cookie HttpOnly (ver PA-04).
 
 ### IN-08 — Modelo de refresh token
 **A** (`[DESC]`): UUID v4 opaco; al rotar, el anterior se marca `revocado_en` y se emite uno nuevo.
 **B** (`[INT]`): `token_hash` SHA-256 + `revoked_at`.
 **C** (código actual): login emite `token_urlsafe(32)`; `refresh` genera un **JWT** refresh y **sobrescribe** la fila (mismo registro); `logout` y expiración **borran** la fila (`revoked_at` nunca se usa). Compara `expires_at` (aware) con `datetime.utcnow()` (naive): posible `TypeError`.
 **Impacto**: Inconsistencia de formato entre login y refresh; sin trazabilidad de revocación; posible error en producción.
-**Resolución (spec = objetivo; deuda DT-07)**: `token_hash` SHA-256 + `revoked_at`; rotar marcando el anterior revocado; logout no borra la fila; corregir comparación aware/naive.
+**Resolución (DT-07 resuelta por C-02)**: refresh opaco con `token_hash` SHA-256; entidad *sesión* de 7 días fijos que agrupa el historial de refresh; rotar marca el anterior con `revoked_at` («rotado»); gracia y detección de reuso; logout y logout-all marcan la sesión y no borran filas. La comparación aware/naive ya la corrigió C-06.
 
 ### IN-09 — Registro: campos y código de error por email duplicado
 **A** (`[DESC]`): `nombre`, `telefono`, `password_confirmation?`; duplicado → **409**. (`[INT]`): `nombre, apellido, email, password`; duplicado en servicio (409 implícito).
@@ -149,7 +149,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-19 agregada. Fuentes: `[DESC]`
 | PA-01 | Alta | ¿El alcance de esta entrega incluye el frontend React completo (el código actual solo trae backend) o solo se completa/audita el backend? | Planificación de changes | Equipo / docente |
 | PA-02 | **RESUELTA** | ¿Qué documento es normativo? **Respuesta del usuario: `integrador.docx` v5.0 prevalece** → DD-16 (cierra SU-02) | — | Usuario |
 | PA-03 | Alta | ¿Descontar stock al crear el pedido (con expiración de PENDIENTE) o al confirmarse el pago? ¿Hay TTL para pedidos impagos? | Change de pedidos/stock | Product Owner / Tech Lead |
-| PA-04 | Alta | Objetivo spec: Bearer en header. Queda abierto **dónde guarda el frontend el refresh token** (la spec solo persiste `accessToken`) y si se admite cookie como complemento | Auth frontend + backend | Tech Lead |
+| PA-04 | Alta | **RESUELTA (C-02):** el refresh vive en una cookie HttpOnly (`Path=/api/v1/auth`) que el frontend nunca lee; el access vive en memoria del frontend (`authStore`). C-13 debe usar `withCredentials` hacia `/api/v1/auth` | Auth frontend + backend | Tech Lead |
 | PA-05 | Media | Objetivo spec: Checkout API/Orders con `CardPayment`, firma de webhook validada, endpoints de pago autenticados (DT-01/05/06). Abierto: ¿se acepta Checkout Pro como etapa intermedia hasta migrar? | Change de pagos | Tech Lead |
 | PA-06 | Alta | ¿Cómo se confirman pedidos con `EFECTIVO`/`TRANSFERENCIA` si CONFIRMADO es solo automático por pago MP? ¿Quién marca el cobro? | FSM y pagos | Product Owner |
 | PA-07 | Alta | `EN_CAMINO` entra al seed/FSM (spec, DT-03); abierto: ¿quién despacha (ADMIN/PEDIDOS)? El rol `COCINA` y el KDS son **extras del código, no especificados**: ¿se incorporan a la spec o se eliminan? (IN-12, DT-02) | Change de pedidos | Product Owner |

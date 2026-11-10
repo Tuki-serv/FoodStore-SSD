@@ -9,7 +9,7 @@ from tests.support.schema_expectations import TABLAS_ESPERADAS
 MODULES_DIR = Path(__file__).resolve().parents[2] / "app" / "modules"
 
 
-def test_import_all_models_devuelve_exactamente_las_17_tablas_esperadas() -> None:
+def test_import_all_models_devuelve_exactamente_las_18_tablas_esperadas() -> None:
     metadata = import_all_models()
 
     assert set(metadata.tables) == set(TABLAS_ESPERADAS)
@@ -35,7 +35,7 @@ def test_import_all_models_llamada_dos_veces_devuelve_la_misma_metadata_sin_dupl
     assert len(segunda.tables) == cantidad == len(TABLAS_ESPERADAS)
 
 
-def test_import_all_models_en_un_proceso_limpio_registra_las_17_tablas_sin_depender_de_otros_imports() -> None:
+def test_import_all_models_en_un_proceso_limpio_registra_las_18_tablas_sin_depender_de_otros_imports() -> None:
     """Un proceso nuevo (como `alembic` o el seed) no tiene los modelos importados de antemano."""
     codigo = (
         "from app.db.models import import_all_models; "

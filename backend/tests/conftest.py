@@ -212,8 +212,7 @@ def _get_admin_auth_headers(client: TestClient) -> dict:
     )
     if response.status_code != 200:
         raise RuntimeError(f"Login admin falló: {response.text}")
-    cookie = response.cookies.get("access_token")
-    return {"Cookie": f"access_token={cookie}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 def _get_user_auth_headers(client: TestClient, normal_user_data: dict) -> dict:
     response = client.post(
@@ -225,8 +224,17 @@ def _get_user_auth_headers(client: TestClient, normal_user_data: dict) -> dict:
     )
     if response.status_code != 200:
         raise RuntimeError(f"Login user falló: {response.text}")
-    cookie = response.cookies.get("access_token")
-    return {"Cookie": f"access_token={cookie}"}
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+def presentar_refresh(client: TestClient, valor: str | None) -> None:
+    """Deja en el cookie jar solo la cookie `refresh_token=valor` (con `path=/api/v1/auth`); `None` = sin cookie.
+
+    Permite presentar un refresh concreto (p. ej. uno ya rotado) en lugar del último que recibió el cliente.
+    """
+    client.cookies.clear()
+    if valor is not None:
+        client.cookies.set("refresh_token", valor, domain="testserver.local", path="/api/v1/auth")
+
 
 @pytest.fixture(name="admin_auth_headers")
 def admin_auth_headers_fixture(client: TestClient) -> dict:

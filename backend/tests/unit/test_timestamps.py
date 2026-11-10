@@ -1,4 +1,4 @@
-"""Fechas con zona horaria (D11): `utc_now()` y las 32 columnas `TIMESTAMPTZ` (sin BD)."""
+"""Fechas con zona horaria (D11): `utc_now()` y las 34 columnas `TIMESTAMPTZ` (sin BD)."""
 from datetime import timedelta
 
 from sqlalchemy import DateTime
@@ -22,7 +22,7 @@ def test_utc_now_dos_llamadas_devuelven_instantes_no_decrecientes() -> None:
     assert segundo >= primero
 
 
-def test_columnas_datetime_de_la_metadata_son_exactamente_las_32_esperadas() -> None:
+def test_columnas_datetime_de_la_metadata_son_exactamente_las_34_esperadas() -> None:
     metadata = import_all_models()
 
     encontradas = {
@@ -32,7 +32,7 @@ def test_columnas_datetime_de_la_metadata_son_exactamente_las_32_esperadas() -> 
         if isinstance(col.type, DateTime)
     }
 
-    assert len(COLUMNAS_DE_FECHA_ESPERADAS) == 32
+    assert len(COLUMNAS_DE_FECHA_ESPERADAS) == 34
     assert encontradas == set(COLUMNAS_DE_FECHA_ESPERADAS)
 
 
