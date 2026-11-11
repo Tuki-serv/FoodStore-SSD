@@ -35,19 +35,27 @@ El flujo objetivo es Checkout API/Orders: el frontend tokeniza la tarjeta con `C
 |----|-------|--------|
 | `approved` | `aprobado` | Pedido PENDIENTE→CONFIRMADO con descuento de stock (actor Sistema). Si el stock ya no alcanza: pedido CANCELADO («Sin stock») y el pago pasa al estado local `a_devolver` (devolución manual, PA-08) |
 | `pending`, `in_process`, `authorized` | `pendiente` | Sin cambios |
-| `rejected`, `cancelled`, `refunded`, `charged_back` | `rechazado` | Sin cambios; reintento posible |
+| `rejected`, `cancelled`, `refunded`, `charged_back` | `rechazado` | Sin cambios; reintento posible (un nuevo pago aprobado con otro `mp_payment_id` se procesa) |
 | otros | — | `ignored` |
 
-Estados locales del pago: `pendiente`, `aprobado`, `rechazado` y `a_devolver` (aprobado en MP pero sin stock; `mp_status` conserva `approved`). Una vez que el pago deja de estar `pendiente` ya no se re-procesa (`already_processed`); por lo tanto un cambio posterior en MP (p. ej. `approved` → `refunded`) no se refleja.
+Estados locales del pago: `pendiente`, `aprobado`, `rechazado` y `a_devolver` (aprobado en MP pero sin pedido que lo respalde: sin stock, pedido `CANCELADO`, `EFECTIVO`/`TRANSFERENCIA` o ya confirmado; `mp_status` conserva `approved`). `aprobado` y `a_devolver` son terminales (`already_processed`); un cambio posterior en MP (p. ej. `approved` → `refunded`) no se refleja (PA-08).
 
 ## Sandbox
 
-Tarjetas de prueba de `[INT]` (vencimiento indicado `11/25`, hoy vencido; usar fecha futura): Visa aprobada `4509 9535 6623 3704` (CVV 123); American Express aprobada `3714 496353 98431` (CVV 1234); Visa rechazada `4000 0000 0000 0002` (CVV 123). Credenciales `TEST-...` para sandbox; `APP_USR-...` producción. Para recibir webhooks en local se usa **ngrok** (`NGROK_URL`).
+Tarjetas de prueba de `[INT]` (vencimiento indicado `11/25`, hoy vencido; usar fecha futura): Visa aprobada `4509 9535 6623 3704` (CVV 123); American Express aprobada `3714 496353 98431` (CVV 1234); Visa rechazada `4000 0000 0000 0002` (CVV 123). Credenciales `TEST-...` para sandbox; `APP_USR-...` producción. Para recibir webhooks en local se usa **ngrok**. En el panel de MercadoPago configurar solo «Webhooks» (evento `payment`) y copiar la clave secreta a `MP_WEBHOOK_SECRET`.
 
-## Riesgos conocidos (deuda técnica del código actual: DT-06, DT-21; DT-05 resuelta por C-04)
+## Webhook: objetivo y estado actual (C-05)
 
-- Webhook sin verificación de firma/`x-signature`; devuelve 200 aun con error (MP no reintenta).
-- Si el pago se aprueba pero falla `cambiar_estado_pedido`, queda inconsistente (IN-22).
-- Comentario TODO en el código: "Rúbrica MP (Webhook que procesa topic=payment, avanza pedido y notifica WS)" — la notificación WS ya se dispara desde el router.
+| Aspecto | Estado |
+|---------|--------|
+| Firma `x-signature` | Validada con `MP_WEBHOOK_SECRET` (validador del SDK `mercadopago>=3.6.0`); inválida → 401, sin secreto → 503 |
+| Idempotencia | Por `mp_payment_id` con `SELECT ... FOR UPDATE` sobre `pagos` (`decidir_transicion_pago`); `idempotency_key` es solo la clave de creación del pago |
+| Transacción | Una sola: pago + transición del pedido + stock + historial (UoW reentrante con savepoint) |
+| Códigos | 200 / 401 / 400 / 502 / 503 / 500 (ver Flujo 5 de [07](07_flujos_principales.md)) |
+
+## Riesgos conocidos (DT-06, DT-20 y DT-21 resueltas por C-05; DT-05 por C-04)
+
+- Las notificaciones legacy IPN (`?id=&topic=`) no vienen firmadas y reciben 401: configurar en el panel de MercadoPago solo «Webhooks» (evento `payment`).
+- Sin ventana de tolerancia sobre `ts`: una notificación auténtica capturada puede reenviarse, sin efecto porque el estado se toma de la API de MP y el procesamiento es idempotente.
 - `float(monto)` al enviar a MP: puede introducir errores de redondeo; usar Decimal→2 decimales.
-- Sin reembolso/cancelación automática de pago al cancelar el pedido (PA-08).
+- Sin reembolso/cancelación automática de pago al cancelar el pedido ni ante `refunded` posterior (PA-08); los pagos `a_devolver` requieren gestión manual.

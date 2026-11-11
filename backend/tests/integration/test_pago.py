@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.support.mp_webhook import post_webhook
+
 class TestPago:
     """POST /api/v1/pagos/crear"""
 
@@ -15,12 +17,8 @@ class TestPago:
         data = response.json()
         assert data["code"] == "HTTP_404"
         
-    def test_webhook_mercadopago_invalid_payload(self, client: TestClient):
-        """Si el webhook recibe un payload inválido o tipo no soportado, lo ignora."""
-        payload = {"type": "invalid_topic", "data": {"id": "123"}}
-        response = client.post(
-            "/api/v1/pagos/webhook",
-            json=payload
-        )
+    def test_webhook_mercadopago_invalid_payload(self, client: TestClient, mp_sdk):
+        """Si el webhook recibe una notificación firmada de un tipo no soportado, la ignora."""
+        response = post_webhook(client, "123", topic="invalid_topic")
         assert response.status_code == 200
         assert response.json()["status"] == "ignored"

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from tests.support.mp_webhook import SECRETO, post_webhook
 from app.modules.pagos.models import Pago
 from app.modules.usuarios.models import Usuario
 
@@ -94,8 +95,12 @@ def test_consultar_pago_anonimo_con_pedido_inexistente_responde_401_y_no_404(cli
 
 # ── Rutas que siguen públicas ───────────────────────────────────────────────
 
-def test_webhook_sin_token_con_topico_no_soportado_responde_200_ignored(client: TestClient) -> None:
-    response = client.post("/api/v1/pagos/webhook", json={"type": "otro", "data": {"id": "1"}})
+def test_webhook_sin_token_con_firma_valida_y_topico_no_soportado_responde_200_ignored(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "MP_WEBHOOK_SECRET", SECRETO)  # el webhook se autentica por firma (C-05), no por JWT
+
+    response = post_webhook(client, "1", topic="otro")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ignored"

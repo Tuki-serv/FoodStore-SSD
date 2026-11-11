@@ -123,6 +123,7 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 | `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` | Límite de endpoints de auth | `5`, `5` | **Y** |
 | `MP_ACCESS_TOKEN` | Access token MP (backend) | `TEST-...` | N (opcional: pagos) |
 | `MP_PUBLIC_KEY` | Public key MP (frontend vía API) | `TEST-...` | N (opcional: pagos) |
+| `MP_WEBHOOK_SECRET` | Clave secreta de Webhooks (panel MP) para validar `x-signature`; sin ella el webhook responde 503 | `CHANGE_ME` | N (opcional: pagos; obligatoria para recibir webhooks) |
 | `MP_NOTIFICATION_URL` | URL pública completa del webhook IPN | `https://CHANGE_ME.ngrok-free.app/api/v1/pagos/webhook` | N (opcional: pagos) |
 | `BACKEND_PUBLIC_URL` | Base pública del backend para las `back_urls` (removible en C-12) | `https://CHANGE_ME.ngrok-free.app` | N (opcional: pagos) |
 | `FRONTEND_URL` | Destino del redirect post-pago (removible en C-12) | `http://localhost:5173` | N (opcional: pagos) |

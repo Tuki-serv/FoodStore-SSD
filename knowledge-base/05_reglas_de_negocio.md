@@ -93,8 +93,8 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 ## Dominio: Pagos (RN-PA)
 
 - **RN-PA-01**: Los datos de tarjeta **nunca** pasan por el backend (PCI DSS SAQ-A): se tokenizan en el navegador con MercadoPago.js / `CardPayment` (objetivo, Checkout API). *Deuda DT-01:* el código actual delega en el sitio de MP (Checkout Pro).
-- **RN-PA-02**: Cada pago lleva un `idempotency_key` UUID único generado por el backend; un mismo evento no debe procesarse dos veces. *Deuda DT-20:* en el código actual la deduplicación efectiva es `pago.estado != "pendiente"` → `already_processed`; el `idempotency_key` no se verifica.
-- **RN-PA-03**: El webhook **no confía** en el payload: consulta la API de MP (`payment.get`) para obtener el estado real y busca el pedido por `external_reference`; responde 200 rápido para evitar reintentos.
+- **RN-PA-02**: Cada pago lleva un `idempotency_key` UUID único generado por el backend; es la clave de **creación** del pago (la que se enviará a MP en `X-Idempotency-Key`). Un mismo evento del webhook no se procesa dos veces: la dedupe es por `mp_payment_id` con bloqueo de fila (C-05, DT-20 resuelta).
+- **RN-PA-03**: El webhook **no confía** en el payload: consulta la API de MP (`payment.get`) para obtener el estado real y busca el pedido por `external_reference`; responde 200 solo si lo procesó o lo ignoró legítimamente; ante firma inválida (401), falla de MP (502), falta de configuración (503) o error inesperado (500) responde error para que MP reintente lo reintentable.
 - **RN-PA-04**: Mapeo de estados MP → acción:
 
 | `mp_status` | Estado local | Acción sobre el pedido |
