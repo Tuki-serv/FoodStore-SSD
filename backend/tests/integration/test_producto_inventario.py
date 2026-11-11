@@ -1,5 +1,6 @@
 """Inventario manual: disponibilidad (fijar, idempotente) y stock absoluto (`PATCH /productos/{id}/stock`)."""
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlmodel import Session
 
 from app.modules.productos.models import Producto
@@ -220,3 +221,31 @@ def test_disponibilidad_rol_stock_agregado_vale_con_el_access_viejo(
 
     assert response.status_code == 200
     assert _producto_en_bd(session, producto_db.id).disponible is False
+
+
+def test_stock_lee_la_fila_bloqueada_para_serializarse_con_las_confirmaciones_de_pedidos(
+    client: TestClient, session: Session, producto_db: Producto, usuario_con_roles
+) -> None:
+    _, headers = usuario_con_roles(["STOCK"])
+    sentencias: list[str] = []
+
+    def capturar(conn, cursor, statement, parameters, context, executemany) -> None:
+        sentencias.append(statement)
+
+    motor = session.get_bind()
+    event.listen(motor, "before_cursor_execute", capturar)
+    try:
+        response = client.patch(f"/api/v1/productos/{producto_db.id}/stock", json={"stock_cantidad": 7}, headers=headers)
+    finally:
+        event.remove(motor, "before_cursor_execute", capturar)
+
+    assert response.status_code == 200
+    assert any("FROM productos" in s and "FOR UPDATE" in s for s in sentencias)
+
+
+def test_stock_de_un_producto_inexistente_sigue_respondiendo_404(client: TestClient, usuario_con_roles) -> None:
+    _, headers = usuario_con_roles(["STOCK"])
+
+    response = client.patch("/api/v1/productos/99999999/stock", json={"stock_cantidad": 7}, headers=headers)
+
+    assert response.status_code == 404

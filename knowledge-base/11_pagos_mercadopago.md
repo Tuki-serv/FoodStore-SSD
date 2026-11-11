@@ -33,12 +33,12 @@ El flujo objetivo es Checkout API/Orders: el frontend tokeniza la tarjeta con `C
 
 | MP | Local | Acción |
 |----|-------|--------|
-| `approved` | `aprobado` | Pedido PENDIENTE→CONFIRMADO + evento WS |
+| `approved` | `aprobado` | Pedido PENDIENTE→CONFIRMADO con descuento de stock (actor Sistema). Si el stock ya no alcanza: pedido CANCELADO («Sin stock») y el pago pasa al estado local `a_devolver` (devolución manual, PA-08) |
 | `pending`, `in_process`, `authorized` | `pendiente` | Sin cambios |
 | `rejected`, `cancelled`, `refunded`, `charged_back` | `rechazado` | Sin cambios; reintento posible |
 | otros | — | `ignored` |
 
-Una vez que el pago deja de estar `pendiente` ya no se re-procesa (`already_processed`); por lo tanto un cambio posterior en MP (p. ej. `approved` → `refunded`) no se refleja.
+Estados locales del pago: `pendiente`, `aprobado`, `rechazado` y `a_devolver` (aprobado en MP pero sin stock; `mp_status` conserva `approved`). Una vez que el pago deja de estar `pendiente` ya no se re-procesa (`already_processed`); por lo tanto un cambio posterior en MP (p. ej. `approved` → `refunded`) no se refleja.
 
 ## Sandbox
 
