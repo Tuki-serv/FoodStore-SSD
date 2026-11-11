@@ -1,6 +1,7 @@
 from typing import Annotated, Any
 from fastapi import APIRouter, Depends, status, Query
 
+from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
 from app.core.deps import get_current_active_user, get_uow, require_role
 from app.modules.usuarios.schemas import (
@@ -59,12 +60,11 @@ def create_user_by_admin(
 @admin_router.get("/", response_model=PaginatedResponse[UserPublicAdminPanel])
 def get_all_users(
     svc: UsuarioServiceDep, 
-    page: int = Query(1, ge=1, description="Número de página"), 
-    size: int = Query(20, ge=1, le=100, description="Cantidad de items por página"), 
+    params: PageQuery,
     rol_codigo: str | None = None
 ) -> Any:
     """Lista todos los usuarios activos. Permite paginación y filtrado por rol."""
-    return svc.get_all_users(page=page, size=size, rol_codigo=rol_codigo)
+    return svc.get_all_users(params=params, rol_codigo=rol_codigo)
 
 
 @admin_router.patch("/{user_id}", response_model=UserPublicAdminPanel)

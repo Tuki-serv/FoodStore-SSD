@@ -35,8 +35,8 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 ## Dominio: Catálogo (RN-CA)
 
 - **RN-CA-01**: Las categorías son jerárquicas (`parent_id`), sin límite de profundidad; no se permiten ciclos ni que una categoría sea su propio padre (400).
-- **RN-CA-02**: Nombre de categoría único entre activas (400 si se repite).
-- **RN-CA-03**: Eliminar una categoría = soft delete **con validación** (objetivo spec). *Deuda DT-19:* el código actual re-asigna las hijas al abuelo, borra la imagen en Cloudinary y no valida productos asociados. (IN-17)
+- **RN-CA-02**: Nombre de categoría único entre activas (409 `DUPLICATE_VALUE` con `field` `nombre` si se repite; el nombre de una eliminada se puede reutilizar). Igual para productos, ingredientes y unidades de medida (nombre y símbolo), C-11.
+- **RN-CA-03**: Eliminar una categoría = soft delete **con validación** (C-11, resuelta): 409 `CATEGORY_HAS_PRODUCTS` si tiene productos activos, 409 `CATEGORY_HAS_CHILDREN` si tiene subcategorías activas (los productos tienen prioridad); si no, soft delete y la imagen se borra en Cloudinary solo tras el commit. Ya no se re-asignan hijas. (IN-17)
 - **RN-CA-04**: `ProductoCategoria.categoria_id` es `ON DELETE RESTRICT`: no se puede borrar físicamente una categoría con productos.
 - **RN-CA-05**: Un producto pertenece a varias categorías; una es la principal (`es_principal`). `[INT]`
 
@@ -76,7 +76,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 - **RN-PE-10**: Cancelación por el cliente: solo pedidos propios (403 si ajeno) en **PENDIENTE o CONFIRMADO** (el CLIENT no tiene transiciones desde EN_PREP).
 - **RN-PE-11**: Cancelación por ADMIN/PEDIDOS: desde PENDIENTE, CONFIRMADO y EN_PREP (decisión C-09/OQ-3, `[INT]`: ADMIN y PEDIDOS cancelan también en EN_PREP; en EN_CAMINO nadie cancela).
 - **RN-PE-12**: Solo ADMIN puede eliminar un pedido (soft delete).
-- **RN-PE-13**: Listado: CLIENT ve solo los propios; ADMIN/PEDIDOS ven todos; filtros por estado/fecha y paginación `page/size` (objetivo); *deuda DT-18:* el código actual solo ofrece `offset/limit`.
+- **RN-PE-13**: Listado: CLIENT ve solo los propios; ADMIN/PEDIDOS ven todos; filtros por estado/fecha (UTC) y paginación `page/size` (C-11).
 - **RN-PE-14** (PA-07 parcial, DD-23): `EN_PREP→EN_CAMINO` y `EN_CAMINO→ENTREGADO` los hacen ADMIN y PEDIDOS. Implementado en C-09 (`EN_CAMINO` ya existe en la FSM). El rol `COCINA` (extra del código, no especificado) no se toca: se decide al final (Fase 2).
 
 ## Dominio: Stock (RN-ST)
@@ -109,7 +109,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 
 ## Dominio: API y Datos transversales (RN-GL)
 
-- **RN-GL-01**: Todas las rutas bajo `/api/v1`; errores en formato `{detail, code, field}` en toda la API (*deuda DT-18:* el rate limit devuelve otra forma); validación Pydantic → 422 `VALIDATION_ERROR`.
+- **RN-GL-01**: Todas las rutas bajo `/api/v1`; errores en formato `{detail, code, field}` en toda la API (resuelta por C-11: el 429 del rate limit usa el mismo formato, con `RATE_LIMIT_EXCEEDED`); validación Pydantic → 422 `VALIDATION_ERROR`.
 - **RN-GL-02**: Los listados excluyen registros con `deleted_at`; los eliminados (productos, ingredientes, categorías, unidades) solo los ve ADMIN vía el filtro `EstadoFiltro` (`ACTIVO|ELIMINADO|TODOS`): para el resto, `TODOS` equivale a `ACTIVO` y `ELIMINADO` da vacío (intersección, C-08).
 - **RN-GL-03**: Nunca se expone el modelo SQLModel como respuesta; schemas separados Create/Update/Read. Ningún `service` hace `session.commit()` directo (lo hace el UoW) — CE-10.
 - **RN-GL-04**: Precios y totales en `Decimal` (NUMERIC(10,2)), nunca float (excepto al enviar a MP: `float(monto)`).

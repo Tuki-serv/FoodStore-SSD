@@ -1,9 +1,10 @@
+from dataclasses import dataclass
 from decimal import Decimal
-from typing import Optional, List
-from datetime import datetime
+from typing import Literal, Optional, List
+from datetime import date, datetime
 
 from sqlmodel import SQLModel, Field
-from pydantic import model_validator
+from pydantic import ConfigDict, ValidationInfo, field_validator
 from app.modules.detalles_pedido.schemas import (
     DetallePedidoCreate,
     DetallePedidoRead,
@@ -30,7 +31,9 @@ class PedidoCreate(SQLModel):
     )
 
 class PedidoCambioEstado(SQLModel):
-    estado_hacia: str = Field(
+    model_config = ConfigDict(validate_default=True)  # valida también el motivo omitido
+
+    nuevo_estado: str = Field(
         ...,
         max_length=20,
         description="Nuevo estado del pedido"
@@ -39,11 +42,19 @@ class PedidoCambioEstado(SQLModel):
         default=None,
         description="Motivo del cambio. Obligatorio si se cancela."
     )
-    @model_validator(mode="after")
-    def validar_motivo_cancelacion(self):
-        if self.estado_hacia == "CANCELADO" and not self.motivo:
-            raise ValueError("El motivo es obligatorio si el estado_hacia es CANCELADO")
-        return self
+
+    # field_validator (no model_validator): el 422 sale con field="motivo".
+    @field_validator("motivo", mode="after")
+    @classmethod
+    def validar_motivo_cancelacion(cls, motivo: Optional[str], info: ValidationInfo) -> Optional[str]:
+        if info.data.get("nuevo_estado") == "CANCELADO" and not (motivo and motivo.strip()):
+            raise ValueError("El motivo es obligatorio si el nuevo_estado es CANCELADO")
+        return motivo
+
+
+class PedidoCancelacion(SQLModel):
+    """Body opcional de `DELETE /pedidos/{id}`: sin motivo (o vacío) se usa el motivo por defecto del service."""
+    motivo: Optional[str] = Field(default=None, description="Motivo de la cancelación (opcional).")
 
 
 class PedidoRead(SQLModel):
@@ -57,16 +68,24 @@ class PedidoRead(SQLModel):
     notas: Optional[str] = None
     created_at: datetime
 
-class PedidoReadFull(PedidoRead):
+class PedidoResumen(PedidoRead):
+    """Elemento del listado de pedidos: el pedido más su dueño, sin ítems."""
+    usuario_id: int
+    cliente_nombre: str
+
+
+class PedidoDetalle(PedidoResumen):
+    """Detalle completo: el resumen más la dirección de entrega y los ítems."""
+    direccion_id: Optional[int] = None
     items: List[DetallePedidoRead] = Field(default_factory=list)
 
-class PedidoReadAdmin(PedidoReadFull):
-    cliente_nombre: str
-    
-class PedidoList(SQLModel):
-    data: List[PedidoRead]
-    total: int
 
-class PedidoListAdmin(SQLModel):
-    data: List[PedidoReadAdmin]
-    total: int
+EstadoPedidoCodigo = Literal["PENDIENTE", "CONFIRMADO", "EN_PREP", "EN_CAMINO", "ENTREGADO", "CANCELADO"]
+
+
+@dataclass(frozen=True)
+class FiltrosPedidos:
+    """Filtros opcionales del listado (query params): estado y rango de fechas de creación, inclusivo, en UTC."""
+    estado: EstadoPedidoCodigo | None = None
+    desde: date | None = None
+    hasta: date | None = None

@@ -5,10 +5,12 @@ from sqlmodel import Session
 from app.core.deps import lector_privilegiado, require_role
 from app.core.database import get_session
 from app.core.enums import EstadoFiltro
+from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
 from app.modules.productos.schemas import (
     ProductoCreate,
     ProductoDisponibilidadUpdate,
+    ProductoIngredienteRead,
     ProductoReadFull,
     ProductoStockUpdate,
     ProductoUpdate,
@@ -35,8 +37,7 @@ def get_producto_service(session: Session = Depends(get_session)) -> ProductoSer
 def list_productos(
     ver_no_disponibles: VeNoDisponibles,
     ver_eliminados: VeEliminados,
-    page: Annotated[int, Query(ge=1, description="Número de página")] = 1,
-    size: Annotated[int, Query(ge=1, le=100, description="Cantidad de items por página")] = 20,
+    params: PageQuery,
     estado: Annotated[EstadoFiltro, Query(description="Filtrar por estado lógico")] = EstadoFiltro.ACTIVO,
     disponible: Annotated[Optional[bool], Query(description="Filtrar por disponibilidad")] = None,
     categoria_ids: Annotated[Optional[List[int]], Query(description="Filtrar por múltiples categorías")] = None,
@@ -51,8 +52,7 @@ def list_productos(
     - Productos de categoría 5: `GET /?categoria_ids=5`
     """
     return svc.get_all_productos(
-        page=page, 
-        size=size, 
+        params=params,
         estado=estado,
         disponible=disponible,
         categoria_ids=categoria_ids, 
@@ -139,6 +139,27 @@ def update_imagenes_producto(
 ):
     """Actualiza la lista imagenes_url[] y imagenes_public_id[] del producto."""
     return svc.actualizar_imagenes(producto_id, data.imagenes_url, data.imagenes_public_id)
+
+
+@router.get("/{producto_id}/ingredientes", response_model=list[ProductoIngredienteRead], summary="Listar los ingredientes de un producto")
+def list_ingredientes_producto(
+    producto_id: Annotated[int, Path(ge=1)],
+    ver_no_disponibles: VeNoDisponibles,
+    ver_eliminados: VeEliminados,
+    svc: ProductoService = Depends(get_producto_service),
+):
+    """Público; sigue la visibilidad del producto (no disponible: solo ADMIN/STOCK)."""
+    return svc.listar_ingredientes(producto_id, ver_no_disponibles=ver_no_disponibles, ver_eliminados=ver_eliminados)
+
+
+@router.delete("/{producto_id}/ingredientes/{ingrediente_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Quitar un ingrediente de un producto", dependencies=[Depends(require_role(["ADMIN"]))])
+def quitar_ingrediente_producto(
+    producto_id: Annotated[int, Path(ge=1)],
+    ingrediente_id: Annotated[int, Path(ge=1)],
+    svc: ProductoService = Depends(get_producto_service),
+):
+    svc.quitar_ingrediente(producto_id, ingrediente_id)
+    return None
 
 
 @router.post("/{producto_id}/ingredientes", status_code=status.HTTP_201_CREATED, summary="Asociar ingrediente a producto", dependencies=[Depends(require_role(["ADMIN"]))])

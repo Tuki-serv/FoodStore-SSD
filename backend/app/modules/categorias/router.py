@@ -5,6 +5,7 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import lector_privilegiado, require_role
 from app.core.enums import EstadoFiltro
+from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
 from app.modules.categorias.schemas import (
     CategoriaCreate, CategoriaRead, 
@@ -30,8 +31,7 @@ def create_categoria(data: CategoriaCreate, svc: CategoriaService = Depends(get_
 @router.get("/", response_model=PaginatedResponse[CategoriaReadFull], summary="Listar y filtrar categorías")
 def list_categorias(
     ver_eliminados: VeEliminados,
-    page: Annotated[int, Query(ge=1, description="Número de página")] = 1,
-    size: Annotated[int, Query(ge=1, le=100, description="Cantidad de items por página")] = 20,
+    params: PageQuery,
     is_principal: Annotated[Optional[bool], Query(description="Traer solo principales (sin padre)")] = None,
     parent_id: Annotated[Optional[int], Query(description="Traer subcategorías de un padre")] = None,
     estado: Annotated[EstadoFiltro, Query(description="Filtrar por estado")] = EstadoFiltro.ACTIVO,
@@ -39,7 +39,7 @@ def list_categorias(
 ):
     # Reemplace 4 endpoints en 1 solo llamado dinámico, Tuki aguanten los query params
     return svc.get_all_categorias(
-        page=page, size=size, is_main=is_principal, parent_id=parent_id, estado=estado, ver_eliminados=ver_eliminados
+        params=params, is_main=is_principal, parent_id=parent_id, estado=estado, ver_eliminados=ver_eliminados
     )
 
 

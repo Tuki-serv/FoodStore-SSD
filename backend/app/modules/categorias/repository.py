@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
 from app.core.enums import EstadoFiltro
 from app.modules.categorias.models import Categoria
+from app.modules.productos.models import Producto, ProductoCategoria
 
 class CategoriaRepository(BaseRepository[Categoria]):
     def __init__(self, session: Session) -> None:
@@ -54,6 +55,21 @@ class CategoriaRepository(BaseRepository[Categoria]):
 
         return self.session.exec(statement).one()
 
+
+    def tiene_productos_activos(self, categoria_id: int) -> bool:
+        """True si algún producto no eliminado está asociado a la categoría."""
+        statement = (
+            select(ProductoCategoria.producto_id)
+            .join(Producto, Producto.id == ProductoCategoria.producto_id)
+            .where(ProductoCategoria.categoria_id == categoria_id, Producto.deleted_at.is_(None))
+            .limit(1)
+        )
+        return self.session.exec(statement).first() is not None
+
+    def tiene_hijas_activas(self, categoria_id: int) -> bool:
+        """True si la categoría tiene alguna subcategoría no eliminada."""
+        statement = select(Categoria.id).where(Categoria.parent_id == categoria_id, Categoria.deleted_at.is_(None)).limit(1)
+        return self.session.exec(statement).first() is not None
 
     def get_all_ordered(self) -> list[Categoria]:
         # Método construcción del árbol en memoria

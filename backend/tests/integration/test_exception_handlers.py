@@ -93,3 +93,66 @@ class TestDomainExceptions:
         assert "code" in data
         assert "field" in data
         assert data["code"] == "HTTP_401"
+
+
+class TestAppErrorYErrorInesperado:
+    """`AppError` (error de dominio) y las excepciones no controladas salen con el formato unificado."""
+
+    @staticmethod
+    def _app_con_rutas_de_prueba():
+        from app.core.errors import AppError
+        from app.main import create_app
+
+        app = create_app()
+
+        @app.get("/__test/app-error")
+        def lanza_app_error():
+            raise AppError(409, "INVALID_TRANSITION", "x", field=None)
+
+        @app.get("/__test/app-error-campo")
+        def lanza_app_error_con_campo():
+            raise AppError(409, "DUPLICATE_VALUE", "ya existe", field="nombre")
+
+        @app.get("/__test/boom")
+        def lanza_error_inesperado():
+            raise RuntimeError("boom")
+
+        return app
+
+    def test_app_error_se_formatea_con_su_codigo_y_estado(self):
+        cliente = TestClient(self._app_con_rutas_de_prueba())
+        response = cliente.get("/__test/app-error")
+        assert response.status_code == 409
+        assert response.json() == {"detail": "x", "code": "INVALID_TRANSITION", "field": None}
+
+    def test_app_error_con_campo_lo_expone(self):
+        cliente = TestClient(self._app_con_rutas_de_prueba())
+        response = cliente.get("/__test/app-error-campo")
+        assert response.status_code == 409
+        assert response.json() == {"detail": "ya existe", "code": "DUPLICATE_VALUE", "field": "nombre"}
+
+    def test_error_inesperado_devuelve_500_generico_sin_filtrar_detalle(self):
+        cliente = TestClient(self._app_con_rutas_de_prueba(), raise_server_exceptions=False)
+        response = cliente.get("/__test/boom")
+        assert response.status_code == 500
+        data = response.json()
+        assert data["code"] == "INTERNAL_ERROR"
+        assert data["field"] is None
+        assert "boom" not in response.text
+
+
+class TestFormatoUnicoEnErroresDeProtocolo:
+    def test_405_metodo_no_permitido_mantiene_el_formato(self, client: TestClient):
+        response = client.delete("/api/v1/auth/login")
+        assert response.status_code == 405
+        data = response.json()
+        assert data["code"] == "HTTP_405"
+        assert data["field"] is None
+        assert data["detail"]
+
+    def test_401_sin_token_en_auth_me_mantiene_el_formato(self, client: TestClient):
+        response = client.get("/api/v1/auth/me")
+        assert response.status_code == 401
+        data = response.json()
+        assert data["code"] == "HTTP_401"
+        assert data["field"] is None

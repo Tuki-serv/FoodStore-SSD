@@ -85,7 +85,7 @@ class TestAvanzarEstado:
 
     def test_avanzar_estado_valido_admin(self, client: TestClient, admin_auth_headers: dict, pedido_db):
         payload = {
-            "estado_hacia": "CONFIRMADO",
+            "nuevo_estado": "CONFIRMADO",
             "motivo": "Todo OK"
         }
         response = client.patch(
@@ -102,7 +102,7 @@ class TestAvanzarEstado:
         session.commit()
 
         payload = {
-            "estado_hacia": "EN_PREP",
+            "nuevo_estado": "EN_PREP",
             "motivo": "Reversa"
         }
         response = client.patch(
@@ -114,19 +114,18 @@ class TestAvanzarEstado:
 
 
 class TestMisPedidos:
-    """GET /api/v1/pedidos/mis-pedidos"""
+    """GET /api/v1/pedidos (el cliente ve solo los propios)"""
 
     def test_listar_mis_pedidos(self, client: TestClient, user_auth_headers: dict, pedido_db):
         """Un usuario puede ver sus propios pedidos."""
         response = client.get(
-            "/api/v1/pedidos/mis-pedidos",
+            "/api/v1/pedidos",
             headers=user_auth_headers
         )
         assert response.status_code == 200
         data = response.json()
-        assert "data" in data
-        assert isinstance(data["data"], list)
-        assert len(data["data"]) >= 1
+        assert [p["id"] for p in data["items"]] == [pedido_db.id]
+        assert data["total"] == 1
 
 class TestHistorialEstados:
     """GET /api/v1/pedidos/{id}/historial"""
@@ -142,12 +141,13 @@ class TestHistorialEstados:
         assert isinstance(data, list)
 
 class TestCancelarPedido:
-    """PATCH /api/v1/pedidos/mis-pedidos/{id}/cancelar"""
+    """DELETE /api/v1/pedidos/{id}"""
 
     def test_cancelar_pedido_propio(self, client: TestClient, user_auth_headers: dict, pedido_db):
-        payload = {"estado_hacia": "CANCELADO", "motivo": "Ya no lo quiero"}
-        response = client.patch(
-            f"/api/v1/pedidos/mis-pedidos/{pedido_db.id}/cancelar",
+        payload = {"motivo": "Ya no lo quiero"}
+        response = client.request(
+            "DELETE",
+            f"/api/v1/pedidos/{pedido_db.id}",
             json=payload,
             headers=user_auth_headers
         )
@@ -160,9 +160,10 @@ class TestCancelarPedido:
         session.add(pedido_db)
         session.commit()
         
-        payload = {"estado_hacia": "CANCELADO", "motivo": "Intento de fraude"}
-        response = client.patch(
-            f"/api/v1/pedidos/mis-pedidos/{pedido_db.id}/cancelar",
+        payload = {"motivo": "Intento de fraude"}
+        response = client.request(
+            "DELETE",
+            f"/api/v1/pedidos/{pedido_db.id}",
             json=payload,
             headers=user_auth_headers
         )
@@ -174,7 +175,7 @@ class TestRBACPedidos:
     def test_normal_user_cannot_avanzar_estado(self, client: TestClient, user_auth_headers: dict, pedido_db):
         """Un usuario normal NO puede utilizar el endpoint administrativo de avanzar estado."""
         payload = {
-            "estado_hacia": "CONFIRMADO",
+            "nuevo_estado": "CONFIRMADO",
             "motivo": "Hacker attempt"
         }
         response = client.patch(

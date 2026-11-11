@@ -1,6 +1,8 @@
 from typing import Annotated, Any
 from fastapi import APIRouter, Depends, status
 
+from app.core.pagination import PageQuery
+from app.core.schemas import PaginatedResponse
 from app.core.deps import get_current_active_user, get_uow
 from app.modules.usuarios.schemas import UserPublic
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
@@ -26,9 +28,9 @@ CurrentUser = Annotated[UserPublic, Depends(get_current_active_user)]
 def crear_direccion(data: DireccionCreate, current_user: CurrentUser, svc: DireccionServiceDep) -> Any:
     return svc.crear_direccion_propia(usuario_id=current_user.id, item_in=data)
 
-@router.get("/", response_model=list[DireccionRead])
-def listar_direcciones(current_user: CurrentUser, svc: DireccionServiceDep) -> Any:
-    return svc.listar_mis_direcciones(usuario_id=current_user.id)
+@router.get("/", response_model=PaginatedResponse[DireccionRead])
+def listar_direcciones(current_user: CurrentUser, svc: DireccionServiceDep, params: PageQuery) -> Any:
+    return svc.listar_mis_direcciones(usuario_id=current_user.id, params=params)
 
 @router.get("/{direccion_id}", response_model=DireccionRead)
 def get_direccion(direccion_id: int, current_user: CurrentUser, svc: DireccionServiceDep) -> Any:

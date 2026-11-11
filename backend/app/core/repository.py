@@ -1,7 +1,9 @@
 from typing import Generic, TypeVar, Type, Sequence, Optional
 from sqlmodel import Session, SQLModel, func, select
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
+from sqlalchemy.sql import Select
 from app.core.enums import EstadoFiltro
+from app.core.pagination import PageParams
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -53,6 +55,28 @@ class BaseRepository(Generic[T]):
         statement = self._filter_state(statement, state)
         return self.session.exec(statement).one()
     
+
+    def paginar(self, statement: Select, params: PageParams) -> tuple[list, int]:
+        """Cuenta el total del `select` filtrado y trae solo la página pedida: `(items, total)`.
+
+        El `select` ya viene filtrado y ordenado por quien llama; el conteo ignora el orden.
+        """
+        total = self.session.exec(
+            select(func.count()).select_from(statement.order_by(None).subquery())
+        ).one()
+        items = self.session.exec(statement.offset(params.offset).limit(params.size)).all()
+        return list(items), total
+
+
+    def existe_activo(self, campo: str, valor: object, excluir_id: int | None = None) -> bool:
+        """True si hay otro registro activo (no eliminado) con `campo == valor`; comparación exacta, como el índice parcial."""
+        statement = select(func.count()).select_from(self.model).where(getattr(self.model, campo) == valor)
+        if hasattr(self.model, "deleted_at"):
+            statement = statement.where(self.model.deleted_at.is_(None))
+        if excluir_id is not None:
+            statement = statement.where(self.model.id != excluir_id)
+        return self.session.exec(statement).one() > 0
+
 
     #==========Create===========
     def add(self, instance: T) -> T:

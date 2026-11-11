@@ -35,16 +35,12 @@ def _actor(session: Session, roles: list[str]) -> tuple[int, dict[str, str]]:
 
 def _cambiar_estado(client: TestClient, headers: dict, pedido_id: int, destino: str, motivo: str | None = None):
     return client.patch(
-        f"/api/v1/pedidos/{pedido_id}/estado", json={"estado_hacia": destino, "motivo": motivo}, headers=headers
+        f"/api/v1/pedidos/{pedido_id}/estado", json={"nuevo_estado": destino, "motivo": motivo}, headers=headers
     )
 
 
 def _cancelar_propio(client: TestClient, headers: dict, pedido_id: int, motivo: str = "me arrepentí"):
-    return client.patch(
-        f"/api/v1/pedidos/mis-pedidos/{pedido_id}/cancelar",
-        json={"estado_hacia": "CANCELADO", "motivo": motivo},
-        headers=headers,
-    )
+    return client.request("DELETE", f"/api/v1/pedidos/{pedido_id}", json={"motivo": motivo}, headers=headers)
 
 
 def test_estado_stock_mas_pedidos_avanza_a_en_prep(client: TestClient, session: Session, normal_user: dict) -> None:

@@ -38,7 +38,7 @@ Se emiten tras commit, a `role:KDS` y a `pedido:{id}`, desde `PedidoService.camb
 | CANCELADO | `PEDIDO_CANCELADO` |
 | cualquier otro | `ESTADO_ACTUALIZADO` |
 
-Payload: `PedidoReadFull` serializado (id, estado, totales, ítems). **No** se emite evento al crear un pedido ni al cancelarlo desde `mis-pedidos/.../cancelar`.
+Payload: `PedidoDetalle` serializado (id, estado, totales, `usuario_id`, `cliente_nombre`, `direccion_id`, ítems). **No** se emite evento al crear un pedido ni al cancelarlo con `DELETE /pedidos/{id}`.
 
 ## Limitaciones / puntos a validar
 

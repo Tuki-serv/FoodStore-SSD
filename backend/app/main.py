@@ -3,7 +3,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.utils.errores import custom_http_exception_handler, validation_exception_handler
+from app.core.errors import AppError
+from app.utils.errores import (
+    app_error_handler,
+    custom_http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
 from app.core.logger import setup_logging
 from app.core.rate_limit.rate_limit_middleware import RateLimitMiddleware
 from app.core.cloudinary.router import router as imagen_router
@@ -74,6 +80,8 @@ def create_app() -> FastAPI:
     app.add_exception_handler(HTTPException, custom_http_exception_handler)
     app.add_exception_handler(RequestValidationError,
                               validation_exception_handler)
+    app.add_exception_handler(AppError, app_error_handler)
+    app.add_exception_handler(Exception, unhandled_exception_handler)
 
     return app
 

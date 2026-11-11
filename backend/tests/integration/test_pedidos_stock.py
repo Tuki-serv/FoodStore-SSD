@@ -35,7 +35,7 @@ def _crear_pedido(client: TestClient, headers: dict, direccion_id: int, items: l
 
 def _cambiar(client: TestClient, headers: dict, pedido_id: int, destino: str, motivo: str | None = None):
     return client.patch(
-        f"/api/v1/pedidos/{pedido_id}/estado", json={"estado_hacia": destino, "motivo": motivo}, headers=headers
+        f"/api/v1/pedidos/{pedido_id}/estado", json={"nuevo_estado": destino, "motivo": motivo}, headers=headers
     )
 
 
@@ -180,11 +180,7 @@ def test_confirmar_cuando_una_linea_alcanza_y_otra_no_responde_409_y_ningun_stoc
 
 # ─── Cancelar devuelve solo desde CONFIRMADO+ ────────────────────────────────
 def _cancelar_propio(client: TestClient, headers: dict, pedido_id: int):
-    return client.patch(
-        f"/api/v1/pedidos/mis-pedidos/{pedido_id}/cancelar",
-        json={"estado_hacia": "CANCELADO", "motivo": "me arrepentí"},
-        headers=headers,
-    )
+    return client.request("DELETE", f"/api/v1/pedidos/{pedido_id}", json={"motivo": "me arrepentí"}, headers=headers)
 
 
 def test_cancelar_un_pedido_pendiente_no_modifica_el_stock(

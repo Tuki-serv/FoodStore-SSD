@@ -1,29 +1,51 @@
 from sqlmodel import Session, select, func
-from datetime import date
+from collections.abc import Set as AbstractSet
+from datetime import date, datetime, time, timedelta, timezone
 from app.modules.pagos.models import Pago
+from app.core.pagination import PageParams
 from app.core.repository import BaseRepository
 from app.modules.pedidos.models import Pedido
+from app.modules.pedidos.schemas import FiltrosPedidos
+from app.modules.usuarios.models import Usuario
 
 class PedidoRepository(BaseRepository[Pedido]):
     def __init__(self, session: Session):
         super().__init__(session, Pedido)
 
-    def get_all_by_usuario_id(self, usuario_id: int, offset: int = 0, limit: int = 20) -> list[Pedido]:
-        statement = select(Pedido).where(Pedido.usuario_id == usuario_id).where(Pedido.deleted_at == None).order_by(Pedido.created_at.desc())
-        return list(self.session.exec(statement.offset(offset).limit(limit)).all())
-        
-    def count_by_usuario_id(self, usuario_id: int) -> int:
-        statement = select(func.count()).select_from(Pedido).where(Pedido.usuario_id == usuario_id).where(Pedido.deleted_at == None)
-        return self.session.exec(statement).one()
-    
-    def get_all_active(self, offset: int = 0, limit: int = 20) -> list[Pedido]:
-        statement = select(Pedido).where(Pedido.deleted_at == None).order_by(Pedido.created_at.desc())
-        return list(self.session.exec(statement.offset(offset).limit(limit)).all())
-        
-    def count_all_active(self) -> int:
-        statement = select(func.count()).select_from(Pedido).where(Pedido.deleted_at == None)
-        return self.session.exec(statement).one()
-    
+    def listar(
+        self,
+        filtros: FiltrosPedidos,
+        params: PageParams,
+        usuario_id: int | None = None,
+        estados: AbstractSet[str] | None = None,
+        ascendente: bool = False,
+    ) -> tuple[list[tuple[Pedido, str]], int]:
+        """Pedidos no eliminados con el nombre de su dueño (un solo JOIN, sin N+1): `([(pedido, nombre)], total)`.
+
+        `usuario_id` limita el alcance al dueño; `estados` restringe en la consulta (cocina); `filtros` nunca amplía.
+        El rango de fechas es inclusivo sobre `created_at` en UTC: `>= desde` y `< hasta + 1 día`.
+        """
+        statement = (
+            select(Pedido, Usuario.nombre)
+            .join(Usuario, Usuario.id == Pedido.usuario_id)
+            .where(Pedido.deleted_at.is_(None))
+        )
+        if usuario_id is not None:
+            statement = statement.where(Pedido.usuario_id == usuario_id)
+        if estados is not None:
+            statement = statement.where(Pedido.estado_codigo.in_(estados))
+        if filtros.estado is not None:
+            statement = statement.where(Pedido.estado_codigo == filtros.estado)
+        if filtros.desde is not None:
+            statement = statement.where(Pedido.created_at >= datetime.combine(filtros.desde, time.min, tzinfo=timezone.utc))
+        if filtros.hasta is not None:
+            statement = statement.where(
+                Pedido.created_at < datetime.combine(filtros.hasta + timedelta(days=1), time.min, tzinfo=timezone.utc)
+            )
+        orden = (Pedido.created_at.asc(), Pedido.id.asc()) if ascendente else (Pedido.created_at.desc(), Pedido.id.desc())
+        rows, total = self.paginar(statement.order_by(*orden), params)
+        return [(pedido, nombre) for pedido, nombre in rows], total
+
     def get_ventas_periodo(self, desde: date, hasta: date, agrupacion: str = 'day'):
         from app.core.config import settings
         

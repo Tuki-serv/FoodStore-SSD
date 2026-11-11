@@ -89,8 +89,8 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 
 ## Flujo 6: Ciclo operativo del pedido (PEDIDOS/ADMIN)
 
-1. Gestor lista `GET /pedidos/` (todos) o `/pedidos/cocina/pedidos` (CONFIRMADO/EN_PREP, más viejos primero).
-2. `PATCH /pedidos/{id}/estado {nuevo_estado, motivo?}` (objetivo; *deuda DT-17:* el código actual usa `estado_hacia`) → Service valida: pedido existe y no eliminado, estado actual y destino existen, no terminal (409), transición permitida para el **rol** (objetivo: conjunto de roles; *deuda DT-14:* hoy `roles[0]`) (409), motivo si CANCELADO (400).
+1. Gestor lista `GET /pedidos/` (todos; paginado, con filtros `estado`/`desde`/`hasta`) o `/pedidos/cocina/pedidos` (CONFIRMADO/EN_PREP, más viejos primero).
+2. `PATCH /pedidos/{id}/estado {nuevo_estado, motivo?}` (C-11; responde 200 con el detalle del pedido; 409 `INVALID_TRANSITION` o `INSUFFICIENT_STOCK`; 422 con `field` `motivo` si CANCELADO sin motivo) → Service valida: pedido existe y no eliminado, estado actual y destino existen, no terminal (409), transición permitida para el **rol** (objetivo: conjunto de roles; *deuda DT-14:* hoy `roles[0]`) (409), motivo si CANCELADO (400).
 3. Actualiza `Pedido.estado_codigo`; inserta historial (actor = usuario). **Objetivo (DD-20):** al pasar a CONFIRMADO descuenta el stock (en la misma transacción; sin stock suficiente la transición se rechaza con error claro y el pedido sigue PENDIENTE); al pasar a CANCELADO desde CONFIRMADO o posterior devuelve el stock, y desde PENDIENTE no hay nada que devolver. *Deuda DT-04, código actual:* si CANCELADO restaura stock en toda cancelación.
    - **Confirmación manual (DD-22):** PENDIENTE→CONFIRMADO la hace un usuario ADMIN o PEDIDOS solo para pedidos `EFECTIVO`/`TRANSFERENCIA`; los `MERCADOPAGO` solo se confirman automáticamente por el webhook.
    - **Despacho (DD-23):** `EN_PREP→EN_CAMINO` y `EN_CAMINO→ENTREGADO` los hacen ADMIN y PEDIDOS.
@@ -99,7 +99,7 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 
 ## Flujo 7: Cancelación por el cliente
 
-Objetivo (spec): `DELETE /pedidos/{id}` cancela el pedido propio (DT-17). Código actual: `PATCH /pedidos/mis-pedidos/{id}/cancelar {motivo}` → verifica propiedad (403) → valida transición CLIENT (solo desde PENDIENTE/CONFIRMADO) y motivo → estado CANCELADO, historial; **objetivo (DD-20):** devuelve el stock solo si el pedido estaba CONFIRMADO (un PENDIENTE no descontó nada); *código actual:* restaura stock en toda cancelación. Si ya había un pago aprobado, **no hay reembolso automático documentado** (pregunta abierta).
+`DELETE /pedidos/{id}` (C-11; body opcional `{motivo}`, por defecto «Cancelado por el cliente») cancela el pedido propio → verifica propiedad (403) → valida transición CLIENT (solo desde PENDIENTE/CONFIRMADO; 409 `INVALID_TRANSITION` si no) → estado CANCELADO, historial; el pedido nunca se borra y sigue visible; **objetivo (DD-20):** devuelve el stock solo si el pedido estaba CONFIRMADO (un PENDIENTE no descontó nada); *código actual:* restaura stock en toda cancelación. Si ya había un pago aprobado, **no hay reembolso automático documentado** (pregunta abierta).
 
 ## Flujo 8: Tiempo real (KDS y seguimiento) — extra del código, no especificado
 

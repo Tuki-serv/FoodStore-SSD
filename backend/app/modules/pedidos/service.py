@@ -17,15 +17,18 @@ from app.modules.pedidos.fsm import (
     destinos_permitidos,
     motivo_rechazo_confirmacion,
 )
+from app.core.errors import AppError, ErrorCode
+from app.core.pagination import PageParams
+from app.core.permissions import tiene_algun_rol
+from app.core.schemas import PaginatedResponse
 from app.modules.pedidos.models import Pedido
 from app.modules.pedidos.schemas import (
     PedidoCambioEstado,
     PedidoCreate,
-    PedidoReadFull,
-    PedidoList,
-    PedidoListAdmin,
-    PedidoReadAdmin,
-    PedidoRead
+    PedidoDetalle,
+    PedidoRead,
+    PedidoResumen,
+    FiltrosPedidos,
 )
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
 from app.modules.productos.stock_service import LineaStock, ProductoNoDisponible, StockInsuficiente, StockService
@@ -35,6 +38,7 @@ logger = logging.getLogger("app.modules.pedidos.service")
 logging.basicConfig(level=logging.INFO)
 
 MOTIVO_SIN_STOCK = "Sin stock"
+MOTIVO_CANCELACION_CLIENTE = "Cancelado por el cliente"
 ORIGENES_CON_STOCK_DESCONTADO = frozenset({CONFIRMADO, EN_PREP})
 """Estados en los que el pedido ya descontó stock: cancelar desde ahí lo devuelve (spec `order-stock`)."""
 
@@ -75,7 +79,7 @@ class PedidoService:
         self._uow = uow
         self._al_confirmar = al_confirmar
 
-    def crear_pedido(self, data: PedidoCreate, usuario_id: int) -> PedidoReadFull:
+    def crear_pedido(self, data: PedidoCreate, usuario_id: int) -> PedidoDetalle:
         with self._uow as uow:
             self._validar_forma_pago(uow, data.forma_pago_codigo)
             self._obtener_estado_o_error(
@@ -163,7 +167,7 @@ class PedidoService:
                 usuario_id=usuario_id,
                 motivo="Pedido creado",
             )
-            return self._armar_pedido_read_full(uow, pedido)
+            return self._armar_detalle(uow, pedido)
 
     @staticmethod
     def _verificar_stock_al_crear(uow: PedidoUnitOfWork, data: PedidoCreate) -> None:
@@ -176,14 +180,25 @@ class PedidoService:
         except StockInsuficiente:
             raise HTTPException(status_code=400, detail="No hay stock suficiente")
 
-    def obtener_pedido_por_id(self, pedido_id: int) -> PedidoReadFull:
-        with self._uow as uow:
-            pedido = self._obtener_pedido_o_404(uow, pedido_id)
-            return self._armar_pedido_read_full(uow, pedido)
+    def _obtener_pedido_visible(
+        self, uow: PedidoUnitOfWork, pedido_id: int, usuario_id: int, roles: AbstractSet[str]
+    ) -> Pedido:
+        """Pedido que el lector puede ver: 404 si no existe, 403 si no es suyo y no es gestor (ADMIN/PEDIDOS)."""
+        pedido = self._obtener_pedido_o_404(uow, pedido_id)
+        if pedido.usuario_id != usuario_id and not tiene_algun_rol(roles, self.ROLES_GESTORES):
+            raise AppError(403, "HTTP_403", "No tenés acceso a este pedido")
+        return pedido
 
-    def obtener_historial_pedido(self, pedido_id: int) -> list[HistorialEstadoPedidoRead]:
+    def obtener_detalle(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str]) -> PedidoDetalle:
         with self._uow as uow:
-            self._obtener_pedido_o_404(uow, pedido_id)
+            pedido = self._obtener_pedido_visible(uow, pedido_id, usuario_id, roles)
+            return self._armar_detalle(uow, pedido)
+
+    def obtener_historial(
+        self, pedido_id: int, usuario_id: int, roles: AbstractSet[str]
+    ) -> list[HistorialEstadoPedidoRead]:
+        with self._uow as uow:
+            self._obtener_pedido_visible(uow, pedido_id, usuario_id, roles)
             historial = uow.historial.get_all_by_pedido_id(pedido_id)
             return [
                 HistorialEstadoPedidoRead.model_validate(evento)
@@ -198,22 +213,22 @@ class PedidoService:
         usuario_id: int,
         roles: AbstractSet[str],
         ws_manager: ConnectionManager | None = None,
-    ) -> PedidoReadFull:
+    ) -> PedidoDetalle:
         try:
             with self._uow as uow:
                 pedido = self._obtener_pedido_o_404(uow, pedido_id)
                 estado_destino = self._obtener_estado_o_error(
                     uow=uow,
-                    codigo=data.estado_hacia,
+                    codigo=data.nuevo_estado,
                     mensaje="Estado destino inválido",
                     status_code=400,
                 )
                 self._transicionar(
                     uow, pedido, estado_destino.codigo, Actor.usuario(usuario_id, roles), data.motivo
                 )
-                resultado = self._armar_pedido_read_full(uow, pedido)
+                resultado = self._armar_detalle(uow, pedido)
         except StockInsuficiente as exc:  # el UoW ya hizo rollback: estado, historial y stock quedaron como estaban
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
+            raise AppError(409, ErrorCode.INSUFFICIENT_STOCK, str(exc)) from exc
 
         EVENTOS_WS = {
             "CONFIRMADO": "PEDIDO_CONFIRMADO",
@@ -238,7 +253,7 @@ class PedidoService:
     def _obtener_pedido_o_404(self, uow, pedido_id: int) -> Pedido:
         pedido = uow.pedidos.get_by_id(pedido_id)
         if pedido is None or pedido.deleted_at is not None:
-            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+            raise AppError(404, "HTTP_404", "Pedido no encontrado")
         return pedido
 
     def _validar_forma_pago(self, uow, codigo: str):
@@ -280,17 +295,15 @@ class PedidoService:
         )
         origen = pedido.estado_codigo
         if estado_actual.es_terminal:
-            raise HTTPException(
-                status_code=409,
-                detail="No se puede cambiar un pedido en estado terminal",
+            raise AppError(
+                409, ErrorCode.INVALID_TRANSITION, "No se puede cambiar un pedido en estado terminal"
             )
         if destino not in destinos_permitidos(actor, origen, pedido.forma_pago_codigo):
             detalle = (
                 motivo_rechazo_confirmacion(actor, pedido.forma_pago_codigo) if destino == CONFIRMADO else None
             )
-            raise HTTPException(
-                status_code=409,
-                detail=detalle or f"No se puede cambiar de {origen} a {destino}",
+            raise AppError(
+                409, ErrorCode.INVALID_TRANSITION, detalle or f"No se puede cambiar de {origen} a {destino}"
             )
         if destino == self.ESTADOS["cancelado"] and not motivo:
             raise HTTPException(
@@ -317,7 +330,7 @@ class PedidoService:
             f"AUDITORÍA FSM: {quien} cambió pedido {pedido.id} de '{origen}' a '{destino}'. Motivo: {motivo}"
         )
 
-    def confirmar_por_pago_aprobado(self, pedido_id: int) -> PedidoReadFull:
+    def confirmar_por_pago_aprobado(self, pedido_id: int) -> PedidoDetalle:
         """Confirmación automática del webhook de pagos: actor Sistema, solo pedidos MERCADOPAGO en PENDIENTE."""
         with self._uow as uow:
             pedido = self._obtener_pedido_o_404(uow, pedido_id)
@@ -328,7 +341,7 @@ class PedidoService:
             if puede_confirmar and StockService(uow.productos).alcanza(lineas_de_stock(uow, pedido)) is not None:
                 destino, motivo = CANCELADO, MOTIVO_SIN_STOCK
             self._transicionar(uow, pedido, destino, ACTOR_SISTEMA, motivo)
-            return self._armar_pedido_read_full(uow, pedido)
+            return self._armar_detalle(uow, pedido)
 
     def _registrar_historial(
         self,
@@ -348,93 +361,63 @@ class PedidoService:
         )
         uow.historial.add(historial)
 
-    def _armar_pedido_read_full(self, uow, pedido: Pedido) -> PedidoReadFull:
+    def _armar_detalle(self, uow, pedido: Pedido) -> PedidoDetalle:
+        usuario = uow.usuarios.get_by_id(pedido.usuario_id)
+        cliente_nombre = usuario.nombre if usuario else f"Cliente #{pedido.usuario_id}"
 
         detalles = uow.detalles.get_all_by_pedido_id(pedido.id)
         detalles_read = [
             DetallePedidoRead.model_validate(detalle)
             for detalle in detalles
         ]
-        return PedidoReadFull(
-            id=pedido.id,
-            estado_codigo=pedido.estado_codigo,
-            forma_pago_codigo=pedido.forma_pago_codigo,
-            subtotal=pedido.subtotal,
-            descuento=pedido.descuento,
-            costo_envio=pedido.costo_envio,
-            total=pedido.total,
-            notas=pedido.notas,
-            created_at=pedido.created_at,
+        return PedidoDetalle(
+            **self._armar_resumen(pedido, cliente_nombre).model_dump(),
+            direccion_id=pedido.direccion_id,
             items=detalles_read,
         )
 
-    def eliminar_pedido(self, pedido_id: int) -> None:
-        with self._uow as uow:
-            pedido = self._obtener_pedido_o_404(uow, pedido_id)
-            if pedido.deleted_at is not None:
-                raise HTTPException(
-                    status_code=404, detail="Pedido no encontrado")
-            uow.pedidos.delete(pedido)
+    ROLES_GESTORES = frozenset({"ADMIN", "PEDIDOS"})
 
-    def obtener_pedidos_por_usuario(self, usuario_id: int, offset: int = 0, limit: int = 20) -> PedidoList:
-        with self._uow as uow:
-            pedidos = uow.pedidos.get_all_by_usuario_id(usuario_id, offset, limit)
-            total = uow.pedidos.count_by_usuario_id(usuario_id)
-            data = [PedidoRead.model_validate(p) for p in pedidos]
-            return PedidoList(data=data, total=total)
-
-    def _armar_pedido_read_admin(self, uow, pedido: Pedido) -> PedidoReadAdmin:
-        full_pedido = self._armar_pedido_read_full(uow, pedido)
-        usuario = uow.usuarios.get_by_id(pedido.usuario_id)
-        cliente_nombre = usuario.nombre if usuario else f"Cliente #{pedido.usuario_id}"
-        return PedidoReadAdmin(
-            **full_pedido.model_dump(),
-            cliente_nombre=cliente_nombre
+    @staticmethod
+    def _armar_resumen(pedido: Pedido, cliente_nombre: str) -> PedidoResumen:
+        return PedidoResumen(
+            **PedidoRead.model_validate(pedido).model_dump(),
+            usuario_id=pedido.usuario_id,
+            cliente_nombre=cliente_nombre,
         )
 
-    def obtener_todos_los_pedidos(self, offset: int = 0, limit: int = 20) -> PedidoListAdmin:
+    def listar_pedidos(
+        self, usuario_id: int, roles: AbstractSet[str], filtros: FiltrosPedidos, params: PageParams
+    ) -> PaginatedResponse[PedidoResumen]:
+        """Alcance por unión de roles: gestores (ADMIN/PEDIDOS) ven todos; el resto, solo los propios."""
+        alcance = None if tiene_algun_rol(roles, self.ROLES_GESTORES) else usuario_id
         with self._uow as uow:
-            pedidos = uow.pedidos.get_all_active(offset, limit)
-            total = uow.pedidos.count_all_active()
-            data = [self._armar_pedido_read_admin(uow, p) for p in pedidos]
-            return PedidoListAdmin(data=data, total=total)
+            filas, total = uow.pedidos.listar(filtros, params, usuario_id=alcance)
+            resumenes = [self._armar_resumen(pedido, nombre) for pedido, nombre in filas]
+            return PaginatedResponse[PedidoResumen].desde(resumenes, total, params)
 
-    def obtener_pedidos_cocina(self, offset: int = 0, limit: int = 20) -> PedidoListAdmin:
+    ESTADOS_COCINA = frozenset({CONFIRMADO, EN_PREP})
+
+    def listar_cocina(self, params: PageParams) -> PaginatedResponse[PedidoResumen]:
+        """Pedidos por preparar (CONFIRMADO y EN_PREP), del más viejo al más nuevo; el filtro va en la consulta."""
         with self._uow as uow:
-            # Reutilizamos get_all_active que ya trae los no borrados
-            pedidos = uow.pedidos.get_all_active(offset=0, limit=20)
-            
-            # Filtramos solo confirmado y preparando
-            estados_cocina = {self.ESTADOS["confirmado"], self.ESTADOS["preparando"]}
-            cocina_pedidos = [
-                self._armar_pedido_read_admin(uow, p) 
-                for p in pedidos 
-                if p.estado_codigo in estados_cocina
-            ]
-            
-            # Ordenamos por ID para que los más viejos salgan primero
-            cocina_pedidos.sort(key=lambda p: p.id)
-            
-            return PedidoListAdmin(data=cocina_pedidos, total=len(cocina_pedidos))
+            filas, total = uow.pedidos.listar(FiltrosPedidos(), params, estados=self.ESTADOS_COCINA, ascendente=True)
+            resumenes = [self._armar_resumen(pedido, nombre) for pedido, nombre in filas]
+            return PaginatedResponse[PedidoResumen].desde(resumenes, total, params)
 
-    def obtener_pedido_propio(self, pedido_id: int, usuario_id: int) -> PedidoReadFull:
+    def cancelar_pedido_propio(
+        self, pedido_id: int, usuario_id: int, roles: AbstractSet[str], motivo: str | None = None
+    ) -> PedidoDetalle:
+        """El dueño cancela su pedido; sin motivo (ausente o vacío) se registra `MOTIVO_CANCELACION_CLIENTE`."""
+        motivo_efectivo = (motivo or "").strip() or MOTIVO_CANCELACION_CLIENTE
         with self._uow as uow:
             pedido = self._obtener_pedido_o_404(uow, pedido_id)
             if pedido.usuario_id != usuario_id:
-                raise HTTPException(
-                    status_code=403, detail="No tenés acceso a este pedido")
-            return self._armar_pedido_read_full(uow, pedido)
-
-    def cancelar_pedido_propio(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str], data: PedidoCambioEstado) -> PedidoReadFull:
-        with self._uow as uow:
-            pedido = self._obtener_pedido_o_404(uow, pedido_id)
-            if pedido.usuario_id != usuario_id:
-                raise HTTPException(
-                    status_code=403, detail="No tenés acceso a este pedido")
+                raise AppError(403, "HTTP_403", "No tenés acceso a este pedido")
             self._transicionar(
-                uow, pedido, self.ESTADOS["cancelado"], Actor.usuario(usuario_id, roles), data.motivo
+                uow, pedido, self.ESTADOS["cancelado"], Actor.usuario(usuario_id, roles), motivo_efectivo
             )
-            return self._armar_pedido_read_full(uow, pedido)
+            return self._armar_detalle(uow, pedido)
 
 
 def construir_pedido_service(session: Session) -> PedidoService:

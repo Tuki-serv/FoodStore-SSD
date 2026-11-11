@@ -5,6 +5,8 @@ from sqlmodel import Session
 
 from app.core.cloudinary.service import eliminar_imagen, eliminar_multiples_imagenes
 from app.core.enums import EstadoFiltro, restringir_estado
+from app.core.pagination import PageParams
+from app.core.schemas import PaginatedResponse
 from app.core.service import base_service
 from app.modules.productos.models import Producto, ProductoCategoria, ProductoIngrediente
 from app.modules.productos.schemas import (
@@ -31,18 +33,37 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
 
     # ── Helpers privados ─────────────────────────────────────────────────────
 
-    def _validar_nombre_unico(self, name: str, exclude_id: Optional[int] = None) -> None:
-        producto = self.repo.get_by_name(name, include_deleted=True)
-        if producto and producto.id != exclude_id:
-            raise HTTPException(
-                status_code=400, detail=f"El nombre '{name}' ya está en uso por otro producto")
-
     def _limpiar_imagenes_cloudinary(self, public_ids_viejos: list[str], public_ids_nuevos: list[str]) -> None:
         set_viejo = {pid for pid in public_ids_viejos if pid}
         set_nuevo = {pid for pid in public_ids_nuevos if pid}
         imagenes_a_borrar = set_viejo - set_nuevo
         for pid in imagenes_a_borrar:
             eliminar_imagen(pid)
+
+    @staticmethod
+    def _ingredientes_de(producto: Producto) -> list[ProductoIngredienteRead]:
+        """Ingredientes no eliminados del producto (links precargados), con su configuración en la receta."""
+        return [
+            ProductoIngredienteRead(
+                id=cast(int, link.ingrediente.id),
+                nombre=link.ingrediente.nombre,
+                es_alergeno=link.ingrediente.es_alergeno,
+                es_removible=link.es_removible,
+                cantidad=link.cantidad,
+                unidad_medida_id=link.unidad_medida_id,
+            )
+            for link in producto.links_ingredientes
+            if getattr(link.ingrediente, "deleted_at", None) is None
+        ]
+
+    def _obtener_producto_visible(
+        self, producto_id: int, allow_deleted: bool = False, *, ver_no_disponibles: bool, ver_eliminados: bool
+    ) -> Producto:
+        """Producto que el lector puede ver (misma regla de visibilidad para el detalle y sus ingredientes): si no, 404."""
+        producto = self._get_or_404(producto_id, allow_deleted and ver_eliminados)
+        if not ver_no_disponibles and not producto.disponible:
+            raise HTTPException(status_code=404, detail=f"{self.model.__name__} no encontrado/a")
+        return producto
 
     def _to_read_full(self, producto: Producto) -> ProductoReadFull:
         from typing import cast
@@ -59,18 +80,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         ]
 
         # ─────────── 2. Ingredientes — iterás los links precargados ──────────────────────────────────
-        ingredientes = [
-            ProductoIngredienteRead(
-                id=cast(int, link.ingrediente.id),
-                nombre=link.ingrediente.nombre,
-                es_alergeno=link.ingrediente.es_alergeno,
-                es_removible=link.es_removible,
-                cantidad=link.cantidad,
-                unidad_medida_id=link.unidad_medida_id,
-            )
-            for link in producto.links_ingredientes
-            if getattr(link.ingrediente, "deleted_at", None) is None
-        ]
+        ingredientes = self._ingredientes_de(producto)
 
         # ─────────── 3. Armado de la respuesta final ──────────────────────────────────
         """
@@ -116,8 +126,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
 
     def get_all_productos(
         self,
-        page: int = 1,
-        size: int = 20,
+        params: PageParams,
         estado: EstadoFiltro = EstadoFiltro.ACTIVO,
         disponible: Optional[bool] = None,
         categoria_ids: Optional[list[int]] = None,
@@ -130,38 +139,25 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         # Visibilidad: el público solo ve disponibles y no eliminados; los filtros intersectan, nunca amplían.
         estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
         if estado_efectivo is None or (not ver_no_disponibles and disponible is False):
-            return self._pagina_vacia(page, size)
+            return PaginatedResponse[ProductoReadFull].vacia(params)
         estado = estado_efectivo
         if not ver_no_disponibles:
             disponible = True
 
         with self.uow:
-            # 1. Traducimos página a offset para el repo
-            offset = (page - 1) * size
-            limit = size
-
-            # 2. Consultas al repositorio con todos los filtros intactos
+            # 1. Consultas al repositorio con todos los filtros intactos
             productos = self.repo.get_all_filtered(
                 state=estado, disponible=disponible,
                 categoria_ids=categoria_ids, ingrediente_ids=ingrediente_ids,
-                q=q, offset=offset, limit=limit
+                q=q, offset=params.offset, limit=params.size
             )
             total = self.repo.count_filtered(
                 state=estado, disponible=disponible,
                 categoria_ids=categoria_ids, ingrediente_ids=ingrediente_ids, q=q
             )
 
-            # 3. Cálculo matemático de páginas
-            pages = (total + size - 1) // size if total > 0 else 0
-
-            # 4. Formato exacto de PaginatedResponse
-            return {
-                "items": [self._to_read_full(p) for p in productos],
-                "total": total,
-                "page": page,
-                "size": size,
-                "pages": pages
-            }
+            # 2. Formato exacto de PaginatedResponse
+            return PaginatedResponse[ProductoReadFull].desde([self._to_read_full(p) for p in productos], total, params)
 
     def get_by_id_full(
         self,
@@ -172,14 +168,33 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         ver_eliminados: bool,
     ) -> ProductoReadFull:
         with self.uow:
-            producto = self._get_or_404(producto_id, allow_deleted and ver_eliminados)
-            if not ver_no_disponibles and not producto.disponible:
-                raise HTTPException(status_code=404, detail=f"{self.model.__name__} no encontrado/a")
+            producto = self._obtener_producto_visible(
+                producto_id, allow_deleted, ver_no_disponibles=ver_no_disponibles, ver_eliminados=ver_eliminados
+            )
             return self._to_read_full(producto)
+
+    def listar_ingredientes(
+        self, producto_id: int, *, ver_no_disponibles: bool, ver_eliminados: bool
+    ) -> list[ProductoIngredienteRead]:
+        """Ingredientes no eliminados del producto, ordenados por nombre; respeta la visibilidad del producto."""
+        with self.uow:
+            producto = self._obtener_producto_visible(
+                producto_id, ver_no_disponibles=ver_no_disponibles, ver_eliminados=ver_eliminados
+            )
+            return sorted(self._ingredientes_de(producto), key=lambda i: i.nombre)
+
+    def quitar_ingrediente(self, producto_id: int, ingrediente_id: int) -> None:
+        """Borra la asociación producto-ingrediente (producto activo, 404 si no existe); no toca producto ni ingrediente."""
+        with self.uow as uow:
+            producto = self._get_or_404(producto_id)
+            relacion = uow.producto_ingredientes.get(producto.id, ingrediente_id)
+            if relacion is None:
+                raise HTTPException(status_code=404, detail="El producto no tiene asociado ese ingrediente")
+            uow.producto_ingredientes.delete(relacion)
 
     def create(self, data: ProductoCreate) -> ProductoReadFull:
         with self.uow:
-            self._validar_nombre_unico(data.nombre)
+            self._validar_unicos(data.model_dump(include=set(Producto._unique_fields)))
 
             data_dict = data.model_dump(
                 exclude={"categoria_ids", "ingredientes"})
@@ -232,9 +247,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                     raise HTTPException(
                         status_code=404, detail=f"Unidad de medida con ID {patch['unidad_venta_id']} no encontrada")
 
-            if "nombre" in patch and patch["nombre"] != producto.nombre:
-                self._validar_nombre_unico(
-                    patch["nombre"], exclude_id=producto_id)
+            self._validar_unicos(patch, excluir_id=producto_id)
 
             for key, value in patch.items():
                 setattr(producto, key, value)
