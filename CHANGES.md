@@ -37,7 +37,7 @@
 FASE 0 (backend)
 C-01 ✓ baseline-backend
  ├── C-03 auth-rate-limit-slowapi
- ├── C-04 pagos-autorizacion-propietario
+ ├── C-04 ✓ pagos-autorizacion-propietario
  │     └── C-05 pagos-webhook-firma-idempotencia ──┐
  └── C-06 ✓ datos-migraciones-alembic              │
        ├── C-02 ✓ auth-sesion-tokens-bearer-refresh┼─┬── C-08 ✓ rbac-multirol-permisos-stock
@@ -74,7 +74,7 @@ C-26 rol-cocina-kds (C-09, C-08) ── C-27 websocket-tiempo-real (C-09, C-02) 
 
 ```
 GATE 0: C-01 ✓                                          ← FORK
-  → C-04 pagos-autorizacion-propietario       [Agente B — CRITICO]
+  → C-04 ✓ pagos-autorizacion-propietario    [Agente B — CRITICO]
   → C-06 ✓ datos-migraciones-alembic          [Agente C]
   → C-03 auth-rate-limit-slowapi              [Agente A, en paralelo a C-06]
   → C-13a fe-foundation-scaffold              [Agente C — sin dependencia de backend; puede ir en cualquier hueco]
@@ -127,7 +127,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | Paso | Agente A (Backend Core: auth/pedidos) | Agente B (Backend Aux: pagos/datos) | Agente C (Frontend / datos) |
 |------|--------------------------------------|-------------------------------------|-----------------------------|
 | 1 | C-01 ✓ | — | — |
-| 2 | C-03 | C-04 | C-06 ✓ |
+| 2 | C-03 | C-04 ✓ | C-06 ✓ |
 | 3 | C-02 ✓ | C-05 | C-07 ✓ |
 | 4 | C-08 ✓ | — | C-13a |
 | 5 | C-09 ✓ | — | — |
@@ -201,7 +201,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/08_arquitectura_propuesta.md` §Seguridad
 
 ### [C-04] `pagos-autorizacion-propietario`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-11-c-04-pagos-autorizacion-propietario/`)
 - **Scope**:
   - Cubre DT-05. `POST /pagos/crear` y `GET /pagos/{pedido_id}` requieren autenticación y verifican propiedad del pedido (propietario o ADMIN); 401/403/404 según corresponda.
   - El webhook se mantiene público (se endurece en C-05).
@@ -681,8 +681,8 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 8** (C-01, C-02, C-06, C-07, C-08, C-09, C-10, C-11). **Pendientes obligatorios: 20** (4 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 9** (C-01, C-02, C-04, C-06, C-07, C-08, C-09, C-10, C-11). **Pendientes obligatorios: 19** (3 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-13a (`fe-foundation-scaffold`) y luego C-13b (`fe-foundation-auth-data`, ya desbloqueado en backend: requiere C-13a, C-02 ✓ y C-11 ✓). Fase 0 pendiente: C-03, C-04 → C-05 → C-12.
+**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-13a (`fe-foundation-scaffold`) y luego C-13b (`fe-foundation-auth-data`, ya desbloqueado en backend: requiere C-13a, C-02 ✓ y C-11 ✓). Fase 0 pendiente: C-03, C-05 → C-12.
