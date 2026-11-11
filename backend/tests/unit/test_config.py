@@ -337,6 +337,38 @@ def test_settings_variables_retiradas_no_rellenan_opcionales_ausentes(
     assert cfg.MP_NOTIFICATION_URL is None
 
 
+RATE_LIMIT_VARS = (
+    "RATE_LIMIT_DEFAULT_PER_MINUTE",
+    "RATE_LIMIT_DEFAULT_BURST",
+    "RATE_LIMIT_AUTH_PER_MINUTE",
+    "RATE_LIMIT_AUTH_BURST",
+)
+
+
+def test_settings_carga_sin_ninguna_variable_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in RATE_LIMIT_VARS:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in REQUIRED_ENV.items():
+        if name not in RATE_LIMIT_VARS:
+            monkeypatch.setenv(name, value)
+
+    cfg = _load()
+
+    assert cfg.ENVIRONMENT == "test"
+
+
+@pytest.mark.parametrize("name", RATE_LIMIT_VARS)
+def test_settings_rate_limit_presente_no_se_expone_como_configuracion(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str], name: str
+) -> None:
+    monkeypatch.setenv(name, "1")
+
+    cfg = _load()
+
+    assert not any(attr.lower().startswith("rate_limit") for attr in dir(cfg))
+    assert not any(field.startswith("RATE_LIMIT") for field in Settings.model_fields)
+
+
 # ── Base de datos ───────────────────────────────────────────────────────────
 
 def test_settings_falta_database_url_aunque_existan_postgres_falla_nombrandola(

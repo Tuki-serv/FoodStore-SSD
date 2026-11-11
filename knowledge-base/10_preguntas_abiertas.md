@@ -66,7 +66,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 **A** (`[DESC]`,`[INT]`): slowapi, **5 intentos fallidos / 15 min / IP** solo en `POST /auth/login`.
 **B** (código actual): middleware propio, token bucket **5 por minuto, ráfaga 5**, sobre login+register+logout (todas las peticiones, no solo fallidas) más límite por defecto 60/min (ráfaga 10) en toda la API; slowapi no está instalado; `X-RateLimit-Remaining` siempre `capacity-1`.
 **Impacto**: Comportamiento distinto al evaluado por la rúbrica.
-**Resolución (spec = objetivo; deuda DT-10)**: slowapi, 5 intentos fallidos / 15 min / IP solo en `POST /auth/login`. El limitador propio es código actual (el límite global es un extra no especificado).
+**Resolución (spec = objetivo; DT-10 resuelta por C-03)**: slowapi, 5 intentos fallidos / 15 min / IP solo en `POST /auth/login`. El limitador propio es código actual (el límite global es un extra no especificado).
 
 ### IN-11 — Paginación
 **A** (`[DESC]`): `skip`/`limit`. (`[INT]`): `page`/`size` → `{items,total,page,size,pages}`.

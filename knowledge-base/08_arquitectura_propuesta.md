@@ -15,7 +15,7 @@
 | State Machine (FSM) | Backend | `PedidoService.TRANSICIONES` (mapa por rol) | Transiciones válidas y permisos en un solo lugar |
 | Idempotent Payments | Backend | `Pago.idempotency_key` | Evitar cobros/procesamiento duplicado |
 | Webhook / IPN | Backend | `POST /pagos/webhook` | Confirmación asíncrona sin polling |
-| Rate limiting | Backend | Objetivo: slowapi en login (5 fallos/15 min). *Deuda DT-10:* token bucket propio `core/rate_limit/` | Mitigar fuerza bruta/abuso |
+| Rate limiting | Backend | slowapi en login (5 fallos/15 min/IP, ventana deslizante en memoria; C-03). `core/rate_limit/` | Mitigar fuerza bruta/abuso |
 | Pub/Sub por rooms (WebSocket) | Backend | `core/websocket.py` (`ConnectionManager`) | Extra del código, no especificado (PA-19) |
 | Feature-Sliced Design | Frontend | `pages/features/components/hooks/store/api/types` | Límites de import claros |
 | Custom Hooks (TanStack Query) | Frontend | `useProductos(filtros)`, etc. | Encapsular fetching/cache/debounce |
@@ -49,7 +49,7 @@ Food-Store-Prueba/                # raíz = gestión + orquestación (docker-com
     │   │   ├── websocket.py         # ConnectionManager (rooms)
     │   │   ├── cloudinary/          # router, schemas, service
     │   │   ├── mixins/auditable_mixin.py
-    │   │   └── rate_limit/          # middleware + TokenBucket/RateLimiter
+    │   │   └── rate_limit/          # limiter (slowapi) + LimitadorPorClave + Protocol RegistroIntentos
     │   ├── modules/
     │   │   ├── auth/                # auth_router (register, login, refresh, logout, logout-all, me), AuthService, cookies, AuthUnitOfWork (C-02)
     │   │   ├── refreshtokens/       # models Sesion + RefreshToken, repositorios (sin router ni service) (C-02)
@@ -95,7 +95,7 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 - **Autorización**: RBAC con `require_role([...])`; propiedad de recursos verificada en Service (403).
 - **Validación de input**: Pydantic v2 (Create/Update/Read separados); CHECK constraints en BD; 422 uniforme `VALIDATION_ERROR`.
 - **Passwords**: bcrypt (passlib), cost >= 12, `CHAR(60)`.
-- **Rate limiting**: objetivo slowapi (RN-AU-08). *Deuda DT-10* (código actual: token bucket in-memory por IP; considera `X-Forwarded-For`, suplantable si no hay proxy confiable; `X-RateLimit-Remaining` es aproximado).
+- **Rate limiting (RN-AU-08, C-03)**: slowapi (`moving-window`, `memory://`) sobre un adaptador `LimitadorPorClave` que `AuthService.login` invoca (`verificar` antes de leer el usuario, `registrar` en cada 401, `reiniciar` tras el commit del login correcto). Umbral y ventana (5 / 15 min) son regla de negocio, no variables. **IP:** la de la conexión (`request.client.host`); la app NO lee `X-Forwarded-For`. Detrás de un proxy confiable, uvicorn traduce el header con `--proxy-headers` (activo por defecto) y `--forwarded-allow-ips=<ip del proxy>`; el agente de ngrok local ya conecta desde 127.0.0.1 (confiado por defecto); en Docker, sin esa opción, los clientes detrás del mismo NAT comparten cupo. **Límite del diseño:** el estado vive en memoria de un solo proceso (el `Dockerfile` corre un único uvicorn sin `--workers`); se pierde al reiniciar y no se comparte entre workers: pasar a Redis solo cambia `storage_uri` (C-28). Quedan sin límite el resto de endpoints y `/health`. Carrera `verificar`→`registrar` aceptada (cada intento paga bcrypt).
 - **CORS**: `CORSMiddleware` con orígenes de `CORS_ORIGINS`, `allow_credentials=True`.
 - **Pagos**: PCI SAQ-A; verificar siempre contra la API de MP; **objetivo**: validar firma del webhook y autenticar/autorizar `/pagos/crear` y `/pagos/{id}`; *deuda DT-05/DT-06:* ninguno de los dos está implementado en el código actual.
 - **Secrets**: `.env` (nunca commiteado; `.env.example` obligatorio); `SECRET_KEY` >= 32 chars (`openssl rand -hex 32`); tokens MP `TEST-` en sandbox, `APP_USR-` en producción.
@@ -119,8 +119,6 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 | `REFRESH_COOKIE_SAMESITE` | `lax\|strict\|none` (`none` exige `REFRESH_COOKIE_SECURE=true`; si no, la carga falla) | `lax` | **Y** |
 | `LOG_LEVEL` | Nivel de log | `INFO` | **Y** |
 | `CORS_ORIGINS` | Orígenes permitidos, **array JSON** de strings. No puede contener `*` (la cookie del refresh exige CORS con credenciales; si lo contiene la carga falla) | `["http://localhost:5173"]` | **Y** |
-| `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST` | Límite general (obligatorias hasta que C-03 las retire) | `60`, `10` | **Y** |
-| `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` | Límite de endpoints de auth | `5`, `5` | **Y** |
 | `MP_ACCESS_TOKEN` | Access token MP (backend) | `TEST-...` | N (opcional: pagos) |
 | `MP_PUBLIC_KEY` | Public key MP (frontend vía API) | `TEST-...` | N (opcional: pagos) |
 | `MP_WEBHOOK_SECRET` | Clave secreta de Webhooks (panel MP) para validar `x-signature`; sin ella el webhook responde 503 | `CHANGE_ME` | N (opcional: pagos; obligatoria para recibir webhooks) |
@@ -132,8 +130,8 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 | `PGADMIN_EMAIL`, `PGADMIN_PASSWORD` | **Solo docker-compose** (login de pgAdmin) | `CHANGE_ME@example.com` | solo compose |
 | `VITE_API_URL`, `VITE_MP_PUBLIC_KEY` | **Solo frontend** (Vite); no las lee el backend | `http://localhost:8000` | solo frontend |
 
-**Retiradas (C-01):** `NGROK_URL` (→ `BACKEND_PUBLIC_URL` + `MP_NOTIFICATION_URL`), `MP_WEBHOOK_URL` (→ `MP_NOTIFICATION_URL`), `VITE_FRONTEND_URL` (→ `FRONTEND_URL`), `POSTGRES_HOST`/`POSTGRES_PORT` y `TEST_DATABASE_URL` (tests: `DATABASE_URL` de `.env.test`, base `foodstore_test`). Con `extra="ignore"`, si siguen en el `.env` no afectan ningún valor.
+**Retiradas (C-03):** `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST`, `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` (el límite de login es RN-AU-08, fijo en código). **Retiradas (C-01):** `NGROK_URL` (→ `BACKEND_PUBLIC_URL` + `MP_NOTIFICATION_URL`), `MP_WEBHOOK_URL` (→ `MP_NOTIFICATION_URL`), `VITE_FRONTEND_URL` (→ `FRONTEND_URL`), `POSTGRES_HOST`/`POSTGRES_PORT` y `TEST_DATABASE_URL` (tests: `DATABASE_URL` de `.env.test`, base `foodstore_test`). Con `extra="ignore"`, si siguen en el `.env` no afectan ningún valor.
 
 ## Testing
 
-pytest + httpx + pytest-asyncio + pytest-cov sobre **PostgreSQL 15 real** (base `foodstore_test`, creada por la suite si falta; `backend/tests/.env.test` copiado de `backend/tests/.env.test.example`). Guardia de seguridad: la suite aborta si `ENVIRONMENT != test`, si el nombre de la base no termina en `_test` o si falta la configuración. Aislamiento por test con transacción externa + savepoint (rollback al terminar); el esquema de `foodstore_test` se construye una vez por sesión con `alembic upgrade head` desde una base vacía; los tests de migraciones (upgrade/downgrade, «esquema == modelos») usan la base auxiliar `foodstore_migrations_test`, que también cumple la guardia `_test`. `conftest.py` resetea los limiters entre tests. Suites en `backend/tests/integration/` y `backend/tests/unit/` (config, engine, mixins, Cloudinary, plantillas `.env`, guardia de BD, rate limiter). Ningún test llama a las APIs reales de MercadoPago ni Cloudinary.
+pytest + httpx + pytest-asyncio + pytest-cov sobre **PostgreSQL 15 real** (base `foodstore_test`, creada por la suite si falta; `backend/tests/.env.test` copiado de `backend/tests/.env.test.example`). Guardia de seguridad: la suite aborta si `ENVIRONMENT != test`, si el nombre de la base no termina en `_test` o si falta la configuración. Aislamiento por test con transacción externa + savepoint (rollback al terminar); el esquema de `foodstore_test` se construye una vez por sesión con `alembic upgrade head` desde una base vacía; los tests de migraciones (upgrade/downgrade, «esquema == modelos») usan la base auxiliar `foodstore_migrations_test`, que también cumple la guardia `_test`. Una fixture autouse de `conftest.py` ejecuta `limiter.reset()` antes de cada test y desactiva el hilo de purga de `MemoryStorage` (lee el reloj real y borraría entradas creadas bajo `freezegun`); el tiempo de las ventanas se controla con `freezegun` y la IP de la conexión con `TestClient(app, client=(ip, puerto))`. Suites en `backend/tests/integration/` y `backend/tests/unit/` (config, engine, mixins, Cloudinary, plantillas `.env`, guardia de BD, `LimitadorPorClave`). Ningún test llama a las APIs reales de MercadoPago ni Cloudinary.

@@ -82,6 +82,23 @@ def session_fixture(engine_test: Engine):
         connection.close()
 
 
+@pytest.fixture(autouse=True)
+def reiniciar_limitador(monkeypatch: pytest.MonkeyPatch):
+    """Cada test arranca con el estado del limitador de la app vacío (slowapi, memoria) y reloj controlable.
+
+    `MemoryStorage` de `limits` purga entradas vencidas en un hilo de fondo. Ese hilo lee el reloj REAL (freezegun lo
+    ignora dentro de `threading`) y borraría las entradas creadas bajo `freeze_time`, falseando la ventana deslizante.
+    La decisión del limitador (`test`/`hit`) se toma solo por timestamps, así que en tests se desactiva ese hilo.
+    """
+    from limits.storage.memory import MemoryStorage
+
+    from app.core.rate_limit import limiter
+
+    monkeypatch.setattr(MemoryStorage, "_MemoryStorage__schedule_expiry", lambda self: None)
+    limiter.reset()
+    yield
+
+
 # ===========================================================================
 # 3. CLIENTE HTTP DE TEST
 # ===========================================================================
@@ -93,16 +110,10 @@ def client_fixture(session: Session):
 
     app.dependency_overrides[get_session] = get_session_override
 
-    # Resetear el rate limiter para evitar tests flaky (429 Too Many Requests)
-    try:
-        from app.core.rate_limit.rate_limit_middleware import RateLimitMiddleware
-        RateLimitMiddleware.reset_all_limiters()
-    except ImportError:
-        pass
-
     _create_test_admin(session)
 
-    with TestClient(app) as client:
+    # IP fija de la conexión: el limitador de login cuenta por `request.client.host`.
+    with TestClient(app, client=("10.0.0.1", 50000)) as client:
         yield client
 
     app.dependency_overrides.clear()
@@ -111,12 +122,6 @@ def client_fixture(session: Session):
 @pytest.fixture(name="plain_client", scope="function")
 def plain_client_fixture():
     """TestClient sin BD ni seed: para endpoints que no tocan la base (liveness, openapi, 404, CORS)."""
-    try:
-        from app.core.rate_limit.rate_limit_middleware import RateLimitMiddleware
-        RateLimitMiddleware.reset_all_limiters()
-    except ImportError:
-        pass
-
     with TestClient(app) as client:
         yield client
 

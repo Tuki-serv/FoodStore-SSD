@@ -14,8 +14,11 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.20
 mercadopago>=3.6.0
+slowapi==0.1.10
+limits==5.8.0
 
 # --- Testing ---
 pytest-dotenv
 pytest-asyncio
 pytest-cov
+freezegun==1.5.5

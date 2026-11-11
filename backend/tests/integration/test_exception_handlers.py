@@ -113,6 +113,10 @@ class TestAppErrorYErrorInesperado:
         def lanza_app_error_con_campo():
             raise AppError(409, "DUPLICATE_VALUE", "ya existe", field="nombre")
 
+        @app.get("/__test/app-error-headers")
+        def lanza_app_error_con_headers():
+            raise AppError(429, "RATE_LIMIT_EXCEEDED", "esperá", headers={"Retry-After": "7"})
+
         @app.get("/__test/boom")
         def lanza_error_inesperado():
             raise RuntimeError("boom")
@@ -130,6 +134,18 @@ class TestAppErrorYErrorInesperado:
         response = cliente.get("/__test/app-error-campo")
         assert response.status_code == 409
         assert response.json() == {"detail": "ya existe", "code": "DUPLICATE_VALUE", "field": "nombre"}
+
+    def test_app_error_con_headers_los_incluye_en_la_respuesta(self):
+        cliente = TestClient(self._app_con_rutas_de_prueba())
+        response = cliente.get("/__test/app-error-headers")
+        assert response.status_code == 429
+        assert response.headers["retry-after"] == "7"
+        assert response.json() == {"detail": "esperá", "code": "RATE_LIMIT_EXCEEDED", "field": None}
+
+    def test_app_error_sin_headers_no_agrega_retry_after(self):
+        cliente = TestClient(self._app_con_rutas_de_prueba())
+        response = cliente.get("/__test/app-error")
+        assert "retry-after" not in response.headers
 
     def test_error_inesperado_devuelve_500_generico_sin_filtrar_detalle(self):
         cliente = TestClient(self._app_con_rutas_de_prueba(), raise_server_exceptions=False)

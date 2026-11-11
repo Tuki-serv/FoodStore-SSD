@@ -269,7 +269,7 @@ Copiar `backend/.env.example` a `backend/.env` y reemplazar los `CHANGE_ME_*`. C
 - **Toda variable es explícita**: vive en `.env` y se declara en `app/core/config.py`. Nada se deriva de otra.
 - **Las obligatorias no tienen default**: si falta una, la app no arranca y el error la nombra
   (`ENVIRONMENT`, `DATABASE_URL`, `SQL_ECHO`, `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`,
-  `REFRESH_TOKEN_EXPIRE_DAYS`, `LOG_LEVEL`, `CORS_ORIGINS`, `RATE_LIMIT_*`).
+  `REFRESH_TOKEN_EXPIRE_DAYS`, `LOG_LEVEL`, `CORS_ORIGINS`).
 - **MercadoPago y Cloudinary son opcionales**: se puede probar el CRUD sin cuentas externas. La funcionalidad
   responde `503` (formato uniforme `{detail, code, field}`) solo cuando se usa sin configurar.
 

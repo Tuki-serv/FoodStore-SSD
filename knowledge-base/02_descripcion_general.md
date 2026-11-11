@@ -21,7 +21,7 @@
 | Backend | Passlib (bcrypt) | passlib 1.7.4 / bcrypt 4.0.1 | cost factor >= 12 |
 | Backend | python-jose | 3.3.0 | JWT HS256 |
 | Backend | mercadopago (SDK Python) | 2.3.0+ | |
-| Backend | slowapi | 0.1.9+ `[INT]` | Objetivo spec. **Deuda técnica (DT-10):** no usado en el código actual (middleware propio) |
+| Backend | slowapi | 0.1.10 `[INT]` | Rate limiting de login (RN-AU-08, C-03) |
 | Backend | cloudinary | — | Subida de imágenes |
 | Backend | pytest, httpx, pytest-asyncio, pytest-cov | | Tests con PostgreSQL 15 real, base `foodstore_test` (`backend/tests/.env.test`) |
 | Infra dev | Docker Compose | | `postgres:15` (puerto host 5433) + `pgadmin4` (5050) |
