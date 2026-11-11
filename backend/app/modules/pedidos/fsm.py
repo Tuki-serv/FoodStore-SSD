@@ -48,7 +48,7 @@ TRANSICIONES: Mapping[str, Mapping[str, frozenset[str]]] = MappingProxyType(
         CLIENT: MappingProxyType(
             {PENDIENTE: frozenset({CANCELADO}), CONFIRMADO: frozenset({CANCELADO})}
         ),
-        SISTEMA: MappingProxyType({PENDIENTE: frozenset({CONFIRMADO})}),
+        SISTEMA: MappingProxyType({PENDIENTE: frozenset({CONFIRMADO, CANCELADO})}),  # CANCELADO: pago aprobado sin stock
     }
 )
 
@@ -84,6 +84,8 @@ def _puede_confirmar(actor: Actor, forma_pago: str) -> bool:
 
 def destinos_permitidos(actor: Actor, estado_actual: str, forma_pago: str) -> frozenset[str]:
     """Destinos que `actor` puede pedir desde `estado_actual` para un pedido de `forma_pago` (unión por roles)."""
+    if SISTEMA in actor.roles and forma_pago != MERCADOPAGO:  # el Sistema solo actúa sobre pedidos MERCADOPAGO
+        return frozenset()
     destinos = union_por_roles(TRANSICIONES, actor.roles, estado_actual)
     if CONFIRMADO in destinos and not _puede_confirmar(actor, forma_pago):
         destinos = destinos - {CONFIRMADO}

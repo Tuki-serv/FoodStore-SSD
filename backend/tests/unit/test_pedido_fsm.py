@@ -74,12 +74,17 @@ def test_admin_solo_cancela_mercadopago_y_tarjeta_en_pendiente(forma_pago: str) 
     assert destinos_permitidos(_usuario("ADMIN"), "PENDIENTE", forma_pago) == frozenset({"CANCELADO"})
 
 
-def test_sistema_confirma_mercadopago_en_pendiente() -> None:
-    assert destinos_permitidos(ACTOR_SISTEMA, "PENDIENTE", "MERCADOPAGO") == frozenset({"CONFIRMADO"})
+def test_sistema_confirma_o_cancela_mercadopago_en_pendiente() -> None:
+    assert destinos_permitidos(ACTOR_SISTEMA, "PENDIENTE", "MERCADOPAGO") == frozenset({"CONFIRMADO", "CANCELADO"})
 
 
-def test_sistema_no_confirma_efectivo() -> None:
-    assert destinos_permitidos(ACTOR_SISTEMA, "PENDIENTE", "EFECTIVO") == frozenset()
+@pytest.mark.parametrize("forma_pago", ["EFECTIVO", "TRANSFERENCIA", "TARJETA"])
+def test_sistema_no_confirma_ni_cancela_pedidos_que_no_son_mercadopago(forma_pago: str) -> None:
+    assert destinos_permitidos(ACTOR_SISTEMA, "PENDIENTE", forma_pago) == frozenset()
+
+
+def test_sistema_no_tiene_destinos_desde_confirmado() -> None:
+    assert destinos_permitidos(ACTOR_SISTEMA, "CONFIRMADO", "MERCADOPAGO") == frozenset()
 
 
 def test_client_mas_pedidos_confirma_efectivo() -> None:

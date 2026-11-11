@@ -372,13 +372,24 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                 unidad_medida_id=data.unidad_medida_id
             )
 
-    def _aplicar_cambio_parcial(self, producto_id: int, cambio: BaseModel) -> ProductoReadFull:
-        """Aplica un cambio parcial a un producto no eliminado (404 si no existe o está eliminado)."""
+    def _aplicar_cambio_parcial(
+        self, producto_id: int, cambio: BaseModel, *, bloquear: bool = False
+    ) -> ProductoReadFull:
+        """Aplica un cambio parcial a un producto no eliminado (404 si no existe o está eliminado).
+
+        Con `bloquear` la fila se lee `FOR UPDATE`, serializando el cambio con otras escrituras de stock.
+        """
         with self.uow:
-            producto = self._get_or_404(producto_id)
+            producto = self._get_or_404(producto_id) if not bloquear else self._get_bloqueado_or_404(producto_id)
             self._apply_update_fields(producto, cambio)
             self.repo.update(producto)
             return self._to_read_full(producto)
+
+    def _get_bloqueado_or_404(self, producto_id: int) -> Producto:
+        producto = self.repo.get_for_update(producto_id)
+        if producto is None or producto.deleted_at is not None:
+            raise HTTPException(status_code=404, detail=f"{self.model.__name__} no encontrado/a")
+        return producto
 
     def fijar_disponibilidad(self, producto_id: int, disponible: bool) -> ProductoReadFull:
         """Fija `disponible` (idempotente; no toca el stock: RN-PR-02)."""
@@ -386,4 +397,6 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
 
     def fijar_stock(self, producto_id: int, stock_cantidad: int) -> ProductoReadFull:
         """Setea `stock_cantidad` en forma absoluta (idempotente; no toca `disponible`)."""
-        return self._aplicar_cambio_parcial(producto_id, ProductoStockUpdate(stock_cantidad=stock_cantidad))
+        return self._aplicar_cambio_parcial(
+            producto_id, ProductoStockUpdate(stock_cantidad=stock_cantidad), bloquear=True
+        )

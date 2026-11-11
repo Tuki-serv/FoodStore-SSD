@@ -10,7 +10,9 @@ from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
 from app.modules.historiales_estado_pedido.schemas import HistorialEstadoPedidoRead
 from app.modules.pedidos.fsm import (
     ACTOR_SISTEMA,
+    CANCELADO,
     CONFIRMADO,
+    EN_PREP,
     Actor,
     destinos_permitidos,
     motivo_rechazo_confirmacion,
@@ -26,17 +28,32 @@ from app.modules.pedidos.schemas import (
     PedidoRead
 )
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
+from app.modules.productos.stock_service import LineaStock, ProductoNoDisponible, StockInsuficiente, StockService
 import logging
 
 logger = logging.getLogger("app.modules.pedidos.service")
 logging.basicConfig(level=logging.INFO)
 
+MOTIVO_SIN_STOCK = "Sin stock"
+ORIGENES_CON_STOCK_DESCONTADO = frozenset({CONFIRMADO, EN_PREP})
+"""Estados en los que el pedido ya descontó stock: cancelar desde ahí lo devuelve (spec `order-stock`)."""
+
 PasoConfirmacion = Callable[[PedidoUnitOfWork, Pedido], None]
-"""Paso que corre dentro de la transacción de toda transición a CONFIRMADO (gancho de C-10: descuento de stock)."""
+"""Paso que corre dentro de la transacción de toda transición a CONFIRMADO (descuento de stock, C-10)."""
 
 
 def sin_efecto(uow: PedidoUnitOfWork, pedido: Pedido) -> None:
     """Paso de confirmación por defecto: no hace nada."""
+
+
+def lineas_de_stock(uow: PedidoUnitOfWork, pedido: Pedido) -> list[LineaStock]:
+    """Líneas de stock (producto, cantidad) de los detalles del pedido."""
+    return [LineaStock(d.producto_id, d.cantidad) for d in uow.detalles.get_all_by_pedido_id(pedido.id)]
+
+
+def descontar_stock_al_confirmar(uow: PedidoUnitOfWork, pedido: Pedido) -> None:
+    """Paso de confirmación real (C-10): descuenta el stock del pedido en la transacción de la transición."""
+    StockService(uow.productos).descontar(lineas_de_stock(uow, pedido))
 
 
 class PedidoService:
@@ -87,12 +104,6 @@ class PedidoService:
                 if getattr(producto, "deleted_at", None) is not None:
                     raise HTTPException(
                         status_code=404, detail="Producto no encontrado")
-                if not producto.disponible:
-                    raise HTTPException(
-                        status_code=400, detail="Producto no disponible")
-                if producto.stock_cantidad < item.cantidad:
-                    raise HTTPException(
-                        status_code=400, detail="No hay stock suficiente")
                 precio_snapshot = producto.precio_base
                 subtotal_snapshot = precio_snapshot * item.cantidad
                 subtotal += subtotal_snapshot
@@ -103,6 +114,7 @@ class PedidoService:
                         "subtotal_snapshot": subtotal_snapshot,
                     }
                 )
+            self._verificar_stock_al_crear(uow, data)
             descuento = self.DESCUENTO_INICIAL
             costo_envio = self.COSTO_ENVIO_FIJO
             total = subtotal - descuento + costo_envio
@@ -151,8 +163,18 @@ class PedidoService:
                 usuario_id=usuario_id,
                 motivo="Pedido creado",
             )
-            self.descontar_stock_del_pedido(uow, pedido.id)
             return self._armar_pedido_read_full(uow, pedido)
+
+    @staticmethod
+    def _verificar_stock_al_crear(uow: PedidoUnitOfWork, data: PedidoCreate) -> None:
+        """Crear solo verifica disponibilidad y stock (sumando líneas del mismo producto); el descuento es al confirmar."""
+        lineas = [LineaStock(item.producto_id, item.cantidad) for item in data.items]
+        try:
+            StockService(uow.productos).verificar(lineas)
+        except ProductoNoDisponible:
+            raise HTTPException(status_code=400, detail="Producto no disponible")
+        except StockInsuficiente:
+            raise HTTPException(status_code=400, detail="No hay stock suficiente")
 
     def obtener_pedido_por_id(self, pedido_id: int) -> PedidoReadFull:
         with self._uow as uow:
@@ -177,27 +199,29 @@ class PedidoService:
         roles: AbstractSet[str],
         ws_manager: ConnectionManager | None = None,
     ) -> PedidoReadFull:
-        with self._uow as uow:
-            pedido = self._obtener_pedido_o_404(uow, pedido_id)
-            estado_destino = self._obtener_estado_o_error(
-                uow=uow,
-                codigo=data.estado_hacia,
-                mensaje="Estado destino inválido",
-                status_code=400,
-            )
-            self._transicionar(
-                uow, pedido, estado_destino.codigo, Actor.usuario(usuario_id, roles), data.motivo
-            )
+        try:
+            with self._uow as uow:
+                pedido = self._obtener_pedido_o_404(uow, pedido_id)
+                estado_destino = self._obtener_estado_o_error(
+                    uow=uow,
+                    codigo=data.estado_hacia,
+                    mensaje="Estado destino inválido",
+                    status_code=400,
+                )
+                self._transicionar(
+                    uow, pedido, estado_destino.codigo, Actor.usuario(usuario_id, roles), data.motivo
+                )
+                resultado = self._armar_pedido_read_full(uow, pedido)
+        except StockInsuficiente as exc:  # el UoW ya hizo rollback: estado, historial y stock quedaron como estaban
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-            resultado = self._armar_pedido_read_full(uow, pedido)
+        EVENTOS_WS = {
+            "CONFIRMADO": "PEDIDO_CONFIRMADO",
+            "EN_PREP": "PEDIDO_EN_PREPARACION",
+            "CANCELADO": "PEDIDO_CANCELADO",
+        }
+        evento = EVENTOS_WS.get(resultado.estado_codigo, "ESTADO_ACTUALIZADO")
 
-            EVENTOS_WS = {
-                "CONFIRMADO": "PEDIDO_CONFIRMADO",
-                "EN_PREP": "PEDIDO_EN_PREPARACION",
-                "CANCELADO": "PEDIDO_CANCELADO",
-            }
-            evento = EVENTOS_WS.get(resultado.estado_codigo, "ESTADO_ACTUALIZADO")
-            
         if ws_manager:
             await ws_manager.send_to_room(
                 "role:KDS",
@@ -278,8 +302,8 @@ class PedidoService:
         uow.pedidos.update(pedido)
         if destino == CONFIRMADO:
             self._al_confirmar(uow, pedido)
-        if destino == self.ESTADOS["cancelado"]:
-            self.restaurar_stock_del_pedido(uow, pedido.id)
+        if destino == CANCELADO and origen in ORIGENES_CON_STOCK_DESCONTADO:
+            StockService(uow.productos).devolver(lineas_de_stock(uow, pedido))
         self._registrar_historial(
             uow=uow,
             pedido_id=pedido.id,
@@ -297,7 +321,13 @@ class PedidoService:
         """Confirmación automática del webhook de pagos: actor Sistema, solo pedidos MERCADOPAGO en PENDIENTE."""
         with self._uow as uow:
             pedido = self._obtener_pedido_o_404(uow, pedido_id)
-            self._transicionar(uow, pedido, CONFIRMADO, ACTOR_SISTEMA, "Pago aprobado por MercadoPago")
+            destino, motivo = CONFIRMADO, "Pago aprobado por MercadoPago"
+            puede_confirmar = CONFIRMADO in destinos_permitidos(ACTOR_SISTEMA, pedido.estado_codigo, pedido.forma_pago_codigo)
+            # Si el Sistema no puede confirmar, `_transicionar` levanta el 409 de siempre; si puede, se bloquea el stock y
+            # se decide sin excepciones (así el commit del UoW no pierde el cambio del pago, IN-22).
+            if puede_confirmar and StockService(uow.productos).alcanza(lineas_de_stock(uow, pedido)) is not None:
+                destino, motivo = CANCELADO, MOTIVO_SIN_STOCK
+            self._transicionar(uow, pedido, destino, ACTOR_SISTEMA, motivo)
             return self._armar_pedido_read_full(uow, pedido)
 
     def _registrar_historial(
@@ -406,31 +436,7 @@ class PedidoService:
             )
             return self._armar_pedido_read_full(uow, pedido)
 
-    def descontar_stock_del_pedido(self, uow, pedido_id: int) -> None:
-        detalles = uow.detalles.get_all_by_pedido_id(pedido_id)
-        for detalle in detalles:
-            producto = uow.productos.get_for_update(detalle.producto_id)
-            if producto is None or getattr(producto, "deleted_at", None) is not None:
-                raise HTTPException(
-                    status_code=404, detail="Producto no encontrado")
-            if producto.stock_cantidad < detalle.cantidad:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"No hay stock suficiente para {producto.nombre}",
-                )
-            producto.stock_cantidad -= detalle.cantidad
-            uow.productos.update(producto)
-
-    def restaurar_stock_del_pedido(self, uow, pedido_id: int) -> None:
-        detalles = uow.detalles.get_all_by_pedido_id(pedido_id)
-        for detalle in detalles:
-            producto = uow.productos.get_for_update(detalle.producto_id)
-            if producto is None or getattr(producto, "deleted_at", None) is not None:
-                continue
-            producto.stock_cantidad += detalle.cantidad
-            uow.productos.update(producto)
-
 
 def construir_pedido_service(session: Session) -> PedidoService:
-    """Fábrica única del service: router y webhook comparten la misma configuración (paso de confirmación)."""
-    return PedidoService(PedidoUnitOfWork(session))
+    """Fábrica única del service: router y webhook comparten la misma configuración (paso de confirmación: descuento de stock)."""
+    return PedidoService(PedidoUnitOfWork(session), al_confirmar=descontar_stock_al_confirmar)

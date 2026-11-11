@@ -17,6 +17,8 @@ from app.modules.pedidos.service import construir_pedido_service
 
 logger = logging.getLogger(__name__)
 
+ESTADO_PAGO_A_DEVOLVER = "a_devolver"
+
 
 class PaymentService:
     def __init__(self, session: Session) -> None:
@@ -203,6 +205,9 @@ class PaymentService:
                         resultado_pedido = construir_pedido_service(uow._session).confirmar_por_pago_aprobado(
                             pago.pedido_id
                         )
+                        if resultado_pedido.estado_codigo == "CANCELADO":  # pagado sin stock: queda para devolución manual
+                            pago.estado = ESTADO_PAGO_A_DEVOLVER
+                            uow.pagos.update(pago)
 
                         # TODO: Rúbrica MP (Webhook que procesa topic=payment, avanza pedido y notifica WS).
                         # Aquí también debería invocarse el broadcast_pedido() o send_to_room() de WSManager
