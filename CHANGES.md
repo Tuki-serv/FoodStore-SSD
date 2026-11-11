@@ -225,6 +225,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Historial: la confirmación automática registra `usuario_id = NULL` (Sistema), no el dueño con rol ADMIN.
   - La confirmación automática pasa por la transición de la FSM (PENDIENTE→CONFIRMADO, DD-20): C-05 deja el **punto de extensión** para que el descuento de stock que define C-10 ocurra dentro de esa misma transacción. Una falla de negocio conocida (p. ej. «sin stock al confirmar») no hace reintentar a MP (el webhook responde 200); solo las fallas inesperadas o de consistencia provocan el reintento. El caso «pago aprobado sin stock» lo define C-10.
   - Tests: firma válida/inválida, reentrega duplicada, fallo a mitad de transacción, actor Sistema, falla de negocio conocida sin reintento.
+  - Punto de partida (C-09): el actor Sistema ya está implementado (`PedidoService.confirmar_por_pago_aprobado`, `usuario_id` NULL, solo `MERCADOPAGO` en `PENDIENTE`; DT-13 resuelta en su parte de actor). Quedan firma, idempotencia y consistencia transaccional; el webhook sigue tragando el 409 de la FSM.
 - **Dependencias**: `C-04`
 - **Governance**: CRITICO
 - **Decisión pendiente**: `[PENDIENTE DE DECISIÓN: PA-08]` reembolso / cancelación ante pago `cancelled` (fuera de este scope).
@@ -317,6 +318,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Encapsulado en un único método/servicio de stock (`StockService`) invocado desde la transición de la FSM (el punto de entrada que deja C-09), de modo que ni el router ni el webhook toquen el stock directamente.
   - Tests: descuento al confirmar (auto y manual), no descuento al crear ni al cancelar PENDIENTE, devolución al cancelar CONFIRMADO+, «pago aprobado sin stock», rechazo de confirmación manual sin stock, **concurrencia** (dos pedidos sobre el último stock), atomicidad en UoW.
   - Punto de partida (C-08): `PATCH /productos/{id}/stock` (`{"stock_cantidad": n}`, seteo **absoluto**, ADMIN/STOCK) no bloquea la fila: al introducir el descuento atómico, decidir si el seteo manual usa `get_for_update` para no pisar un descuento concurrente (o si se pasa a delta).
+  - Punto de partida (C-09): `PedidoService(uow, al_confirmar=...)` con `PasoConfirmacion = Callable[[PedidoUnitOfWork, Pedido], None]` se invoca dentro del mismo UoW de la transición, antes del historial; conectarlo en `construir_pedido_service(session)` (`pedidos/service.py`). La restauración de stock al cancelar sigue en `PedidoService._transicionar` y la reemplaza C-10.
 - **Dependencias**: `C-09`
 - **Governance**: ALTO
 - **Leer antes**:
@@ -336,6 +338,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Punto de partida (C-02): `GET /auth/me` es el contrato de sesión; `GET`/`PATCH /usuarios/me` quedan como perfil (el `GET` duplicado se retira en C-14/C-25a).
   - Tests: contrato por endpoint, paginación, forma de errores, borrado con productos.
   - Punto de partida (C-08): las unicidades, el 409 y los `HTTPException` en services siguen pendientes (C-08 no los tocó); `GET /productos/{id}/ingredientes` y `DELETE /productos/{id}/ingredientes/{ing_id}` (spec §5.2, OQ-5) tienen a C-11 como dueño; actualizar en la matriz `tests/support/rbac_matriz.py` las filas con dueño C-11 (`GET /pedidos/{id}`, historial, `DELETE`).
+  - Punto de partida (C-09): el contrato `{nuevo_estado}` y el `DELETE` propio deben delegar en los mismos métodos del service (`cambiar_estado_pedido`/`cancelar_pedido_propio` → `_transicionar`); no reimplementar la FSM en el router.
 - **Dependencias**: `C-09`
 - **Governance**: MEDIO
 - **Decisión pendiente**: `[PENDIENTE DE DECISIÓN: PA-14]` estandarización de contrato (se asume la spec v5.0).
