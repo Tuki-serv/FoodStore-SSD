@@ -13,10 +13,6 @@ REQUIRED_ENV: dict[str, str] = {
     "LOG_LEVEL": "WARNING",
     "SQL_ECHO": "false",
     "CORS_ORIGINS": '["http://localhost:5173","http://localhost:3000"]',
-    "RATE_LIMIT_DEFAULT_PER_MINUTE": "1000",
-    "RATE_LIMIT_DEFAULT_BURST": "1000",
-    "RATE_LIMIT_AUTH_PER_MINUTE": "1000",
-    "RATE_LIMIT_AUTH_BURST": "1000",
 }
 
 OPTIONAL_ENV: dict[str, str] = {

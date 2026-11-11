@@ -28,6 +28,7 @@ async def app_error_handler(reques: Request, exc: AppError):
     return JSONResponse(
         status_code=exc.status_code,
         content=cuerpo_error(exc.detail, exc.code, exc.field),
+        headers=exc.headers,
     )
 
 

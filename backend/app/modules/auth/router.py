@@ -3,11 +3,13 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Cookie, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from slowapi.util import get_remote_address
 
+from app.core.rate_limit import LimitadorPorClave, RegistroIntentos, limiter
 from app.core.deps import AccessClaims, get_access_claims, get_current_active_user
 from app.modules.auth.cookies import REFRESH_COOKIE_NAME, clear_refresh_cookie, set_refresh_cookie
 from app.modules.auth.schemas import Token
-from app.modules.auth.service import AuthService, RefreshRechazado
+from app.modules.auth.service import LIMITE_FALLOS_LOGIN, AuthService, RefreshRechazado
 from app.modules.auth.unit_of_work import AuthUnitOfWork, get_auth_uow
 from app.modules.usuarios.models import Usuario
 from app.modules.usuarios.router import UsuarioServiceDep
@@ -16,8 +18,16 @@ from app.modules.usuarios.schemas import UserCreate, UserPublic, UserPublicAdmin
 auth_router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
-def get_auth_service(uow: Annotated[AuthUnitOfWork, Depends(get_auth_uow)]) -> AuthService:
-    return AuthService(uow)
+def get_registro_intentos_login() -> RegistroIntentos:
+    """Cuenta los logins fallidos por IP (ámbito `login-fallos`); sobrescribible en tests."""
+    return LimitadorPorClave(limiter, LIMITE_FALLOS_LOGIN, "login-fallos")
+
+
+def get_auth_service(
+    uow: Annotated[AuthUnitOfWork, Depends(get_auth_uow)],
+    intentos: Annotated[RegistroIntentos, Depends(get_registro_intentos_login)],
+) -> AuthService:
+    return AuthService(uow, intentos)
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
@@ -37,7 +47,7 @@ def login(
     svc: AuthServiceDep,
 ) -> Any:
     """Abre una sesión: el access va en el body y el refresh en una cookie HttpOnly."""
-    ip = request.client.host if request.client else None
+    ip = get_remote_address(request)
     tokens = svc.login(form_data.username, form_data.password, ip, request.headers.get("user-agent"))
     if tokens.refresh_token is not None:
         set_refresh_cookie(response, tokens.refresh_token, tokens.refresh_max_age)

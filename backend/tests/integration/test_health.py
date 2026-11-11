@@ -1,7 +1,7 @@
-"""`GET /health`: liveness sin credenciales, sin BD y excluido del rate limiting."""
+"""`GET /health`: liveness sin credenciales, sin BD y sin rate limiting."""
 from fastapi.testclient import TestClient
 
-from app.core.config import settings
+from tests.support.login import fallar_login
 
 
 def test_health_sin_credenciales_responde_200_status_ok(plain_client: TestClient) -> None:
@@ -11,9 +11,9 @@ def test_health_sin_credenciales_responde_200_status_ok(plain_client: TestClient
     assert response.json() == {"status": "ok"}
 
 
-def test_health_no_se_limita_por_rate_limit(plain_client: TestClient) -> None:
-    total = settings.RATE_LIMIT_DEFAULT_PER_MINUTE + 1
+def test_health_cien_requests_desde_una_ip_bloqueada_en_login_responden_200(client: TestClient) -> None:
+    fallar_login(client, 5)
 
-    statuses = {plain_client.get("/health").status_code for _ in range(total)}
+    statuses = {client.get("/health").status_code for _ in range(100)}
 
     assert statuses == {200}

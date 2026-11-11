@@ -11,7 +11,7 @@ from app.utils.errores import (
     validation_exception_handler,
 )
 from app.core.logger import setup_logging
-from app.core.rate_limit.rate_limit_middleware import RateLimitMiddleware
+from app.core.rate_limit import limiter
 from app.core.cloudinary.router import router as imagen_router
 from app.modules.health.router import router as health_router
 
@@ -41,7 +41,8 @@ def create_app() -> FastAPI:
         version="1.0.0",
     )
 
-    app.add_middleware(RateLimitMiddleware)
+    # Limitador de la app (login hoy; C-28 suma límites globales sobre el mismo storage).
+    app.state.limiter = limiter
 
     app.add_middleware(
         CORSMiddleware,

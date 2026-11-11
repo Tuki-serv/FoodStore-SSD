@@ -33,12 +33,6 @@ class Settings(BaseSettings):
     # ─── Logging ─────────────────────────────────────────────────────────────
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
-    # ─── Rate Limiting ───────────────────────────────────────────────────────
-    RATE_LIMIT_DEFAULT_PER_MINUTE: int
-    RATE_LIMIT_DEFAULT_BURST: int
-    RATE_LIMIT_AUTH_PER_MINUTE: int
-    RATE_LIMIT_AUTH_BURST: int
-
     # ─── CORS (array JSON de strings) ────────────────────────────────────────
     CORS_ORIGINS: list[str]
 
@@ -71,22 +65,6 @@ class Settings(BaseSettings):
                 "(los navegadores rechazan la cookie)"
             )
         return self
-
-    @property
-    def rate_limit_default_burst(self) -> int:
-        return self.RATE_LIMIT_DEFAULT_BURST
-
-    @property
-    def rate_limit_default_per_minute(self) -> int:
-        return self.RATE_LIMIT_DEFAULT_PER_MINUTE
-
-    @property
-    def rate_limit_auth_burst(self) -> int:
-        return self.RATE_LIMIT_AUTH_BURST
-
-    @property
-    def rate_limit_auth_per_minute(self) -> int:
-        return self.RATE_LIMIT_AUTH_PER_MINUTE
 
     model_config = SettingsConfigDict(
         env_file=".env",

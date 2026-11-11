@@ -52,8 +52,8 @@
 **Decisión**: `TRANSICIONES[rol][estado_actual] = {destinos}` declarativa y pura en `pedidos/fsm.py` (C-09), más la regla `CONFIRMAN_POR_FORMA_PAGO` (quién confirma según la forma de pago) y el pseudo-actor `SISTEMA` (`ACTOR_SISTEMA`, `usuario_id` NULL). Un único `PedidoService._transicionar` aplica toda transición.
 **Justificación**: Un solo lugar define qué puede hacer cada rol. **Trade-off**: la regla por forma de pago es otra tabla del mismo estilo (no un `if` disperso); desde C-08 se consulta con la unión de los roles del usuario (`union_por_roles`), ya no con `roles[0]`.
 
-### DD-12 — (CÓDIGO ACTUAL, deuda DT-10) Rate limiting propio (token bucket en memoria)
-**Objetivo (spec)**: slowapi, 5 fallos/15 min/IP en login. **Código actual**: Middleware + `RateLimiter` en lugar de slowapi. **Trade-offs**: no escala a múltiples workers (requeriría Redis); semántica distinta a la spec (IN-10).
+### DD-12 — Rate limiting con slowapi + adaptador por clave (ventana deslizante, memoria) — C-03
+**Decisión**: slowapi (`moving-window`, `memory://`) invocado desde `AuthService.login` mediante `LimitadorPorClave`: cuenta solo los fallos de login por IP, 5 en 15 min, 429 `RATE_LIMIT_EXCEEDED` con `Retry-After`; login correcto reinicia la cuenta. Reemplaza el middleware token bucket propio (DT-10 resuelta por C-03). **Trade-offs**: estado en memoria de un solo proceso (Redis → C-28); IP = la de la conexión, sin leer `X-Forwarded-For` (ver KB 08).
 
 ### DD-13 — (EXTRA DEL CÓDIGO, no especificado) Tiempo real vía WebSocket con rooms por rol/pedido
 Ver [12](12_tiempo_real_websocket.md). Trade-off: estado en memoria (un solo proceso).
@@ -121,7 +121,7 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 | DT-07 (resuelta por C-02) | Logout / refresh | Refresh hasheado SHA-256, rotación, `revoked_at` | Logout y expiración borran la fila; `revoked_at` no se usa; refresh emite JWT y sobrescribe; comparación aware vs naive | IN-08 | [05](05_reglas_de_negocio.md) |
 | DT-08 | WebSocket disconnect | (extra, no especificado) | `await manager.disconnect(...)` sobre método síncrono | — | [12](12_tiempo_real_websocket.md) |
 | DT-09 | Migraciones | Alembic obligatorio (`alembic upgrade head`, CE-04), `backend/app/main.py`, `backend/app/db/seed.py` | **Resuelta en C-06:** Alembic con migración 001, sin `create_all` (antes: `create_all` en lifespan, sin carpeta `alembic/`) | IN-18, DD-15 | [08](08_arquitectura_propuesta.md) |
-| DT-10 | Rate limiting | slowapi, 5 fallos/15 min/IP solo en `POST /auth/login` | Middleware propio, token bucket 5/min en login+register+logout y 60/min global | IN-10, DD-12 | [08](08_arquitectura_propuesta.md) |
+| DT-10 | Rate limiting (**resuelta por C-03**) | slowapi, 5 fallos/15 min/IP solo en `POST /auth/login` | Middleware propio, token bucket 5/min en login+register+logout y 60/min global | IN-10, DD-12 | [08](08_arquitectura_propuesta.md) |
 | DT-11 (resuelta por C-02) | Transporte del access token | Bearer en header (interceptor Axios), token en `authStore` (solo `accessToken` persistido), `GET /auth/me` | Solo cookie HttpOnly, Bearer deshabilitado, `/usuarios/me`, `secure=False` | IN-07, DD-09 | [08](08_arquitectura_propuesta.md) |
 | DT-12 (resuelta por C-02) | Email duplicado | 409 Conflict | 403 | IN-09 | [05](05_reglas_de_negocio.md) |
 | DT-13 | Actor del historial | `usuario_id` NULL = Sistema | Webhook registraba al dueño del pedido con `rol="ADMIN"`. **Parte de actor resuelta por C-09** (actor Sistema, `usuario_id` NULL); firma e idempotencia **resueltas por C-05**; DT-13 queda cerrada | IN-21 | [05](05_reglas_de_negocio.md), [07](07_flujos_principales.md) |

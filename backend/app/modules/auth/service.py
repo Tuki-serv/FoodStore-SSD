@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 
 from app.core.config import settings
+from app.core.rate_limit import RegistroIntentos
 from app.core.security import DUMMY_PASSWORD_HASH, create_access_token, hash_refresh_token, new_refresh_token, verify_password
 from app.core.timestamps import utc_now
 from app.modules.auth.unit_of_work import AuthUnitOfWork
@@ -15,6 +16,9 @@ from app.modules.usuarios.models import Usuario
 
 
 logger = logging.getLogger(__name__)
+
+# RN-AU-08: 5 intentos fallidos de login por IP en una ventana deslizante de 15 minutos.
+LIMITE_FALLOS_LOGIN = "5 per 15 minutes"
 
 
 @dataclass(frozen=True)
@@ -39,10 +43,22 @@ class RefreshRechazado(HTTPException):
 
 
 class AuthService:
-    def __init__(self, uow: AuthUnitOfWork) -> None:
+    def __init__(self, uow: AuthUnitOfWork, intentos: RegistroIntentos) -> None:
         self.uow = uow
+        self.intentos = intentos
 
     def login(self, email: str, password: str, ip: Optional[str], user_agent: Optional[str]) -> SessionTokens:
+        clave_ip = ip or "desconocida"
+        # Antes de leer el usuario o correr bcrypt: con la IP bloqueada no se abre sesión aunque las credenciales sirvan.
+        self.intentos.verificar(clave_ip)
+        tokens = self._abrir_sesion(email, password, ip, user_agent, clave_ip)
+        # Recién tras el commit: un fallo de BD no debe borrar el historial de fallos.
+        self.intentos.reiniciar(clave_ip)
+        return tokens
+
+    def _abrir_sesion(
+        self, email: str, password: str, ip: Optional[str], user_agent: Optional[str], clave_ip: str
+    ) -> SessionTokens:
         with self.uow as uow:
             user = uow.usuarios.get_by_email(email)
 
@@ -51,6 +67,7 @@ class AuthService:
             hash_a_verificar = user.password_hash if user else DUMMY_PASSWORD_HASH
             password_ok = verify_password(password, hash_a_verificar)
             if not user or not password_ok or user.deleted_at:
+                self.intentos.registrar(clave_ip)
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Credenciales incorrectas",
