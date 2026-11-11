@@ -58,14 +58,14 @@ Cliente → Frontend → POST /auth/login → [RateLimit] → UsuarioService →
    8. *(deuda DT-04, solo código actual; **objetivo DD-20, lo implementa C-10**: este paso no existe, el stock se descuenta al confirmar el pedido, ver Flujo 5 y Flujo 6)* descuenta stock con bloqueo de fila (`get_for_update`) — 409 si falta;
    9. `__exit__` → commit. Cualquier excepción → rollback total.
 4. API responde 201 `PedidoReadFull`.
-5. Frontend `POST /api/v1/pagos/crear {pedido_id}`: backend arma preferencia MP (`external_reference = pedido_id`, `back_urls`, `notification_url`), guarda `Pago(estado=pendiente, idempotency_key=uuid)` y responde `{pago_id, preference_id, init_point, public_key}`. Objetivo: el cliente paga con el formulario embebido (Checkout API + `CardPayment`). *Deuda DT-01:* el código actual redirige a `init_point` (Checkout Pro). *Deuda DT-05:* este endpoint hoy no exige autenticación.
-6. Cliente paga en MP. MP redirige a `back_urls` → `GET /pagos/redirect/{pedido_id}/{status}` → 302 al frontend `/payment/feedback/{pedido_id}?status=...&...`.
-7. En paralelo MP llama `POST /pagos/webhook` (ver Flujo 5).
+5. Frontend `POST /api/v1/pagos/crear {pedido_id, token, payment_method_id, installments, issuer_id?, payer}` (el token lo genera el brick `CardPayment`; el monto sale del pedido): backend guarda `Pago(estado=pendiente, idempotency_key=uuid, external_reference=uuid)` y cobra con `payment().create` (`X-Idempotency-Key`). Precondiciones: pedido `MERCADOPAGO` `PENDIENTE` sin pago aprobado/en proceso (409 `PAYMENT_NOT_ALLOWED`); propietario o ADMIN (401/403/404 antes). Ver [11](11_pagos_mercadopago.md).
+6. La respuesta 201 trae el resultado sincrónico `{pago_id, pedido_id, estado, mp_payment_id, mp_status, mp_status_detail}`: `aprobado` (el pedido ya queda `CONFIRMADO` en esa misma transacción), `rechazado` (el pedido sigue `PENDIENTE`: reintento con otro token) o `pendiente` (en proceso). Falla de red/5xx de MercadoPago → 502 con intento reutilizable; datos rechazados → 400.
+7. En paralelo MP llama `POST /pagos/webhook` (ver Flujo 5): confirma lo ya aplicado (`already_processed`) o resuelve los `pendiente`.
 8. Frontend muestra el estado del pedido (objetivo: polling cada 30 s; el WebSocket `pedido:{id}` es un extra del código, no especificado) y limpia el carrito.
 
 ```
 Cliente → FE → POST /pedidos ──▶ Service[UoW: pedido+detalles+historial+stock] ──▶ DB (commit)
-Cliente → FE → POST /pagos/crear ──▶ MP (preference) ──▶ init_point ──▶ Cliente paga en MP
+Cliente → FE (brick CardPayment → token) → POST /pagos/crear ──▶ MP (payments, X-Idempotency-Key) ──▶ resultado (201)
 MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update ──▶ Pedido PENDIENTE→CONFIRMADO ──▶ WS
 ```
 
@@ -81,7 +81,7 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 2. Valida la firma `x-signature` (HMAC-SHA256 del manifest `id:<data.id de la query>;request-id:<x-request-id>;ts:<ts>;`, omitiendo los pares ausentes) con el validador del SDK de MercadoPago. Inválida o ausente → **401** genérico (el motivo solo se loguea). Sin ventana de tolerancia sobre `ts`.
 3. Tópico e id: `data.id` de la query; si falta, el del cuerpo; si difieren → **400**. Tópico distinto de `payment` o sin id → 200 `ignored`. Sin `MP_ACCESS_TOKEN` → **503**.
 4. Consulta `sdk.payment().get(id)` (RN-PA-03: no se confía en el payload); error del proveedor → **502** (MP reintenta). Estado no mapeado → 200 `ignored`.
-5. En **una sola transacción** (UoW reentrante con savepoint, solo la externa confirma): busca el `Pago` con `SELECT ... FOR UPDATE` por `mp_payment_id` → `external_reference` (último del pedido) → `merchant_order_id`; sin pago local → 200 `ignored`. La función pura `decidir_transicion_pago` resuelve la idempotencia: `aprobado`/`a_devolver` son terminales; un `pendiente`/`rechazado` con el mismo `mp_payment_id` y estado es una reentrega → `already_processed`; un nuevo intento con otro id se procesa.
+5. En **una sola transacción** (UoW reentrante con savepoint, solo la externa confirma): busca el `Pago` con `SELECT ... FOR UPDATE` por `mp_payment_id` → `external_reference` (UUID del intento) → `merchant_order_id`; sin pago local → 200 `ignored`. La función pura `decidir_transicion_pago` resuelve la idempotencia: `aprobado`/`a_devolver` son terminales; un `pendiente`/`rechazado` con el mismo `mp_payment_id` y estado es una reentrega → `already_processed`; un nuevo intento con otro id se procesa.
 6. Si `approved`: `PedidoService.confirmar_por_pago_aprobado(pedido_id)` (C-09/C-10, actor Sistema, descuento de stock en la misma transacción). Si el Sistema no puede confirmar el pedido (`CANCELADO`, `EFECTIVO`/`TRANSFERENCIA`, ya confirmado: 409 `INVALID_TRANSITION`) o no hay stock, el pago queda `a_devolver` (devolución manual, PA-08) y se responde 200.
 7. El router emite eventos WebSocket a `role:KDS` y `pedido:{id}` solo si hubo `pedido_actualizado` (background tasks, después del commit).
 8. Responde 200 `{status: processed|ignored|already_processed}`.

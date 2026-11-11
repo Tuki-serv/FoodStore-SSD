@@ -36,7 +36,7 @@
  │ Zustand + TanStack Query │        WebSocket (pedido / cocina)          │ Middleware: CORS + RateLimit    │
  │ MercadoPago.js           │                                                    └──────────────┬──────────────────┘
  └───────────┬──────────────┘                                                                   │ SQLModel/psycopg
-             │ tokeniza tarjeta / redirect Checkout Pro                                         ▼
+             │ tokeniza tarjeta (CardPayment)                                         ▼
              ▼                                                                   ┌─────────────────────────┐
      ┌───────────────┐   POST /pagos/webhook (IPN)   ┌────────────────────┐     │ PostgreSQL 15           │
      │ MercadoPago   │ ────────────────────────────▶ │ módulo pagos       │     └─────────────────────────┘
@@ -67,7 +67,7 @@ Capas (de mayor a menor abstracción) `[DESC]`: `app → pages → widgets → f
 
 | Servicio | Propósito | Tipo |
 |----------|-----------|------|
-| MercadoPago (objetivo: Checkout API/Orders; **deuda DT-01:** Checkout Pro en el código actual) | Crear pago/preferencia, cobrar | REST vía SDK Python + MercadoPago.js en navegador |
+| MercadoPago (Checkout API / Payments con `CardPayment`; DT-01 resuelta por C-12) | Crear pago/preferencia, cobrar | REST vía SDK Python + MercadoPago.js en navegador |
 | MercadoPago IPN | Notificación asíncrona del estado de pago | Webhook `POST /api/v1/pagos/webhook` |
 | Cloudinary | Almacenar imágenes de categorías, ingredientes y productos | SDK Python (subida `multipart/form-data`) |
 | ngrok | Exponer backend local para `back_urls`/webhook | Túnel HTTPS |
@@ -92,7 +92,7 @@ Resumen por recurso (rutas reales del backend salvo indicación; contraste con s
 | Unidades de medida | CRUD `/unidades-medida` | Escritura `ADMIN` |
 | Uploads | `POST /uploads/imagen`, `DELETE /uploads/imagen/{public_id}` | `ADMIN` |
 | Pedidos (C-11) | `POST /pedidos/`, `GET /pedidos/` (paginado; filtros `estado`, `desde`, `hasta` en UTC; CLIENT ve solo los propios, ADMIN/PEDIDOS todos), `GET /pedidos/{id}` y `GET /pedidos/{id}/historial` (dueño, ADMIN, PEDIDOS; otro cliente 403), `PATCH /pedidos/{id}/estado {nuevo_estado, motivo?}`, `DELETE /pedidos/{id}` (CLIENT cancela el propio; body **opcional** `{motivo}`, sin motivo se registra «Cancelado por el cliente»; responde 200 con el pedido), `GET /pedidos/cocina/pedidos` (paginado), WS | Ver 03 y 07. Axios: para enviar body en `DELETE` usar `axios.delete(url, { data: { motivo } })` (C-13b) |
-| Pagos | `POST /pagos/crear`, `POST /pagos/webhook`, `GET /pagos/{pedido_id}`, `GET /pagos/redirect/{pedido_id}/{status}` | **Sin autenticación en** |
+| Pagos | `POST /pagos/crear`, `POST /pagos/webhook`, `GET /pagos/{pedido_id}` (la ruta de redirect de Checkout Pro se retiró en C-12) | **Sin autenticación en** |
 | Estadísticas | `GET /estadisticas/ventas`, `/productos-top`, `/pedidos-por-estado`, `/ingresos`, `/resumen` | `ADMIN` |
 
 Convenciones transversales: soft delete (los GET filtran `deleted_at IS NULL`), esquemas separados Create/Update/Read (nunca exponer el modelo SQLModel), `response_model` siempre.

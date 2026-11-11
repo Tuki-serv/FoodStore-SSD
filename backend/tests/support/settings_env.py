@@ -20,13 +20,18 @@ OPTIONAL_ENV: dict[str, str] = {
     "MP_PUBLIC_KEY": "mp-public-falsa",
     "MP_WEBHOOK_SECRET": "mp-webhook-secret-falso",
     "MP_NOTIFICATION_URL": "https://abc.ngrok-free.app/api/v1/pagos/webhook",
-    "BACKEND_PUBLIC_URL": "https://abc.ngrok-free.app",
-    "FRONTEND_URL": "https://tienda.example",
     "CLOUDINARY_NAME": "nube-falsa",
     "CLOUDINARY_API_KEY": "key-falsa",
     "CLOUDINARY_API_SECRET": "secret-falso",
 }
 
 OPTIONAL_FIELDS = tuple(OPTIONAL_ENV)
-RETIRED_VARS = ("MP_WEBHOOK_URL", "NGROK_URL", "VITE_FRONTEND_URL", "VITE_API_URL")
+RETIRED_VARS = (
+    "MP_WEBHOOK_URL",
+    "NGROK_URL",
+    "VITE_FRONTEND_URL",
+    "VITE_API_URL",
+    "BACKEND_PUBLIC_URL",
+    "FRONTEND_URL",
+)
 POSTGRES_VARS = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "POSTGRES_HOST", "POSTGRES_PORT")

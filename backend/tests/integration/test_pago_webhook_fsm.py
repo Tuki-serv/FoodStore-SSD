@@ -13,6 +13,7 @@ from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
 from tests.support.mp_webhook import SECRETO, post_webhook
+from tests.support.pagos_factory import referencia_de
 
 
 class _PagoAprobadoSDK:
@@ -34,13 +35,13 @@ class _PagoAprobadoSDK:
 
 
 @pytest.fixture(name="mp_aprobado")
-def mp_aprobado_fixture(monkeypatch: pytest.MonkeyPatch):
+def mp_aprobado_fixture(monkeypatch: pytest.MonkeyPatch, session: Session):
     monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "TEST-token")
     monkeypatch.setattr(settings, "MP_WEBHOOK_SECRET", SECRETO)
-    monkeypatch.setattr("app.modules.pagos.service.mercadopago.SDK", _PagoAprobadoSDK)
+    monkeypatch.setattr("app.modules.pagos.pasarela_mp.mercadopago.SDK", _PagoAprobadoSDK)
 
     def _apuntar_a(pedido_id: int) -> None:
-        _PagoAprobadoSDK.referencia = str(pedido_id)
+        _PagoAprobadoSDK.referencia = referencia_de(session, pedido_id)  # la `external_reference` UUID del intento
 
     return _apuntar_a
 

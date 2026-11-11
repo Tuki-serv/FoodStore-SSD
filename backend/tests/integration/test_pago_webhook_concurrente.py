@@ -25,7 +25,7 @@ from app.modules.productos.models import Producto
 from app.modules.usuarios.models import Rol, Usuario, UsuarioRol
 from tests.support.auth_helpers import crear_usuario_con_roles
 from tests.support.mp_webhook import MPFalso, post_webhook
-from tests.support.pagos_factory import estado_pedido, historial, pagos_de, stock_de
+from tests.support.pagos_factory import estado_pedido, historial, pagos_de, referencia_de, stock_de
 
 
 @pytest.fixture(name="escenario")
@@ -82,7 +82,9 @@ def test_dos_notificaciones_simultaneas_del_mismo_pago_aprobado_confirman_una_so
     escenario: dict, mp_sdk: MPFalso
 ) -> None:
     engine: Engine = escenario["engine"]
-    mp_sdk.responder(123, str(escenario["pedido_id"]))
+    with Session(engine) as db_ref:
+        referencia = referencia_de(db_ref, escenario["pedido_id"])
+    mp_sdk.responder(123, referencia)
 
     def sesion_propia():
         with Session(engine) as db:

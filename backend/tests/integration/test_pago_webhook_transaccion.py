@@ -16,6 +16,7 @@ from tests.support.pagos_factory import (
     pedido_con_detalle,
     pedido_con_pago,
     producto,
+    referencia_de,
     stock_de,
 )
 
@@ -38,7 +39,7 @@ def test_falla_a_mitad_de_la_confirmacion_responde_500_y_no_deja_cambios_parcial
 ) -> None:
     prod = producto(session, "Transaccional", 5)
     pedido = pedido_con_detalle(session, normal_user["id"], prod, 2, "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder(123, referencia_de(session, pedido.id))
     _inyectar_falla_en_la_confirmacion(session)
 
     response = post_webhook(TestClient(app, raise_server_exceptions=False), "123")
@@ -57,7 +58,7 @@ def test_reenviar_la_notificacion_tras_la_falla_confirma_una_sola_vez_como_siste
 ) -> None:
     prod = producto(session, "Reintento", 5)
     pedido = pedido_con_detalle(session, normal_user["id"], prod, 2, "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder(123, referencia_de(session, pedido.id))
     _inyectar_falla_en_la_confirmacion(session)
     post_webhook(TestClient(app, raise_server_exceptions=False), "123")
     del app.dependency_overrides[get_payment_service]
@@ -77,7 +78,7 @@ def test_pago_aprobado_de_un_pedido_cancelado_queda_a_devolver_y_el_pedido_no_ca
     client: TestClient, session: Session, normal_user: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "CANCELADO", "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder(123, referencia_de(session, pedido.id))
 
     response = post_webhook(client, "123")
 
@@ -93,7 +94,7 @@ def test_pago_aprobado_de_un_pedido_efectivo_queda_a_devolver_y_el_dueno_lo_cons
     client: TestClient, session: Session, normal_user: dict, user_auth_headers: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "PENDIENTE", "EFECTIVO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder(123, referencia_de(session, pedido.id))
 
     response = post_webhook(client, "123")
     consulta = client.get(f"/api/v1/pagos/{pedido.id}", headers=user_auth_headers)
@@ -108,7 +109,7 @@ def test_pago_aprobado_de_un_pedido_ya_confirmado_por_otra_via_queda_a_devolver(
     client: TestClient, session: Session, normal_user: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "CONFIRMADO", "MERCADOPAGO")
-    mp_sdk.responder(101, str(pedido.id))
+    mp_sdk.responder(101, referencia_de(session, pedido.id))
 
     response = post_webhook(client, "101")
 
@@ -124,7 +125,7 @@ def test_pago_aprobado_sin_stock_cancela_el_pedido_y_deja_el_pago_a_devolver(
 ) -> None:
     prod = producto(session, "Agotado", 1)
     pedido = pedido_con_detalle(session, normal_user["id"], prod, 2, "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder(123, referencia_de(session, pedido.id))
 
     response = post_webhook(client, "123")
 
@@ -140,7 +141,7 @@ def test_reentrega_del_pago_a_devolver_no_cambia_nada(
     client: TestClient, session: Session, normal_user: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "CANCELADO", "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder(123, referencia_de(session, pedido.id))
     post_webhook(client, "123")
 
     response = post_webhook(client, "123")
@@ -160,8 +161,8 @@ def test_el_router_solo_dispara_websocket_cuando_hay_pedido_actualizado(
     monkeypatch.setattr("app.modules.pagos.router.manager.send_to_room", send_to_room)
     cancelado = pedido_con_pago(session, normal_user["id"], "CANCELADO", "MERCADOPAGO")
     pendiente = pedido_con_pago(session, normal_user["id"], "PENDIENTE", "MERCADOPAGO")
-    mp_sdk.responder(1, str(cancelado.id))
-    mp_sdk.responder(2, str(pendiente.id))
+    mp_sdk.responder(1, referencia_de(session, cancelado.id))
+    mp_sdk.responder(2, referencia_de(session, pendiente.id))
 
     post_webhook(client, "1")
     assert enviados == []

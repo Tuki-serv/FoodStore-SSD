@@ -33,6 +33,17 @@ class BaseRepository(Generic[T]):
         return self.session.get(self.model, record_id)
     
 
+    def get_for_update(self, record_id: int | UUID) -> Optional[T]:
+        """Registro por id con bloqueo de fila (`SELECT ... FOR UPDATE`) y atributos refrescados desde la base."""
+        statement = (
+            select(self.model)
+            .where(self.model.id == record_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return self.session.exec(statement).first()
+
+
     def get_all_by_state(
             self,
             state: EstadoFiltro = EstadoFiltro.ACTIVO,

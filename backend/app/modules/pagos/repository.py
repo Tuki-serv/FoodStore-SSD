@@ -1,4 +1,5 @@
 from typing import Optional, List
+from uuid import UUID
 from sqlmodel import Session, select
 from app.core.repository import BaseRepository
 from app.modules.pagos.models import Pago
@@ -14,7 +15,7 @@ class PagoRepository(BaseRepository[Pago]):
             self.session.exec(
                 select(Pago)
                 .where(Pago.pedido_id == pedido_id)
-                .order_by(Pago.created_at.desc())
+                .order_by(Pago.created_at.desc(), Pago.id.desc())
             ).all()
         )
 
@@ -43,13 +44,9 @@ class PagoRepository(BaseRepository[Pago]):
             select(Pago).where(Pago.mp_payment_id == mp_payment_id).with_for_update()
         ).first()
 
-    def get_ultimo_by_pedido_for_update(self, pedido_id: int) -> Optional[Pago]:
+    def get_by_external_reference_for_update(self, external_reference: UUID) -> Optional[Pago]:
         return self.session.exec(
-            select(Pago)
-            .where(Pago.pedido_id == pedido_id)
-            .order_by(Pago.created_at.desc(), Pago.id.desc())
-            .limit(1)
-            .with_for_update()
+            select(Pago).where(Pago.external_reference == external_reference).with_for_update()
         ).first()
 
     def get_by_mp_merchant_order_id_for_update(self, merchant_order_id: int) -> Optional[Pago]:

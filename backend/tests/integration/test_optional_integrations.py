@@ -1,6 +1,6 @@
 """La app y la suite funcionan sin MercadoPago ni Cloudinary; cada integración falla con 503 solo al usarse.
 
-El SDK de MercadoPago y el de Cloudinary están mockeados: ningún test llama a una API real.
+El borde de MercadoPago (`mp_sdk`, `MPFalso`) y el SDK de Cloudinary están mockeados: ningún test llama a una API real.
 """
 import io
 from unittest.mock import MagicMock
@@ -12,8 +12,10 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.modules.productos.models import Producto
+from tests.support.mp_webhook import MPFalso
+from tests.support.pagos_factory import pagos_de, pedido_a_pagar, producto
 
-MP_SETTINGS = ("MP_ACCESS_TOKEN", "MP_PUBLIC_KEY", "MP_NOTIFICATION_URL", "BACKEND_PUBLIC_URL", "FRONTEND_URL")
+MP_SETTINGS = ("MP_ACCESS_TOKEN", "MP_PUBLIC_KEY", "MP_NOTIFICATION_URL")
 CLOUDINARY_SETTINGS = ("CLOUDINARY_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")
 
 
@@ -34,15 +36,19 @@ def cloudinary_sdk(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
 
 
 @pytest.fixture
-def mp_sdk(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
-    """`mercadopago.SDK` mockeado: devuelve el mock de la instancia."""
-    sdk_class = MagicMock(name="mercadopago.SDK")
-    sdk_class.return_value.preference.return_value.create.return_value = {
-        "status": 201,
-        "response": {"id": "pref-123", "init_point": "https://mp.example/init"},
+def pedido_mp(session: Session, normal_user: dict):
+    """Pedido `MERCADOPAGO` `PENDIENTE` del cliente `normal_user`, sin pagos."""
+    return pedido_a_pagar(session, normal_user["id"], producto(session, "Opcional", 5))
+
+
+def cuerpo(pedido_id: int) -> dict:
+    return {
+        "pedido_id": pedido_id,
+        "token": "tok-1",
+        "payment_method_id": "visa",
+        "installments": 1,
+        "payer": {"email": "a@test.com"},
     }
-    monkeypatch.setattr("app.modules.pagos.service.mercadopago.SDK", sdk_class)
-    return sdk_class
 
 
 # ── Arranque y Cloudinary ───────────────────────────────────────────────────
@@ -91,80 +97,71 @@ def test_subir_imagen_sin_cloudinary_responde_503_con_formato_uniforme(
 
 # ── MercadoPago ─────────────────────────────────────────────────────────────
 
-def test_crear_pago_sin_access_token_responde_503_nombrando_la_variable(
-    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock
+def test_crear_pago_sin_access_token_responde_503_nombrando_la_variable_y_no_crea_pagos(
+    client: TestClient, session: Session, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
+    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", None)
+
+    response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
 
     body = response.json()
     assert response.status_code == 503
     assert body["code"] == "HTTP_503"
+    assert body["field"] is None
     assert "MercadoPago no configurado" in body["detail"]
     assert "MP_ACCESS_TOKEN" in body["detail"]
-    mp_sdk.assert_not_called()
+    assert "MP_NOTIFICATION_URL" not in body["detail"]
+    assert pagos_de(session, pedido_mp.id) == []
+    assert mp_sdk.creaciones == []
 
 
 def test_crear_pago_con_token_pero_sin_notification_url_responde_503_nombrando_la_faltante(
-    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
+    client: TestClient, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "mp-token-falso")
-    monkeypatch.setattr(settings, "BACKEND_PUBLIC_URL", "https://b.example")
+    monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", None)
 
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
+    response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
 
     assert response.status_code == 503
     assert "MP_NOTIFICATION_URL" in response.json()["detail"]
     assert "MP_ACCESS_TOKEN" not in response.json()["detail"]
-    mp_sdk.assert_not_called()
+    assert mp_sdk.creaciones == []
 
 
-def test_crear_pago_con_token_pero_sin_backend_public_url_responde_503_nombrando_la_faltante(
-    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
+def test_crear_pago_sin_ninguna_variable_de_pagos_nombra_las_dos(
+    client: TestClient, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "mp-token-falso")
-    monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", "https://a.example/api/v1/pagos/webhook")
+    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", None)
+    monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", None)
 
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
+    response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
 
     assert response.status_code == 503
-    assert "BACKEND_PUBLIC_URL" in response.json()["detail"]
+    assert "MP_ACCESS_TOKEN" in response.json()["detail"]
+    assert "MP_NOTIFICATION_URL" in response.json()["detail"]
 
 
-def test_crear_pago_con_todo_configurado_arma_notification_url_y_back_urls_con_los_valores_de_las_variables(
-    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
+def test_crear_pago_ya_no_exige_backend_public_url_y_usa_la_notification_url_configurada(
+    client: TestClient, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso
 ) -> None:
-    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "mp-token-falso")
-    monkeypatch.setattr(settings, "MP_PUBLIC_KEY", "mp-public-falsa")
-    monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", "https://a.example/api/v1/pagos/webhook")
-    monkeypatch.setattr(settings, "BACKEND_PUBLIC_URL", "https://b.example")
+    mp_sdk.responder_creacion(201, "in_process", "pending_contingency", payment_id=950)
 
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
+    response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
 
     assert response.status_code == 201
-    mp_sdk.assert_called_once_with("mp-token-falso")
-    preferencia = mp_sdk.return_value.preference.return_value.create.call_args.args[0]
-    assert preferencia["notification_url"] == "https://a.example/api/v1/pagos/webhook"
-    assert preferencia["back_urls"] == {
-        "success": f"https://b.example/api/v1/pagos/redirect/{pedido_db.id}/success",
-        "failure": f"https://b.example/api/v1/pagos/redirect/{pedido_db.id}/failure",
-        "pending": f"https://b.example/api/v1/pagos/redirect/{pedido_db.id}/pending",
-    }
+    assert mp_sdk.tokens == ["TEST-token"]
+    (creacion,) = mp_sdk.creaciones
+    assert creacion.cuerpo["notification_url"] == "https://a.example/api/v1/pagos/webhook"
+    assert "back_urls" not in creacion.cuerpo
 
 
-def test_redirect_de_pago_sin_frontend_url_responde_503(plain_client: TestClient) -> None:
-    response = plain_client.get("/api/v1/pagos/redirect/1/success", follow_redirects=False)
-
-    assert response.status_code == 503
-    assert response.json()["code"] == "HTTP_503"
-    assert "FRONTEND_URL" in response.json()["detail"]
-
-
-def test_redirect_de_pago_con_frontend_url_redirige_con_los_query_params(
-    plain_client: TestClient, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("status", ["success", "failure", "pending"])
+def test_el_redirect_de_checkout_pro_responde_404_con_o_sin_mercadopago_configurado(
+    plain_client: TestClient, status: str
 ) -> None:
-    monkeypatch.setattr(settings, "FRONTEND_URL", "https://tienda.example")
+    response = plain_client.get(f"/api/v1/pagos/redirect/1/{status}?payment_id=55", follow_redirects=False)
 
-    response = plain_client.get("/api/v1/pagos/redirect/7/failure?payment_id=55", follow_redirects=False)
-
-    assert response.status_code in (302, 307)
-    assert response.headers["location"] == "https://tienda.example/payment/feedback/7?status=failure&payment_id=55"
+    assert response.status_code == 404
+    assert response.json()["code"] == "HTTP_404"
+    assert "location" not in response.headers

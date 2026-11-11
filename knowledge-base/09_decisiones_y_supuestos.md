@@ -34,7 +34,7 @@
 
 ### DD-07 — Pagos con MercadoPago e idempotencia
 **Decisión**: Webhook IPN + verificación contra la API de MP; `idempotency_key` UUID; tarjeta nunca toca el backend (SAQ-A).
-**Deuda técnica (DT-01)** — variante implementada en el código actual: Checkout Pro (preferencia + redirect) en vez de Checkout API/Orders con tarjeta embebida. Ver [11](11_pagos_mercadopago.md).
+**DT-01 resuelta por C-12**: el cobro es Checkout API (recurso Payments) con el token del brick `CardPayment`, `X-Idempotency-Key` por intento y `external_reference` UUID única (DT-26). Checkout Pro se retiró. Ver [11](11_pagos_mercadopago.md).
 
 ### DD-08 — Doble token con refresh rotado y hasheado
 **Decisión**: Access corto (30 min) + refresh opaco guardado como SHA-256, agrupado en una *sesión* de 7 días fijos. El refresh rota en cada renovación (historial con `revoked_at`), con período de gracia de 30 s (`REFRESH_REUSE_GRACE_SECONDS`) y detección de reuso que cierra todas las sesiones del usuario (C-02).
@@ -77,7 +77,7 @@ El esquema se crea y modifica solo con migraciones (`alembic upgrade head` desde
 **Decisión (confirmada por el usuario, C-01)**: tres reglas para la configuración del backend (`Settings`).
 1. **Toda variable es explícita**: vive en `.env` / `.env.example` y se declara en `Settings`. Ningún valor efectivo se deriva de otra variable (sin propiedades calculadas; se elimina incluso la construcción de `DATABASE_URL` desde `POSTGRES_*`).
 2. **Sin valores por defecto ocultos**: una variable es obligatoria (sin default, fail-fast con un error que la nombra) cuando la app la necesita para funcionar. Las de integraciones opcionales (MercadoPago, Cloudinary) se declaran `Optional = None`, que significa «no configurada»; no son necesarias para arrancar ni para correr los tests, y la funcionalidad falla con un error específico (503, formato uniforme) solo al usarse. **Motivo**: accesibilidad para probar el CRUD sin cuentas externas. `DATABASE_URL` es la única variable de BD del backend; `POSTGRES_*` y `PGADMIN_*` son solo de docker-compose, con consistencia manual con `DATABASE_URL`.
-3. **Desviación deliberada de la spec**: DT-22 retira `VITE_FRONTEND_URL` sin prever una variable de backend equivalente, por lo que se agregan `FRONTEND_URL` y `BACKEND_PUBLIC_URL` (opcionales, grupo pagos, removibles en C-12). Pendiente de reflejar en una futura actualización de la spec.
+3. **Desviación deliberada de la spec**: DT-22 retira `VITE_FRONTEND_URL` sin prever una variable de backend equivalente, por lo que se agregaron `FRONTEND_URL` y `BACKEND_PUBLIC_URL` (opcionales, grupo pagos). **Retiradas por C-12** junto con Checkout Pro (el cobro ya no usa `back_urls` ni redirect).
 **Consecuencias**: `CORS_ORIGINS` pasa a array JSON; `SQL_ECHO` reemplaza al `echo=True` fijo; `settings` sigue siendo un singleton de módulo.
 
 ### DD-19 — El alcance incluye el frontend React completo (PA-01)
@@ -112,7 +112,7 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 
 | ID | Tema | Objetivo (spec v5.0) | Código actual (deuda) | Ref. | Detalle en |
 |----|------|----------------------|-----------------------|------|-----------|
-| DT-01 | Integración MP | Checkout API/Orders, token de tarjeta (`CardPayment`), sin salir del sitio (PA-05 resuelta, DD-21: sin etapa intermedia) | Checkout Pro (preferencia + redirect `init_point`) | IN-25 | [11](11_pagos_mercadopago.md) |
+| DT-01 | Integración MP | Checkout API/Orders, token de tarjeta (`CardPayment`), sin salir del sitio (PA-05 resuelta, DD-21: sin etapa intermedia) | Checkout Pro (preferencia + redirect `init_point`) | **RESUELTA por C-12** (Checkout API con Payments, `X-Idempotency-Key`; Checkout Pro retirado) | IN-25 | [11](11_pagos_mercadopago.md) |
 | DT-02 | Rol `COCINA` | Solo 4 roles: ADMIN, STOCK, PEDIDOS, CLIENT | `COCINA` usado en `require_role`/WS, no sembrado | IN-12 | [03](03_actores_y_roles.md), [12](12_tiempo_real_websocket.md) |
 | DT-03 | Estado `EN_CAMINO` | 6 estados: PENDIENTE→CONFIRMADO→EN_PREP→EN_CAMINO→ENTREGADO + CANCELADO | Seed sin `EN_CAMINO`; FSM permite EN_PREP→ENTREGADO; `CANCELADO.orden=99`. **Parte de seed resuelta en C-07** (catálogo de 6 estados, `CANCELADO.orden=6`); **FSM resuelta en C-09** (`EN_PREP→EN_CAMINO→ENTREGADO`, sin atajo). **Resuelta por C-09** | IN-03 | [04](04_modelo_de_datos.md), [05](05_reglas_de_negocio.md) |
 | DT-04 | Stock | **RESUELTA por C-10.** Verificar `disponible`/stock al crear; descontar **al confirmarse** el pedido (pago aprobado o confirmación manual) en la misma transacción; devolver solo al cancelar CONFIRMADO o posterior; sin TTL; caso «pago aprobado sin stock» (DD-20, PA-03 resuelta). Dueño: C-10 | Se descuenta al crear pedido PENDIENTE; restaura en toda cancelación | IN-05, PA-03 | [05](05_reglas_de_negocio.md) |
@@ -137,7 +137,7 @@ Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada
 | DT-23 | Seed | Admin `Admin1234!`; FormaPago MERCADOPAGO/EFECTIVO/TRANSFERENCIA | `admin123`; `TARJETA` en lugar de `TRANSFERENCIA`. **Resuelta en C-07** (admin `Admin1234!`, `TRANSFERENCIA`, `TARJETA` deshabilitada en bases viejas) | IN-16 | [04](04_modelo_de_datos.md) |
 | DT-24 | Frontend | React completo (alcance de la rúbrica; PA-01 resuelta, DD-19) | No existe en el código actual | PA-01 | [13](13_rubrica_y_entrega.md) |
 | DT-25 | Capas del backend | Router → Service → UoW → Repository → Model: los routers no usan `Session` ni consultas, y `core/` no depende de `modules/` (reglas duras 1–2) | Los routers de `categorias`, `ingredientes`, `pagos`, `pedidos` y `productos` importan `Session`/`get_session`; `core/deps.py` importa desde `modules/` | Verificación C-01 (dueño: C-25a) | [08](08_arquitectura_propuesta.md) |
-| DT-26 | Pagos: `external_reference` | UUID único y obligatorio, generado por el backend | Id numérico del pedido, nullable, sin unicidad (dueño: **C-12**, con su migración) | Verificación C-06 | [11](11_pagos_mercadopago.md) |
+| DT-26 | Pagos: `external_reference` | UUID único y obligatorio, generado por el backend | Id numérico del pedido, nullable, sin unicidad | **RESUELTA por C-12** (migración `003`: UUID NN único por intento; se retiran `mp_preference_id` y `mp_init_point`) | Verificación C-06 | [11](11_pagos_mercadopago.md) |
 
 Extras del código **no especificados** (se conservan, decisión pendiente): rol `COCINA` + KDS, WebSocket por rooms, módulo estadísticas, unidades de medida, uploads a Cloudinary, rate limit global (PA-07, PA-19).
 

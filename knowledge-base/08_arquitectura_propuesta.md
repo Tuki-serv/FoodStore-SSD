@@ -123,14 +123,12 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 | `MP_PUBLIC_KEY` | Public key MP (frontend vía API) | `TEST-...` | N (opcional: pagos) |
 | `MP_WEBHOOK_SECRET` | Clave secreta de Webhooks (panel MP) para validar `x-signature`; sin ella el webhook responde 503 | `CHANGE_ME` | N (opcional: pagos; obligatoria para recibir webhooks) |
 | `MP_NOTIFICATION_URL` | URL pública completa del webhook IPN | `https://CHANGE_ME.ngrok-free.app/api/v1/pagos/webhook` | N (opcional: pagos) |
-| `BACKEND_PUBLIC_URL` | Base pública del backend para las `back_urls` (removible en C-12) | `https://CHANGE_ME.ngrok-free.app` | N (opcional: pagos) |
-| `FRONTEND_URL` | Destino del redirect post-pago (removible en C-12) | `http://localhost:5173` | N (opcional: pagos) |
 | `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cuenta Cloudinary | `CHANGE_ME` | N (opcional: imágenes; sin ellas subir = 503, borrar = no-op) |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | **Solo docker-compose** (crean usuario y base del contenedor). Mantener `DATABASE_URL` consistente a mano | `CHANGE_ME_USER` | solo compose |
 | `PGADMIN_EMAIL`, `PGADMIN_PASSWORD` | **Solo docker-compose** (login de pgAdmin) | `CHANGE_ME@example.com` | solo compose |
 | `VITE_API_URL`, `VITE_MP_PUBLIC_KEY` | **Solo frontend** (Vite); no las lee el backend | `http://localhost:8000` | solo frontend |
 
-**Retiradas (C-03):** `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST`, `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` (el límite de login es RN-AU-08, fijo en código). **Retiradas (C-01):** `NGROK_URL` (→ `BACKEND_PUBLIC_URL` + `MP_NOTIFICATION_URL`), `MP_WEBHOOK_URL` (→ `MP_NOTIFICATION_URL`), `VITE_FRONTEND_URL` (→ `FRONTEND_URL`), `POSTGRES_HOST`/`POSTGRES_PORT` y `TEST_DATABASE_URL` (tests: `DATABASE_URL` de `.env.test`, base `foodstore_test`). Con `extra="ignore"`, si siguen en el `.env` no afectan ningún valor.
+**Retiradas (C-12):** `BACKEND_PUBLIC_URL` y `FRONTEND_URL` (eran de Checkout Pro: `back_urls` y redirect post-pago). Crear un pago exige `MP_ACCESS_TOKEN` y `MP_NOTIFICATION_URL` (si falta alguna, 503 nombrándolas). **Retiradas (C-03):** `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST`, `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` (el límite de login es RN-AU-08, fijo en código). **Retiradas (C-01):** `NGROK_URL` (→ `MP_NOTIFICATION_URL`), `MP_WEBHOOK_URL` (→ `MP_NOTIFICATION_URL`), `VITE_FRONTEND_URL` (sin equivalente en el backend desde C-12), `POSTGRES_HOST`/`POSTGRES_PORT` y `TEST_DATABASE_URL` (tests: `DATABASE_URL` de `.env.test`, base `foodstore_test`). Con `extra="ignore"`, si siguen en el `.env` no afectan ningún valor.
 
 ## Testing
 

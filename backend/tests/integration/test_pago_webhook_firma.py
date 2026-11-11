@@ -6,14 +6,14 @@ from sqlmodel import Session
 from app.core.config import settings
 from tests.support.mp_firma import firmar
 from tests.support.mp_webhook import SECRETO, TS, MPFalso, post_webhook
-from tests.support.pagos_factory import estado_pedido, historial, pagos_de, pedido_con_pago
+from tests.support.pagos_factory import estado_pedido, historial, pagos_de, pedido_con_pago, referencia_de
 
 
 @pytest.fixture(name="pedido_mp")
 def pedido_mp_fixture(session: Session, normal_user: dict, mp_sdk: MPFalso):
     """Pedido MERCADOPAGO PENDIENTE y un pago aprobado `123` de MercadoPago que apunta a él."""
     pedido = pedido_con_pago(session, normal_user["id"], "PENDIENTE", "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder(123, referencia_de(session, pedido.id))
     return pedido
 
 
@@ -179,7 +179,7 @@ def test_webhook_sin_authorization_ni_firma_responde_401(client: TestClient, mp_
 def test_webhook_con_error_del_proveedor_responde_502_sin_cambios(
     client: TestClient, session: Session, mp_sdk: MPFalso, pedido_mp
 ) -> None:
-    mp_sdk.responder(123, str(pedido_mp.id), http_status=500)
+    mp_sdk.responder(123, referencia_de(session, pedido_mp.id), http_status=500)
 
     response = post_webhook(client, "123")
 
@@ -191,7 +191,7 @@ def test_webhook_con_error_del_proveedor_responde_502_sin_cambios(
 def test_webhook_con_estado_de_mercadopago_no_mapeado_se_ignora(
     client: TestClient, session: Session, mp_sdk: MPFalso, pedido_mp
 ) -> None:
-    mp_sdk.responder(123, str(pedido_mp.id), estado="in_mediation")
+    mp_sdk.responder(123, referencia_de(session, pedido_mp.id), estado="in_mediation")
 
     response = post_webhook(client, "123")
 
