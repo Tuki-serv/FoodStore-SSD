@@ -30,7 +30,7 @@ Food Store es una tienda de comida online (React + TypeScript + FastAPI + Postgr
 | Backend | Passlib (bcrypt) | passlib 1.7.4 / bcrypt 4.0.1 | cost factor >= 12 |
 | Backend | python-jose | 3.3.0 | JWT HS256 |
 | Backend | mercadopago (SDK Python) | 2.3.0+ | |
-| Backend | slowapi | 0.1.9+ `[INT]` | Objetivo spec. **Deuda técnica (DT-10):** no usado en el código actual (middleware propio) |
+| Backend | slowapi | 0.1.10 `[INT]` | Rate limiting de login (RN-AU-08, C-03) |
 | Backend | cloudinary | — | Subida de imágenes |
 | Backend | pytest, httpx, pytest-asyncio, pytest-cov | | Tests con PostgreSQL 15 real, base `foodstore_test` (`backend/tests/.env.test`) |
 | Infra dev | Docker Compose | | `postgres:15` (puerto host 5433) + `pgadmin4` (5050) |
@@ -90,7 +90,7 @@ Notas:
 
 El plan completo está en [CHANGES.md](CHANGES.md). Resumen:
 
-- **Total**: 31 changes (C-01..C-28; C-13, C-17 y C-25 partidos en `a`/`b`) en 3 fases: Fase 0 corrección de deuda técnica del backend (12: C-01..C-12), Fase 1 frontend y cierre (16: C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b), Fase 2 extras opcionales/bloqueados por la parte COCINA/KDS de PA-07 y por PA-19 (3: C-26..C-28). Cerrados: C-01, C-02, C-04, C-05, C-06, C-07, C-08, C-09, C-10 y C-11; pendientes obligatorios: 18.
+- **Total**: 31 changes (C-01..C-28; C-13, C-17 y C-25 partidos en `a`/`b`) en 3 fases: Fase 0 corrección de deuda técnica del backend (12: C-01..C-12), Fase 1 frontend y cierre (16: C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b), Fase 2 extras opcionales/bloqueados por la parte COCINA/KDS de PA-07 y por PA-19 (3: C-26..C-28). Cerrados: C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10 y C-11; pendientes obligatorios: 17.
 - **Camino crítico** (11): `C-01 → C-06 → C-07 → C-09 → C-11 → C-13b → C-16 → C-18 → C-19 → C-20 → C-25b` (C-20 requiere además C-12; C-13b requiere además C-13a y C-02). Los changes de seguridad (C-02, C-04, C-05) tienen prioridad de ejecución en Fase 0.
 - **Primer change**: `C-01` (baseline-backend).
 - Marcas: `[UI-MOCKUP]` = mockup aprobado antes de apply; `[PENDIENTE DE DECISIÓN: PA-xx]` = pregunta aún abierta (hoy PA-08, PA-14); no bloquea, se ajusta luego.

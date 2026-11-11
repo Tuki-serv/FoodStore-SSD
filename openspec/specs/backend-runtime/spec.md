@@ -40,7 +40,7 @@ La aplicación SHALL exponer `GET /health`, fuera de `/api/v1`. No SHALL requeri
 - **THEN** recibe 200 con cuerpo `{"status": "ok"}`
 
 #### Scenario: Health no consume cupo de rate limiting
-- **WHEN** un cliente hace más requests a `GET /health` que el límite general por minuto
+- **WHEN** un cliente hace 100 requests seguidas a `GET /health`, incluso desde una IP bloqueada en el login
 - **THEN** todas las respuestas son 200 y ninguna es 429
 
 ### Requirement: CORS según configuración
