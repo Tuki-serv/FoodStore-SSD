@@ -18,7 +18,7 @@ El backend SHALL poder iniciarse con `uvicorn app.main:app`. El módulo de entra
 - **THEN** recibe 200 con un documento OpenAPI cuyo título es `FoodStoreAPI`
 
 ### Requirement: Rutas de negocio montadas bajo `/api/v1`
-La aplicación SHALL montar los routers existentes (auth, usuarios, admin, direcciones, categorías, productos, ingredientes, unidades de medida, imágenes, pedidos, estadísticas, pagos) bajo el prefijo `/api/v1`, con los mismos paths y métodos que el código actual.
+La aplicación SHALL montar los routers de negocio (auth, usuarios, admin, direcciones, categorías, productos, ingredientes, unidades de medida, imágenes, pedidos, estadísticas, pagos) bajo el prefijo `/api/v1`, con los paths y métodos del contrato vigente que definen las capacidades de cada recurso (`order-api` para pedidos, `product-ingredients`, `api-conventions`). Las rutas retiradas por ese contrato no SHALL seguir respondiendo como antes.
 
 #### Scenario: Ruta pública de catálogo accesible
 - **WHEN** un cliente sin autenticación hace `GET /api/v1/productos/`
@@ -27,6 +27,10 @@ La aplicación SHALL montar los routers existentes (auth, usuarios, admin, direc
 #### Scenario: Ruta inexistente
 - **WHEN** un cliente hace `GET /api/v1/no-existe`
 - **THEN** recibe 404 con cuerpo JSON en el formato de error de la API (`detail`, `code`)
+
+#### Scenario: Ruta retirada de pedidos
+- **WHEN** un `CLIENT` autenticado hace `PATCH /api/v1/pedidos/mis-pedidos/1/cancelar`
+- **THEN** no recibe 200 y el cuerpo tiene el formato de error de la API
 
 ### Requirement: Endpoint de salud
 La aplicación SHALL exponer `GET /health`, fuera de `/api/v1`. No SHALL requerir autenticación ni consultar la base de datos. SHALL responder 200 con `{"status": "ok"}` y no SHALL estar sujeto a rate limiting.

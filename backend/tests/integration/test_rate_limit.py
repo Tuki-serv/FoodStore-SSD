@@ -56,6 +56,23 @@ class TestRateLimitDefault:
                 return
         pytest.fail("No se alcanzó el 429 luego de 15 requests")
 
+    def test_429_usa_el_formato_unico_de_error(self, client: TestClient, strict_limits: None):
+        """El 429 sale como `{detail, code, field}` con código `RATE_LIMIT_EXCEEDED`, sin la clave `error`."""
+        respuesta = None
+        for _ in range(15):
+            r = client.get("/api/v1/productos/")
+            if r.status_code == 429:
+                respuesta = r
+                break
+        assert respuesta is not None, "No se alcanzó el 429 luego de 15 requests"
+        cuerpo = respuesta.json()
+        assert cuerpo["code"] == "RATE_LIMIT_EXCEEDED"
+        assert cuerpo["field"] is None
+        assert cuerpo["detail"]
+        assert "error" not in cuerpo
+        assert int(respuesta.headers["retry-after"]) > 0
+        assert respuesta.headers["x-ratelimit-remaining"] == "0"
+
 class TestRateLimitAuth:
 
     def test_auth_endpoint_has_stricter_limit(self, client: TestClient, strict_limits: None):

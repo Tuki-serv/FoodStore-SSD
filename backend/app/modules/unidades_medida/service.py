@@ -3,6 +3,8 @@ from typing import Optional
 from sqlmodel import Session
 
 from app.core.enums import EstadoFiltro, restringir_estado
+from app.core.pagination import PageParams
+from app.core.schemas import PaginatedResponse
 from app.core.service import base_service
 from app.modules.unidades_medida.models import UnidadMedida
 from app.modules.unidades_medida.schemas import UnidadMedidaCreate, UnidadMedidaUpdate, UnidadMedidaRead
@@ -18,19 +20,6 @@ class UnidadMedidaService(base_service[UnidadMedida, UnidadMedidaCreate, UnidadM
         )
         
 
-    # ── Reglas de Negocio ───────────────────────────────────────────────────
-    def _validar_unicidad(self, nombre: Optional[str] = None, simbolo: Optional[str] = None, exclude_id: Optional[int] = None) -> None:
-        if nombre:
-            existente = self.repo.get_by_nombre(nombre, include_deleted=True)
-            if existente and existente.id != exclude_id:
-                raise HTTPException(status_code=400, detail=f"El nombre '{nombre}' ya está en uso por otra unidad de medida")
-        
-        if simbolo:
-            existente = self.repo.get_by_simbolo(simbolo, include_deleted=True)
-            if existente and existente.id != exclude_id:
-                raise HTTPException(status_code=400, detail=f"El simbolo '{simbolo}' ya está en uso por otra unidad de medida")
-
-
     # ── Overrides del Service Genérico ──────────────────────────────────────
     
     # def get_all_unidades(self, offset: int = 0, limit: int = 20, estado: EstadoFiltro = EstadoFiltro.ACTIVO):
@@ -41,34 +30,23 @@ class UnidadMedidaService(base_service[UnidadMedida, UnidadMedidaCreate, UnidadM
 
 
     def get_all_unidades(
-        self, page: int = 1, size: int = 20, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool
+        self, params: PageParams, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool
     ):
         estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
         if estado_efectivo is None:
-            return self._pagina_vacia(page, size)
+            return PaginatedResponse[UnidadMedidaRead].vacia(params)
         estado = estado_efectivo
 
         with self.uow:
-            offset = (page - 1) * size
-            limit = size
-
-            items = self.repo.get_all_by_state(state=estado, offset=offset, limit=limit)
+            items = self.repo.get_all_by_state(state=estado, offset=params.offset, limit=params.size)
             total = self.repo.count_model(state=estado)
-            
-            pages = (total + size - 1) // size if total > 0 else 0
-            
-            return {
-                "items": items,
-                "total": total,
-                "page": page,
-                "size": size,
-                "pages": pages
-            }
+
+            return PaginatedResponse[UnidadMedidaRead].desde(items, total, params)
 
 
     def create(self, item_in: UnidadMedidaCreate) -> UnidadMedidaRead:
         with self.uow:
-            self._validar_unicidad(nombre=item_in.nombre, simbolo=item_in.simbolo)
+            self._validar_unicos(item_in.model_dump())
             nuevo_item = super().create(item_in)
             return UnidadMedidaRead.model_validate(nuevo_item)
 
@@ -77,11 +55,7 @@ class UnidadMedidaService(base_service[UnidadMedida, UnidadMedidaCreate, UnidadM
         with self.uow:
             item_db = self._get_or_404(item_id)
             
-            # Validamos unicidad, si enviaron un dato nuevo y distinto al actual
-            if item_in.nombre and item_in.nombre != item_db.nombre:
-                self._validar_unicidad(nombre=item_in.nombre, exclude_id=item_id)
-            if item_in.simbolo and item_in.simbolo != item_db.simbolo:
-                self._validar_unicidad(simbolo=item_in.simbolo, exclude_id=item_id)
+            self._validar_unicos(item_in.model_dump(exclude_unset=True), excluir_id=item_id)
 
             item_actualizado = self._apply_update_fields(item_db, item_in)
             self.repo.update(item_actualizado)

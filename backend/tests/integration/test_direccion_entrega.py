@@ -24,12 +24,8 @@ class TestDireccionEntregaCRUD:
         response = client.get("/api/v1/direcciones/", headers=user_auth_headers)
         assert response.status_code == 200
         data = response.json()
-        if isinstance(data, list):
-            items = data
-        else:
-            items = data.get("data", data.get("items", []))
-        assert isinstance(items, list)
-        assert len(items) > 0
+        assert [d["linea1"] for d in data["items"]] == ["Evergreen 742"]
+        assert data["total"] == 1
 
     def test_get_direccion_por_id_returns_200(self, client: TestClient, user_auth_headers: dict):
         res = client.post(
@@ -72,3 +68,42 @@ class TestDireccionEntregaCRUD:
 
         get_res = client.get(f"/api/v1/direcciones/{dir_id}", headers=user_auth_headers)
         assert get_res.status_code == 404
+
+
+class TestDireccionesPaginadas:
+    @staticmethod
+    def _crear(client: TestClient, headers: dict, linea1: str) -> int:
+        r = client.post(
+            "/api/v1/direcciones/",
+            json={"linea1": linea1, "ciudad": "Springfield", "provincia": "Springfield"},
+            headers=headers,
+        )
+        assert r.status_code == 201
+        return r.json()["id"]
+
+    def test_cliente_sin_direcciones_recibe_pagina_vacia(self, client: TestClient, user_auth_headers: dict):
+        response = client.get("/api/v1/direcciones/", headers=user_auth_headers)
+        assert response.status_code == 200
+        assert response.json() == {"items": [], "total": 0, "page": 1, "size": 20, "pages": 0}
+
+    def test_pagina_uno_trae_la_principal_primero_y_calcula_pages(self, client: TestClient, user_auth_headers: dict):
+        self._crear(client, user_auth_headers, "Calle 1")
+        self._crear(client, user_auth_headers, "Calle 2")
+        tercera = self._crear(client, user_auth_headers, "Calle 3")
+        assert client.patch(f"/api/v1/direcciones/{tercera}/principal", headers=user_auth_headers).status_code == 200
+
+        response = client.get("/api/v1/direcciones/?size=2", headers=user_auth_headers)
+
+        cuerpo = response.json()
+        assert [d["linea1"] for d in cuerpo["items"]] == ["Calle 3", "Calle 1"]
+        assert cuerpo["total"] == 3
+        assert cuerpo["pages"] == 2
+
+    def test_pagina_dos_trae_el_resto_en_orden_de_id(self, client: TestClient, user_auth_headers: dict):
+        self._crear(client, user_auth_headers, "Calle 1")
+        self._crear(client, user_auth_headers, "Calle 2")
+        self._crear(client, user_auth_headers, "Calle 3")
+
+        response = client.get("/api/v1/direcciones/?page=2&size=2", headers=user_auth_headers)
+
+        assert [d["linea1"] for d in response.json()["items"]] == ["Calle 3"]

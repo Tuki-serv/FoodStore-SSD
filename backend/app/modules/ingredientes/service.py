@@ -4,6 +4,8 @@ from sqlmodel import Session
 
 from app.core.cloudinary.service import eliminar_imagen
 from app.core.enums import EstadoFiltro, restringir_estado
+from app.core.pagination import PageParams
+from app.core.schemas import PaginatedResponse
 # IMPORTANTE: Acá importás tu base_service desde donde lo tengas
 from app.core.service import base_service
 from app.modules.ingredientes.models import Ingrediente
@@ -26,14 +28,6 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
         )
 
     # ── Reglas de Negocio Específicas ────────────────────────────────────────
-    def _validar_nombre_unico(self, name: str, exclude_id: Optional[int] = None) -> None:
-        existente = self.repo.get_by_name(name, include_deleted=True)
-        if existente and existente.id != exclude_id:
-            raise HTTPException(
-                status_code=400,
-                detail=f"El nombre '{name}' ya está en uso por otro ingrediente"
-            )
-
     def _to_read_full(self, ingrediente: Ingrediente) -> IngredienteReadFull:
         productos = [
             ProductoBasicRead(id=cast(int, p.id), nombre=p.nombre)
@@ -57,28 +51,17 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
     #         total = self.repo.count_filtered(estado, is_alergeno)
     #         return {"data": [self._to_read_full(i) for i in items], "total": total}
 
-    def get_all_ingredientes(self, page: int = 1, size: int = 20, is_alergeno: Optional[bool] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool):
+    def get_all_ingredientes(self, params: PageParams, is_alergeno: Optional[bool] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool):
         estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
         if estado_efectivo is None:
-            return self._pagina_vacia(page, size)
+            return PaginatedResponse[IngredienteReadFull].vacia(params)
         estado = estado_efectivo
 
         with self.uow:
-            offset = (page - 1) * size
-            limit = size
-
-            items = self.repo.get_all_filtered(estado, is_alergeno, offset, limit)
+            items = self.repo.get_all_filtered(estado, is_alergeno, params.offset, params.size)
             total = self.repo.count_filtered(estado, is_alergeno)
-            
-            pages = (total + size - 1) // size if total > 0 else 0
-            
-            return {
-                "items": [self._to_read_full(i) for i in items],
-                "total": total,
-                "page": page,
-                "size": size,
-                "pages": pages
-            }
+
+            return PaginatedResponse[IngredienteReadFull].desde([self._to_read_full(i) for i in items], total, params)
 
 
     def get_by_id_full(
@@ -91,7 +74,7 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
 
     def create(self, item_in: IngredienteCreate) -> IngredienteRead:
         with self.uow:
-            self._validar_nombre_unico(item_in.nombre)
+            self._validar_unicos(item_in.model_dump())
             nuevo_item = super().create(item_in) 
             return IngredienteRead.model_validate(nuevo_item)
         
@@ -101,8 +84,7 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
             item_db = self._get_or_404(item_id)
             public_id_viejo = item_db.imagen_public_id
 
-            if item_in.nombre and item_in.nombre != item_db.nombre:
-                self._validar_nombre_unico(item_in.nombre, exclude_id=item_id)
+            self._validar_unicos(item_in.model_dump(exclude_unset=True), excluir_id=item_id)
 
             item_actualizado = self._apply_update_fields(item_db, item_in)
             self.repo.update(item_actualizado)

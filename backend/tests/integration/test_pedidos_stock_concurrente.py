@@ -118,7 +118,7 @@ def _confirmar_en_paralelo(engine: Engine, headers: dict[str, str], pedido_ids: 
             with TestClient(app) as cliente:
                 barrera.wait(timeout=10)
                 respuesta = cliente.patch(
-                    f"/api/v1/pedidos/{pedido_id}/estado", json={"estado_hacia": "CONFIRMADO"}, headers=headers
+                    f"/api/v1/pedidos/{pedido_id}/estado", json={"nuevo_estado": "CONFIRMADO"}, headers=headers
                 )
                 status.append(respuesta.status_code)
         except BaseException as exc:  # noqa: BLE001 - se reporta en el hilo principal

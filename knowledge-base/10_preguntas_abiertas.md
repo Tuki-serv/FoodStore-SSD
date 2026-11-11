@@ -71,7 +71,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 ### IN-11 — Paginación
 **A** (`[DESC]`): `skip`/`limit`. (`[INT]`): `page`/`size` → `{items,total,page,size,pages}`.
 **B** (código actual): mezcla — usuarios/categorías/ingredientes/unidades usan `page/size` + `PaginatedResponse`; pedidos usan `offset/limit` y devuelven `{data,total}`.
-**Resolución (spec = objetivo; deuda DT-18)**: Estandarizar en `page/size` + `{items,total,page,size,pages}`.
+**Cerrada por C-11 (2026-11-11)**: `page/size` + `{items,total,page,size,pages}` en todos los listados (catálogo, usuarios, direcciones, pedidos, cocina).
 
 ### IN-12 — Rol `COCINA` no definido
 **A** (`[DESC]`,`[INT]`): exactamente 4 roles.
@@ -99,7 +99,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 
 ### IN-17 — Eliminación de categorías
 **A** (`[INT]`): "soft delete con validación" (`ON DELETE SET NULL` en `parent_id`). **B** (código actual): re-asigna las hijas al padre de la eliminada, sin validar productos asociados.
-**Resolución (spec = objetivo; deuda DT-19)**: soft delete **con validación**; definir el detalle (bloquear con productos/hijas).
+**Cerrada por C-11 (2026-11-11)**: soft delete con validación; se bloquea con productos activos (409 `CATEGORY_HAS_PRODUCTS`) o subcategorías activas (409 `CATEGORY_HAS_CHILDREN`).
 
 ### IN-18 — Migraciones y estructura del proyecto
 **A** (spec): Alembic obligatorio (CE-04 `alembic upgrade head`), `backend/app/main.py`, `python -m app.db.seed` (desde `backend/`). **B** (código actual): sin carpeta `alembic/`, `create_all` en `lifespan`, `main.py` y `seed.py` en la raíz, `uvicorn main:app`; README sin los endpoints reales (documenta `PUT`, `routers.py`, puerto DB 5432 vs compose 5433; solo variables mínimas).
@@ -107,7 +107,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 
 ### IN-19 — Formato de errores
 **A** (`[DESC]`): RFC 7807 (`type, title, status, detail, instance`). **B** (`[INT]`): `{detail, code, field}` (mencionado como RFC 7807 pero es otro formato); el rate limit devuelve `{"error": {...}}` con otra forma.
-**Resolución (spec = objetivo; deuda DT-18)**: formato `{detail, code, field}` de `[INT]` en toda la API (incluido el rate limit); RFC 7807 de `[DESC]` no es normativo.
+**Cerrada por C-11 (2026-11-11)**: formato `{detail, code, field}` en toda la API (incluido el 429 con `RATE_LIMIT_EXCEEDED` y el 500 `INTERNAL_ERROR`); RFC 7807 de `[DESC]` no es normativo.
 
 ### IN-20 — CONFIRMADO "solo automático" vs transición manual
 **A** (`[DESC]` RN-02): nadie puede confirmar manualmente. **B** (código actual): ADMIN y PEDIDOS tienen `PENDIENTE→CONFIRMADO` en `TRANSICIONES` (útil para pagos en efectivo, pero rompe la regla).
@@ -128,7 +128,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 
 ### IN-24 — Endpoints de pedidos y cuerpos de request
 **A** (`[DESC]`): `PATCH /pedidos/{id}/avanzar` y `/cancelar`, body `observacion` (<= 500). **B** (`[INT]`): `PATCH /{id}/estado` {`nuevo_estado`, `motivo`}; `DELETE /{id}` cancela el propio; `GET /{id}/historial`. **C** (código actual): `PATCH /{id}/estado` {`estado_hacia`, `motivo`}; `PATCH /mis-pedidos/{id}/cancelar`; `DELETE /{id}` (ADMIN, soft delete); `GET /mis-pedidos`. Además `[INT]` pide `GET /pedidos/{id}` para el propietario (en el código actual el cliente usa `/mis-pedidos/{id}`).
-**Resolución (spec = objetivo; deuda DT-17)**: `PATCH /{id}/estado {nuevo_estado, motivo}`, `DELETE /{id}` (cancela el propio), `GET /{id}/historial`, `GET /{id}` para el propietario. Los endpoints `/mis-pedidos/...` y `estado_hacia` son código actual.
+**Cerrada por C-11 (2026-11-11)**: `PATCH /{id}/estado {nuevo_estado, motivo}`, `DELETE /{id}` (cancela el propio; body opcional `{motivo}`), `GET /{id}/historial`, `GET /{id}` para el dueño y los gestores. `/mis-pedidos/...` y `estado_hacia` se retiraron sin alias.
 
 ### IN-25 — Modalidad de integración con MercadoPago
 **A** (`[DESC]`,`[INT]`): Checkout API con Orders, token de tarjeta del navegador, `POST /pagos/crear` con token, `idempotency_key` verificado en el webhook; `[DESC]` además `crear-preferencia`. **B** (código actual): Checkout Pro (preferencia + `init_point` + redirect, `back_urls` vía ngrok), `POST /pagos/crear {pedido_id}`, `idempotency_key` solo se genera (no se usa para deduplicar); sin validación de firma; sin autenticación.
@@ -159,7 +159,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 | PA-11 | Media | ¿Qué reglas definen el costo de envío y el campo `descuento` (v1 fijo 50.00 / 0)? | Cálculo de totales | Product Owner |
 | PA-12 | Media | ¿Se debe auto-marcar `disponible=false` cuando el stock llega a 0? | Catálogo | Product Owner |
 | PA-13 | Media | ¿`direccion_id` NULL (retiro en local) cobra envío? ¿Se agrega `direccion_snapshot`? (IN-15) | Totales y trazabilidad | Product Owner |
-| PA-14 | Media | ¿Estandarizar paginación, formato de errores y nombres de endpoints según IN-11/IN-19/IN-24? | Contrato de API | Tech Lead |
+| PA-14 | Media | ¿Estandarizar paginación, formato de errores y nombres de endpoints según IN-11/IN-19/IN-24? | Contrato de API | Tech Lead — **asumida spec v5.0 por C-11** |
 | PA-15 | **RESUELTA** | Migraciones Alembic implementadas en C-06 (migración 001, CE-04 cubierto por test); la estructura de directorios ya se alineó en C-01 (IN-18) | Entrega | Equipo técnico |
 | PA-16 | Baja | ¿Cobertura mínima de tests (>60% para bonus) y alcance (`test_pedidos`, `test_pagos`, `test_auth`)? | Bonus | Equipo |
 | PA-17 | Baja | ¿Se hará deploy (Railway/Render/Fly.io) para el bonus? Requiere cookies `secure=True`, CORS y `NGROK_URL` reemplazada | Bonus | Equipo |

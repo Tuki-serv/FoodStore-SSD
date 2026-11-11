@@ -4,6 +4,7 @@ import inspect
 
 import pytest
 
+from app.core.pagination import PageParams
 from app.core.service import base_service
 from app.modules.categorias.service import CategoriaService
 from app.modules.ingredientes.service import IngredienteService
@@ -13,13 +14,13 @@ from app.modules.unidades_medida.service import UnidadMedidaService
 # (método sin enlazar, argumentos posicionales válidos salvo la visibilidad, parámetros de visibilidad obligatorios)
 CASOS = [
     pytest.param(base_service.get_by_id, (1,), {"ver_eliminados"}, id="base_service.get_by_id"),
-    pytest.param(UnidadMedidaService.get_all_unidades, (), {"ver_eliminados"}, id="unidades.get_all_unidades"),
-    pytest.param(CategoriaService.get_all_categorias, (), {"ver_eliminados"}, id="categorias.get_all_categorias"),
+    pytest.param(UnidadMedidaService.get_all_unidades, (PageParams(),), {"ver_eliminados"}, id="unidades.get_all_unidades"),
+    pytest.param(CategoriaService.get_all_categorias, (PageParams(),), {"ver_eliminados"}, id="categorias.get_all_categorias"),
     pytest.param(CategoriaService.get_by_id_full, (1,), {"ver_eliminados"}, id="categorias.get_by_id_full"),
-    pytest.param(IngredienteService.get_all_ingredientes, (), {"ver_eliminados"}, id="ingredientes.get_all_ingredientes"),
+    pytest.param(IngredienteService.get_all_ingredientes, (PageParams(),), {"ver_eliminados"}, id="ingredientes.get_all_ingredientes"),
     pytest.param(IngredienteService.get_by_id_full, (1,), {"ver_eliminados"}, id="ingredientes.get_by_id_full"),
     pytest.param(
-        ProductoService.get_all_productos, (), {"ver_no_disponibles", "ver_eliminados"}, id="productos.get_all_productos"
+        ProductoService.get_all_productos, (PageParams(),), {"ver_no_disponibles", "ver_eliminados"}, id="productos.get_all_productos"
     ),
     pytest.param(
         ProductoService.get_by_id_full, (1,), {"ver_no_disponibles", "ver_eliminados"}, id="productos.get_by_id_full"

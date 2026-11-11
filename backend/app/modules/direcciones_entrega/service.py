@@ -3,10 +3,11 @@ from fastapi import HTTPException, status
 from sqlmodel import Session
 
 from app.core.service import base_service
-from app.core.enums import EstadoFiltro
+from app.core.pagination import PageParams
+from app.core.schemas import PaginatedResponse
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
 from app.modules.direcciones_entrega.models import DireccionEntrega
-from app.modules.direcciones_entrega.schemas import DireccionCreate, DireccionUpdate
+from app.modules.direcciones_entrega.schemas import DireccionCreate, DireccionRead, DireccionUpdate
 from app.modules.direcciones_entrega.repository import DireccionRepository
 
 class DireccionService(base_service[DireccionEntrega, DireccionCreate, DireccionUpdate, UsuarioUnitOfWork]):
@@ -51,9 +52,10 @@ class DireccionService(base_service[DireccionEntrega, DireccionCreate, Direccion
             self.repo.add(nueva_direccion)
             return nueva_direccion
 
-    def listar_mis_direcciones(self, usuario_id: int) -> List[DireccionEntrega]:
+    def listar_mis_direcciones(self, usuario_id: int, params: PageParams) -> PaginatedResponse[DireccionRead]:
         with self.uow:
-            return self.repo.get_by_usuario(usuario_id, state=EstadoFiltro.ACTIVO)
+            items, total = self.repo.listar_por_usuario(usuario_id, params)
+            return PaginatedResponse[DireccionRead].desde([DireccionRead.model_validate(d, from_attributes=True) for d in items], total, params)
 
     def actualizar_direccion_propia(self, direccion_id: int, usuario_id: int, item_in: DireccionUpdate) -> DireccionEntrega:
         with self.uow:

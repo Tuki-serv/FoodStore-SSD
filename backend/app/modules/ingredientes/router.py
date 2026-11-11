@@ -4,6 +4,7 @@ from sqlmodel import Session
 
 from app.core.deps import lector_privilegiado, require_role
 from app.core.database import get_session
+from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
 from app.modules.ingredientes.schemas import (
     IngredienteCreate,
@@ -32,15 +33,14 @@ def create_ingrediente(data: IngredienteCreate, svc: IngredienteService = Depend
 @router.get("/", response_model=PaginatedResponse[IngredienteReadFull], summary="Listar ingredientes (paginado y filtrado)")
 def list_ingredientes(
     ver_eliminados: VeEliminados,
-    page: Annotated[int, Query(ge=1, description="Número de página")] = 1,
-    size: Annotated[int, Query(ge=1, le=100, description="Cantidad de items por página")] = 20,
+    params: PageQuery,
     estado: Annotated[EstadoFiltro, Query(description="Filtrar por estado (activo/eliminado)")] = EstadoFiltro.ACTIVO,
     is_alergeno: Annotated[Optional[bool], Query(description="Filtrar por alérgeno (true/false)")] = None,
     svc: IngredienteService = Depends(get_ingrediente_service)
 ):
     # ¡Unificamos dos endpoints en uno solo!
     return svc.get_all_ingredientes(
-        page=page, size=size, is_alergeno=is_alergeno, estado=estado, ver_eliminados=ver_eliminados
+        params=params, is_alergeno=is_alergeno, estado=estado, ver_eliminados=ver_eliminados
     )
 
 

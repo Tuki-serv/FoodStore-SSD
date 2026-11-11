@@ -9,7 +9,9 @@ from app.core.database import get_session
 from app.core.deps import get_current_active_user, get_current_roles, require_role
 from app.modules.usuarios.schemas import UserPublic
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork, get_uow
-from app.modules.pedidos.schemas import PedidoCambioEstado, PedidoCreate, PedidoReadFull, PedidoList, PedidoListAdmin
+from app.core.pagination import PageQuery
+from app.core.schemas import PaginatedResponse
+from app.modules.pedidos.schemas import FiltrosPedidos, PedidoCambioEstado, PedidoCancelacion, PedidoCreate, PedidoDetalle, PedidoResumen
 from app.modules.historiales_estado_pedido.schemas import HistorialEstadoPedidoRead
 from app.modules.pedidos.service import PedidoService, construir_pedido_service
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
@@ -29,76 +31,52 @@ def get_pedido_service(session: Session = Depends(get_session)) -> PedidoService
 # ══════════════════════════════════════════════════════
 
 #TODO sacando websocket de router para no romper la separación de responsabilidades
-@router.post("/", response_model=PedidoReadFull, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(["CLIENT"]))])
+@router.post("/", response_model=PedidoDetalle, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(["CLIENT"]))])
 def crear_pedido(
     data: PedidoCreate,
     current_user: CurrentUser,
     service: PedidoService = Depends(get_pedido_service),
-) -> PedidoReadFull:
+) -> PedidoDetalle:
     resultado = service.crear_pedido(data, current_user.id)
     return resultado
-
-
-@router.get("/mis-pedidos", response_model=PedidoList, dependencies=[Depends(require_role(["CLIENT"]))])
-def obtener_mis_pedidos(
-    current_user: CurrentUser,
-    offset: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    service: PedidoService = Depends(get_pedido_service),
-) -> PedidoList:
-    return service.obtener_pedidos_por_usuario(current_user.id, offset, limit)
-
-
-@router.get("/mis-pedidos/{pedido_id}", response_model=PedidoReadFull, dependencies=[Depends(require_role(["CLIENT"]))])
-def obtener_mi_pedido(
-    pedido_id: int,
-    current_user: CurrentUser,
-    service: PedidoService = Depends(get_pedido_service),
-) -> PedidoReadFull:
-    return service.obtener_pedido_propio(pedido_id, current_user.id)
-
-
-@router.patch("/mis-pedidos/{pedido_id}/cancelar", response_model=PedidoReadFull, dependencies=[Depends(require_role(["CLIENT"]))])
-def cancelar_mi_pedido(
-    pedido_id: int,
-    data: PedidoCambioEstado,
-    current_user: CurrentUser,
-    roles: CurrentRoles,
-    service: PedidoService = Depends(get_pedido_service),
-) -> PedidoReadFull:
-    return service.cancelar_pedido_propio(pedido_id, current_user.id, roles, data)
 
 
 # ══════════════════════════════════════════════════════
 # ADMIN / PEDIDOS — visibilidad y gestión total
 # ══════════════════════════════════════════════════════
 
-@router.get("/", response_model=PedidoListAdmin, dependencies=[Depends(require_role(["ADMIN", "PEDIDOS"]))])
-def obtener_todos_los_pedidos(
-    offset: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+@router.get("/", response_model=PaginatedResponse[PedidoResumen], dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
+def listar_pedidos(
+    current_user: CurrentUser,
+    roles: CurrentRoles,
+    params: PageQuery,
+    filtros: Annotated[FiltrosPedidos, Depends()],
     service: PedidoService = Depends(get_pedido_service),
-) -> PedidoListAdmin:
-    return service.obtener_todos_los_pedidos(offset, limit)
+) -> PaginatedResponse[PedidoResumen]:
+    return service.listar_pedidos(current_user.id, roles, filtros, params)
 
 
-@router.get("/{pedido_id}", response_model=PedidoReadFull, dependencies=[Depends(require_role(["ADMIN", "PEDIDOS"]))])
+@router.get("/{pedido_id}", response_model=PedidoDetalle, dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
 def obtener_pedido(
     pedido_id: int,
+    current_user: CurrentUser,
+    roles: CurrentRoles,
     service: PedidoService = Depends(get_pedido_service),
-) -> PedidoReadFull:
-    return service.obtener_pedido_por_id(pedido_id)
+) -> PedidoDetalle:
+    return service.obtener_detalle(pedido_id, current_user.id, roles)
 
 
-@router.get("/{pedido_id}/historial", response_model=list[HistorialEstadoPedidoRead], dependencies=[Depends(require_role(["ADMIN", "PEDIDOS"]))])
+@router.get("/{pedido_id}/historial", response_model=list[HistorialEstadoPedidoRead], dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
 def obtener_historial_pedido(
     pedido_id: int,
+    current_user: CurrentUser,
+    roles: CurrentRoles,
     service: PedidoService = Depends(get_pedido_service),
 ) -> list[HistorialEstadoPedidoRead]:
-    return service.obtener_historial_pedido(pedido_id)
+    return service.obtener_historial(pedido_id, current_user.id, roles)
 
 
-@router.patch("/{pedido_id}/estado", response_model=PedidoReadFull, dependencies=[Depends(require_role(["ADMIN", "PEDIDOS", "COCINA"]))])
+@router.patch("/{pedido_id}/estado", response_model=PedidoDetalle, dependencies=[Depends(require_role(["ADMIN", "PEDIDOS", "COCINA"]))])
 async def cambiar_estado_pedido(
     pedido_id: int,
     data: PedidoCambioEstado,
@@ -106,7 +84,7 @@ async def cambiar_estado_pedido(
     roles: CurrentRoles,
     ws_manager: ConnectionManager = Depends(get_connection_manager),
     service: PedidoService = Depends(get_pedido_service),
-) -> PedidoReadFull:
+) -> PedidoDetalle:
     resultado = await service.cambiar_estado_pedido(
         pedido_id, 
         data, 
@@ -118,25 +96,27 @@ async def cambiar_estado_pedido(
     return resultado
 
 
-@router.delete("/{pedido_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(["ADMIN"]))])
-def eliminar_pedido(
+@router.delete("/{pedido_id}", response_model=PedidoDetalle, dependencies=[Depends(require_role(["CLIENT"]))])
+def cancelar_pedido(
     pedido_id: int,
+    current_user: CurrentUser,
+    roles: CurrentRoles,
+    data: PedidoCancelacion | None = None,
     service: PedidoService = Depends(get_pedido_service),
-) -> Response:
-    service.eliminar_pedido(pedido_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+) -> PedidoDetalle:
+    """El cliente cancela su propio pedido. Body opcional `{motivo}`; la baja nunca borra el pedido."""
+    return service.cancelar_pedido_propio(pedido_id, current_user.id, roles, data.motivo if data else None)
 
 
 
 # ─── WebSocket para tiempo real ─────────────────────────────────────────────
 
-@router.get("/cocina/pedidos", response_model=PedidoListAdmin, dependencies=[Depends(require_role(["COCINA", "ADMIN", "PEDIDOS"]))])
+@router.get("/cocina/pedidos", response_model=PaginatedResponse[PedidoResumen], dependencies=[Depends(require_role(["COCINA", "ADMIN", "PEDIDOS"]))])
 def obtener_pedidos_cocina(
-    offset: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    params: PageQuery,
     service: PedidoService = Depends(get_pedido_service),
-) -> PedidoListAdmin:
-    return service.obtener_pedidos_cocina(offset, limit)
+) -> PaginatedResponse[PedidoResumen]:
+    return service.listar_cocina(params)
 
 
 @router.websocket("/cocina/ws")

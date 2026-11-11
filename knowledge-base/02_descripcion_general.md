@@ -87,17 +87,17 @@ Resumen por recurso (rutas reales del backend salvo indicación; contraste con s
 | Admin usuarios | `POST /admin/usuarios/createUser`, `GET /admin/usuarios/` (paginado, filtro `rol_codigo`), `PATCH /{id}`, `DELETE /{id}` (soft) | `ADMIN` |
 | Direcciones | `POST/GET /direcciones/`, `GET/PATCH/DELETE /direcciones/{id}`, `PATCH /{id}/principal` | Autenticado, solo propias |
 | Categorías | `POST`, `PATCH/{id}`, `DELETE/{id}` (ADMIN); `GET /`, `GET /arbol`, `GET /{id}` (público) | Ver 03 |
-| Productos | `GET` (público), `GET /{id}`, `POST/PUT/DELETE` (ADMIN), `PATCH /{id}/disponibilidad {disponible: bool}` y `PATCH /{id}/stock {stock_cantidad: int>=0}` (ADMIN/STOCK), `PATCH /{id}/imagenes`, `POST /{id}/ingredientes` | Lectura pública solo de disponibles y no eliminados (ADMIN/STOCK ven no disponibles; solo ADMIN eliminados) |
+| Productos | `GET` (público), `GET /{id}`, `POST/PUT/DELETE` (ADMIN), `PATCH /{id}/disponibilidad {disponible: bool}` y `PATCH /{id}/stock {stock_cantidad: int>=0}` (ADMIN/STOCK), `PATCH /{id}/imagenes`, `POST /{id}/ingredientes` (ADMIN), `GET /{id}/ingredientes` (público, con la visibilidad del producto; sin paginar, ordenado por nombre) y `DELETE /{id}/ingredientes/{ingrediente_id}` (ADMIN, 204) | Lectura pública solo de disponibles y no eliminados (ADMIN/STOCK ven no disponibles; solo ADMIN eliminados) |
 | Ingredientes | CRUD `/ingredientes` | Escritura `ADMIN`; lectura pública |
 | Unidades de medida | CRUD `/unidades-medida` | Escritura `ADMIN` |
 | Uploads | `POST /uploads/imagen`, `DELETE /uploads/imagen/{public_id}` | `ADMIN` |
-| Pedidos | `POST /pedidos/`, `GET /pedidos/mis-pedidos[/{id}]`, `PATCH /pedidos/mis-pedidos/{id}/cancelar`, `GET /pedidos/`, `GET /pedidos/{id}`, `GET /pedidos/{id}/historial`, `PATCH /pedidos/{id}/estado`, `DELETE /pedidos/{id}`, `GET /pedidos/cocina/pedidos`, WS | Ver 03 y 07 |
+| Pedidos (C-11) | `POST /pedidos/`, `GET /pedidos/` (paginado; filtros `estado`, `desde`, `hasta` en UTC; CLIENT ve solo los propios, ADMIN/PEDIDOS todos), `GET /pedidos/{id}` y `GET /pedidos/{id}/historial` (dueño, ADMIN, PEDIDOS; otro cliente 403), `PATCH /pedidos/{id}/estado {nuevo_estado, motivo?}`, `DELETE /pedidos/{id}` (CLIENT cancela el propio; body **opcional** `{motivo}`, sin motivo se registra «Cancelado por el cliente»; responde 200 con el pedido), `GET /pedidos/cocina/pedidos` (paginado), WS | Ver 03 y 07. Axios: para enviar body en `DELETE` usar `axios.delete(url, { data: { motivo } })` (C-13b) |
 | Pagos | `POST /pagos/crear`, `POST /pagos/webhook`, `GET /pagos/{pedido_id}`, `GET /pagos/redirect/{pedido_id}/{status}` | **Sin autenticación en** |
 | Estadísticas | `GET /estadisticas/ventas`, `/productos-top`, `/pedidos-por-estado`, `/ingresos`, `/resumen` | `ADMIN` |
 
 Convenciones transversales: soft delete (los GET filtran `deleted_at IS NULL`), esquemas separados Create/Update/Read (nunca exponer el modelo SQLModel), `response_model` siempre.
 
-> **Deuda técnica:** la tabla de endpoints de abajo describe rutas del código actual; el contrato objetivo (paginación `page/size`, `PATCH /{id}/estado {nuevo_estado}`, pagos autenticados, `GET /auth/me`) está en [09 DT-17, DT-18, DT-05](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada).
+> **Contrato de pedidos y paginación (C-11):** todo listado de colección recibe `page` (>=1, defecto 1) y `size` (1..100, defecto 20) y responde `{items,total,page,size,pages}` (catálogo, usuarios, direcciones, pedidos y cocina). Los errores salen siempre como `{detail, code, field}`; los códigos de negocio son `INVALID_TRANSITION`, `INSUFFICIENT_STOCK`, `DUPLICATE_VALUE`, `CATEGORY_HAS_PRODUCTS`, `CATEGORY_HAS_CHILDREN`, `RATE_LIMIT_EXCEEDED`, `INTERNAL_ERROR` y `VALIDATION_ERROR`; el resto usa `HTTP_<status>`. El 429 del rate limit usa el mismo formato (el tiempo de espera va en el header `Retry-After`). Pendiente de otros changes: pagos autenticados y `GET /auth/me` ([09 DT-05](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada)).
 
 ## Entorno y arranque (código actual)
 

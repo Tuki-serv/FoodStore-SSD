@@ -45,7 +45,7 @@ C-01 ✓ baseline-backend
        └── C-07 ✓ datos-seed-y-catalogos           │
              └── C-09 ✓ pedidos-fsm-en-camino  (+C-08)
                    ├── C-10 ✓ pedidos-stock-descuento
-                   ├── C-11 pedidos-contrato-api-y-categorias
+                   ├── C-11 ✓ pedidos-contrato-api-y-categorias
                    └── C-12 pagos-checkout-api-cardpayment (+C-05)
 
 FASE 1 (frontend sobre base corregida)
@@ -92,7 +92,7 @@ GATE 2: C-07 ✓ + C-08 ✓
 
 GATE 3: C-09 ✓                                          ← FORK
   → C-10 ✓ pedidos-stock-descuento              [Agente A]
-  → C-11 pedidos-contrato-api-y-categorias    [Agente C]
+  → C-11 ✓ pedidos-contrato-api-y-categorias    [Agente C]
   → C-12 pagos-checkout-api-cardpayment       [Agente B — si C-05 ✓]
 
 GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
@@ -131,7 +131,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 3 | C-02 ✓ | C-05 | C-07 ✓ |
 | 4 | C-08 ✓ | — | C-13a |
 | 5 | C-09 ✓ | — | — |
-| 6 | C-10 ✓ | C-12 | C-11 |
+| 6 | C-10 ✓ | C-12 | C-11 ✓ |
 | 7 | C-25a | — | C-13b |
 | 8 | C-17a | C-15 | C-14 + C-16 |
 | 9 | C-17b | C-22 | C-18 |
@@ -328,7 +328,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/10_preguntas_abiertas.md` (PA-03, PA-08, PA-12)
 
 ### [C-11] `pedidos-contrato-api-y-categorias`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-11-c-11-pedidos-contrato-api-y-categorias/`)
 - **Scope**:
   - Cubre DT-17, DT-18, DT-19.
   - Contrato de pedidos: `PATCH /pedidos/{id}/estado` body `{nuevo_estado, motivo}`; `GET /pedidos/{id}` propietario/roles; `DELETE /pedidos/{id}` cancela el propio pedido (no soft delete solo-ADMIN); retirar `/mis-pedidos/...` y `estado_hacia` (o alias deprecado).
@@ -399,6 +399,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Tests: interceptor (refresh + reintento, un solo refresh concurrente), guards de ruta.
   - **Decisión a tomar en el propose**: la spec `[INT]` pide que `authStore` persista solo `accessToken`, mientras que C-02 (D3/PA-04) dejó escrito que el access vive solo en memoria. Hay que elegir y, si cambia, actualizar la KB (`knowledge-base/05` RN-AU-10, `08` §Seguridad, `10` IN-07).
   - Punto de partida (C-08): los roles para la UI se toman de `GET /auth/me` (el claim `roles` del access es informativo y no autoriza); las lecturas públicas (`GET /productos`, `/categorias`, `/ingredientes`, `/unidades-medida`) con un access inválido responden 401, así que el interceptor renueva y reintenta.
+  - Punto de partida (C-11): contrato de pedidos: `GET /pedidos` (scoped), `GET /pedidos/{id}`, `PATCH /pedidos/{id}/estado` con `{nuevo_estado, motivo}`, `DELETE /pedidos/{id}` con body OPCIONAL `{motivo}` (por defecto «Cancelado por el cliente»); paginación `{items,total,page,size,pages}`; errores `{detail, code, field}` con códigos de negocio.
 - **Dependencias**: `C-13a, C-02, C-11`
 - **Governance**: ALTO
 - **UI**: sin mockup propio (usa el shell aprobado de C-13a).
@@ -475,6 +476,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Imágenes y unidades de medida (US-013, US-014) quedan en C-28.
   - Tests: permisos por rol en UI, CRUD de productos, actualización de stock/disponibilidad.
   - Punto de partida (C-08): contratos de inventario: `PATCH /productos/{id}/disponibilidad` con body `{"disponible": bool}` (idempotente) y `PATCH /productos/{id}/stock` con `{"stock_cantidad": int>=0}` (absoluto), ambos ADMIN/STOCK; STOCK ve productos no disponibles pero no eliminados.
+  - Bug conocido (C-11): `POST /productos/` con `ingredientes` inline responde 500 (`ProductoService.create` no copia `cantidad` ni `unidad_medida_id` a `ProductoIngrediente`); `POST /productos/{id}/ingredientes` sí funciona.
 - **Dependencias**: `C-17a, C-08`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` pantallas de administración de productos y stock.
@@ -551,6 +553,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Confirmación manual PENDIENTE→CONFIRMADO visible solo para pedidos `EFECTIVO`/`TRANSFERENCIA` (DD-22), con el error de «sin stock» si el backend la rechaza (DD-20).
   - Acciones visibles según FSM, rol y forma de pago.
   - Tests: botones según estado/rol/forma de pago, historial.
+  - Punto de partida (C-11): contrato de pedidos: `GET /pedidos` (scoped), `GET /pedidos/{id}`, `PATCH /pedidos/{id}/estado` con `{nuevo_estado, motivo}`, `DELETE /pedidos/{id}` con body OPCIONAL `{motivo}` (por defecto «Cancelado por el cliente»); paginación `{items,total,page,size,pages}`; errores `{detail, code, field}` con códigos de negocio.
 - **Dependencias**: `C-13b, C-09, C-11`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` tablero de gestión de pedidos.
@@ -594,6 +597,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Renombrar `direcciones_entrega` → `direcciones`, `admin`, `core/unit_of_work.py` → `core/uow.py` y el resto de los módulos a la estructura objetivo de la spec (`knowledge-base/08` §Estructura).
   - Cobertura pytest > 60% (auth, pedidos, pagos, categorías, direcciones, ingredientes, productos, estadísticas); prueba end-to-end del flujo compra→pago→entrega a nivel API.
   - Es solo backend: puede correr en paralelo con el frontend; se cierra antes de `C-25b`.
+  - Punto de partida (C-11): `pedidos/repository.py` importa `FiltrosPedidos` desde `pedidos/schemas.py`; moverlo a un lugar neutro (la capa de repositorio no debe importar de schemas).
 - **Dependencias**: `C-01 a C-12`
 - **Governance**: MEDIO
 - **Leer antes**:
@@ -677,8 +681,8 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 7** (C-01, C-02, C-06, C-07, C-08, C-09, C-10). **Pendientes obligatorios: 21** (5 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 8** (C-01, C-02, C-06, C-07, C-08, C-09, C-10, C-11). **Pendientes obligatorios: 20** (4 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-11 (camino crítico, desbloqueado por C-09 ✓ y C-10 ✓), en paralelo con C-04, C-03 y C-13a; C-05 después de C-04; C-12 requiere además C-05.
+**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-13a (`fe-foundation-scaffold`) y luego C-13b (`fe-foundation-auth-data`, ya desbloqueado en backend: requiere C-13a, C-02 ✓ y C-11 ✓). Fase 0 pendiente: C-03, C-04 → C-05 → C-12.

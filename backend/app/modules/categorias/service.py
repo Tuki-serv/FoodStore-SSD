@@ -4,6 +4,9 @@ from sqlmodel import Session
 
 from app.core.cloudinary.service import eliminar_imagen
 from app.core.enums import EstadoFiltro, restringir_estado
+from app.core.errors import AppError, ErrorCode
+from app.core.pagination import PageParams
+from app.core.schemas import PaginatedResponse
 from app.core.service import base_service
 from app.modules.categorias.models import Categoria
 from app.modules.categorias.schemas import (
@@ -23,12 +26,6 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
 
 
     # ── Helpers Privados ─────────────────────────────────
-    def _validar_nombre_unico(self, name: str, exclude_id: Optional[int] = None) -> None:
-        existente = self.repo.get_by_name(name, include_deleted=True)
-        if existente and existente.id != exclude_id:
-            raise HTTPException(status_code=400, detail=f"El nombre '{name}' ya está en uso por otra categoría")
-
-
     def _validar_jerarquia_padre(self, categoria_id: int, parent_id: Optional[int]) -> None:
         current_parent_id = parent_id
         while current_parent_id is not None:
@@ -85,31 +82,20 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
     #         total = self.repo.count_filtered(state=estado, is_main=is_main, parent_id=parent_id)
     #         return {"data": [self._to_read_full(i) for i in items], "total": total}
 
-    def get_all_categorias(self, page: int = 1, size: int = 20, is_main: Optional[bool] = None, parent_id: Optional[int] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool):
+    def get_all_categorias(self, params: PageParams, is_main: Optional[bool] = None, parent_id: Optional[int] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO, *, ver_eliminados: bool):
         estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
         if estado_efectivo is None:
-            return self._pagina_vacia(page, size)
+            return PaginatedResponse[CategoriaReadFull].vacia(params)
         estado = estado_efectivo
 
         with self.uow:
             if parent_id is not None:
                 self._get_or_404(parent_id, allow_deleted=True)
                 
-            offset = (page - 1) * size
-            limit = size
-
-            items = self.repo.get_all_filtered(state=estado, is_main=is_main, parent_id=parent_id, offset=offset, limit=limit)
+            items = self.repo.get_all_filtered(state=estado, is_main=is_main, parent_id=parent_id, offset=params.offset, limit=params.size)
             total = self.repo.count_filtered(state=estado, is_main=is_main, parent_id=parent_id)
-            
-            pages = (total + size - 1) // size if total > 0 else 0
-            
-            return {
-                "items": [self._to_read_full(i) for i in items],
-                "total": total,
-                "page": page,
-                "size": size,
-                "pages": pages
-            }
+
+            return PaginatedResponse[CategoriaReadFull].desde([self._to_read_full(i) for i in items], total, params)
 
 
     def get_by_id_full(
@@ -137,7 +123,7 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
 
     def create(self, item_in: CategoriaCreate) -> CategoriaRead:
         with self.uow:
-            self._validar_nombre_unico(item_in.nombre)
+            self._validar_unicos(item_in.model_dump())
             if item_in.parent_id is not None:
                 self._get_or_404(item_in.parent_id)
 
@@ -151,8 +137,7 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
             public_id_viejo = categoria_db.imagen_public_id
             patch = item_in.model_dump(exclude_unset=True)
 
-            if "nombre" in patch and patch["nombre"] != categoria_db.nombre:
-                self._validar_nombre_unico(patch["nombre"], exclude_id=item_id)
+            self._validar_unicos(patch, excluir_id=item_id)
 
             if "parent_id" in patch:
                 if patch["parent_id"] == item_id:
@@ -181,10 +166,10 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
             categoria = self._get_or_404(item_id)
             public_id_imagen = categoria.imagen_public_id
 
-            hijas = self.repo.get_all_filtered(parent_id=item_id, limit=1000)
-            for hija in hijas:
-                hija.parent_id = categoria.parent_id
-                self.repo.update(hija)
+            if self.repo.tiene_productos_activos(item_id):
+                raise AppError(409, ErrorCode.CATEGORY_HAS_PRODUCTS, "La categoría tiene productos activos asociados")
+            if self.repo.tiene_hijas_activas(item_id):
+                raise AppError(409, ErrorCode.CATEGORY_HAS_CHILDREN, "La categoría tiene subcategorías activas")
 
             self.repo.delete(categoria)
         # Soft delete ya commiteado; eliminamos la imagen en Cloudinary

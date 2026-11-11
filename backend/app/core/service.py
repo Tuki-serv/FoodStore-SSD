@@ -1,10 +1,14 @@
-from typing import Generic, TypeVar, Type
+from collections.abc import Mapping
+from typing import Any, Generic, TypeVar, Type
 from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlmodel import SQLModel, Session
 
 from app.core.unit_of_work import UnitOfWork
+from app.core.errors import AppError, ErrorCode
+from app.core.pagination import PageParams
 from app.core.repository import BaseRepository
+from app.core.schemas import PaginatedResponse
 
 from datetime import datetime, timezone
 
@@ -44,29 +48,19 @@ class base_service(Generic[ModelType, CreateSchemaType, UpdateSchemaType, UoWTyp
     #         total = self.repo.count_model()
     #         return {"data": items, "total": total}
 
-    def get_all(self, page: int = 1, size: int = 20):
+    def get_all(self, params: PageParams) -> PaginatedResponse:
         with self.uow:
-            offset = (page - 1) * size
-            limit = size
+            items = self.repo.get_all_by_state(offset=params.offset, limit=params.size)
+            total = self.repo.count_model()
+            return PaginatedResponse.desde(items, total, params)
 
-            items = self.repo.get_all_by_state(offset=offset, limit= limit)
-            total  =self.repo.count_model()
 
-            pages = (total + size - 1) // size if total > 0 else 0
-
-            return {
-                "items": items,
-                "total": total,
-                "page": page,
-                "size": size,
-                "pages": pages
-            }
-        
-
-    @staticmethod
-    def _pagina_vacia(page: int, size: int) -> dict:
-        """Respuesta paginada sin resultados (p. ej. un filtro que la visibilidad del lector deja vacío)."""
-        return {"items": [], "total": 0, "page": page, "size": size, "pages": 0}
+    def _validar_unicos(self, datos: Mapping[str, Any], excluir_id: int | None = None) -> None:
+        """Recorre `model._unique_fields`: 409 `DUPLICATE_VALUE` (con `field`) si otro registro activo ya tiene el valor."""
+        for campo in getattr(self.model, "_unique_fields", []):
+            valor = datos.get(campo)
+            if valor is not None and self.repo.existe_activo(campo, valor, excluir_id):
+                raise AppError(409, ErrorCode.DUPLICATE_VALUE, f"El valor '{valor}' de '{campo}' ya está en uso", field=campo)
 
 
     def _get_or_404(self, item_id, allow_deleted: bool = False) -> ModelType:

@@ -106,3 +106,35 @@ class TestProductoCRUD:
 
         get_res = client.get(f"/api/v1/productos/{prod_id}")
         assert get_res.status_code == 404
+
+
+class TestProductoUnicidadEntreActivos:
+    """El nombre de producto es único solo entre activos; el duplicado responde 409 `DUPLICATE_VALUE`."""
+
+    @staticmethod
+    def _crear(client: TestClient, headers: dict, nombre: str):
+        categoria = client.get("/api/v1/categorias/").json()["items"]
+        if not categoria:
+            categoria = [client.post(
+                "/api/v1/categorias/", json={"nombre": "Cat Unicidad", "imagen_url": "http://img.com"}, headers=headers
+            ).json()]
+        return client.post(
+            "/api/v1/productos/",
+            json={"nombre": nombre, "precio_base": "100.00", "stock_cantidad": 1, "categoria_ids": [categoria[0]["id"]]},
+            headers=headers,
+        )
+
+    def test_nombre_de_un_producto_activo_responde_409_con_codigo_y_campo(self, client: TestClient, admin_auth_headers: dict):
+        assert self._crear(client, admin_auth_headers, "Pizza").status_code == 201
+
+        response = self._crear(client, admin_auth_headers, "Pizza")
+
+        assert response.status_code == 409
+        assert response.json()["code"] == "DUPLICATE_VALUE"
+        assert response.json()["field"] == "nombre"
+
+    def test_nombre_de_un_producto_eliminado_se_puede_reutilizar(self, client: TestClient, admin_auth_headers: dict):
+        primero = self._crear(client, admin_auth_headers, "Empanada")
+        assert client.delete(f"/api/v1/productos/{primero.json()['id']}", headers=admin_auth_headers).status_code == 204
+
+        assert self._crear(client, admin_auth_headers, "Empanada").status_code == 201

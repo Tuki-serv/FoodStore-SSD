@@ -98,7 +98,7 @@ def test_recorrido_completo_de_un_pedido_deja_cinco_filas_encadenadas(client: Te
     assert creado.status_code == 201, creado.text
     pedido_id = creado.json()["id"]
     for destino in ("CONFIRMADO", "EN_PREP", "EN_CAMINO", "ENTREGADO"):
-        r = client.patch(f"/api/v1/pedidos/{pedido_id}/estado", json={"estado_hacia": destino}, headers=h_gestor)
+        r = client.patch(f"/api/v1/pedidos/{pedido_id}/estado", json={"nuevo_estado": destino}, headers=h_gestor)
         assert r.status_code == 200, (destino, r.text)
 
     historial = client.get(f"/api/v1/pedidos/{pedido_id}/historial", headers=h_gestor).json()

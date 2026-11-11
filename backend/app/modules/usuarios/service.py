@@ -6,6 +6,8 @@ from app.modules.usuarios.schemas import UserCreate, UserUpdateAdmin, UserUpdate
 from app.modules.usuarios.models import Rol, Usuario
 from app.core.security import hash_password
 from app.core.enums import EstadoFiltro
+from app.core.pagination import PageParams
+from app.core.schemas import PaginatedResponse
 
 class UsuarioService:
     def __init__(self, uow: UsuarioUnitOfWork):
@@ -131,14 +133,11 @@ class UsuarioService:
     #         "total": total
     #     }
 
-    def get_all_users(self, page: int = 1, size: int = 20, rol_codigo: Optional[str] = None):
+    def get_all_users(self, params: PageParams, rol_codigo: Optional[str] = None):
         with self.uow:
-            offset = (page - 1) * size
-            limit = size
-
             usuarios_paginados = self.uow.usuarios.get_paged_users(
-                offset=offset,
-                limit=limit,
+                offset=params.offset,
+                limit=params.size,
                 rol_codigo=rol_codigo,
                 state=EstadoFiltro.ACTIVO
             )
@@ -148,15 +147,7 @@ class UsuarioService:
                 state=EstadoFiltro.ACTIVO
             )
 
-            pages  = (total + size - 1) // size if total > 0 else 0
-
-            return {
-                "items": usuarios_paginados,
-                "total": total,
-                "page": page,
-                "size": size,
-                "pages": pages
-            }
+            return PaginatedResponse.desde(usuarios_paginados, total, params)
         
 
     def desactivar_usuario(self, user_id: int):

@@ -27,9 +27,13 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
+from fastapi.responses import JSONResponse
+
 from app.core.config import settings
+from app.core.errors import ErrorCode
 from app.core.logger import get_logger
 from app.core.rate_limit.rate_limiter import RateLimiter
+from app.utils.errores import cuerpo_error
 
 logger = get_logger("app.middleware.rate_limit")
 
@@ -148,17 +152,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Para default (60/min = 1 tok/seg) → 1 segundo.
             seconds_until_next_token = int(1 / max(limiter.refill_rate, 0.001))
 
-            return Response(
-                content=(
-                    '{"error":{'
-                    '"code":"rate_limit_exceeded",'
-                    '"message":"Demasiadas peticiones. Intenta de nuevo más tarde.",'
-                    f'"retry_after_seconds":{seconds_until_next_token},'
-                    f'"retry_after":{seconds_until_next_token}'
-                    '}}'
-                ),
+            return JSONResponse(
                 status_code=429,
-                media_type="application/json",
+                content=cuerpo_error(
+                    "Demasiadas peticiones. Intentá de nuevo más tarde.",
+                    ErrorCode.RATE_LIMIT_EXCEEDED,
+                ),
                 headers={
                     # Estándar HTTP: segundos a esperar antes de reintentar.
                     "Retry-After": str(seconds_until_next_token),

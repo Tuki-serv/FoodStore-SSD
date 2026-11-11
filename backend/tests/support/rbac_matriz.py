@@ -16,6 +16,7 @@ ADMIN_STOCK = frozenset({"ADMIN", "STOCK"})
 ADMIN_PEDIDOS = frozenset({"ADMIN", "PEDIDOS"})
 ADMIN_PEDIDOS_COCINA = frozenset({"ADMIN", "PEDIDOS", "COCINA"})
 CLIENT = frozenset({"CLIENT"})
+CLIENT_ADMIN_PEDIDOS = frozenset({"CLIENT", "ADMIN", "PEDIDOS"})
 
 
 @dataclass(frozen=True)
@@ -69,7 +70,7 @@ FILAS: tuple[Fila, ...] = (
     Fila("GET", f"{P}/categorias/arbol", PUBLICO),
     Fila("GET", f"{P}/categorias/{{categoria_id}}", PUBLICO),
     Fila("PATCH", f"{P}/categorias/{{categoria_id}}", ADMIN, {}),
-    Fila("DELETE", f"{P}/categorias/{{categoria_id}}", ADMIN, dueno="C-11 (validación)"),
+    Fila("DELETE", f"{P}/categorias/{{categoria_id}}", ADMIN),
     # Productos (26-34)
     Fila("GET", f"{P}/productos/", PUBLICO),
     Fila("GET", f"{P}/productos/{{producto_id}}", PUBLICO),
@@ -79,6 +80,8 @@ FILAS: tuple[Fila, ...] = (
     Fila("DELETE", f"{P}/productos/{{producto_id}}", ADMIN),
     Fila("PATCH", f"{P}/productos/{{producto_id}}/imagenes", ADMIN, {}),
     Fila("POST", f"{P}/productos/{{producto_id}}/ingredientes", ADMIN, {}),
+    Fila("GET", f"{P}/productos/{{producto_id}}/ingredientes", PUBLICO),
+    Fila("DELETE", f"{P}/productos/{{producto_id}}/ingredientes/{{ingrediente_id}}", ADMIN),
     Fila("PATCH", f"{P}/productos/{{producto_id}}/stock", ADMIN_STOCK, {"stock_cantidad": 1}),
     # Ingredientes (35-39)
     Fila("POST", f"{P}/ingredientes/", ADMIN, {}),
@@ -97,20 +100,17 @@ FILAS: tuple[Fila, ...] = (
     Fila("DELETE", f"{P}/uploads/imagen/{{public_id:path}}", ADMIN),
     # Pedidos (47-56)
     Fila("POST", f"{P}/pedidos/", CLIENT, {}),
-    Fila("GET", f"{P}/pedidos/mis-pedidos", CLIENT, dueno="C-11 (contrato)"),
-    Fila("GET", f"{P}/pedidos/mis-pedidos/{{pedido_id}}", CLIENT, dueno="C-11 (contrato)"),
-    Fila("PATCH", f"{P}/pedidos/mis-pedidos/{{pedido_id}}/cancelar", CLIENT, {"estado_hacia": "CANCELADO", "motivo": "x"}),
-    Fila("GET", f"{P}/pedidos/", ADMIN_PEDIDOS, dueno="C-11 (paginación)"),
-    Fila("GET", f"{P}/pedidos/{{pedido_id}}", ADMIN_PEDIDOS, dueno="C-11 (propietario/ADMIN)"),
-    Fila("GET", f"{P}/pedidos/{{pedido_id}}/historial", ADMIN_PEDIDOS, dueno="C-11 (propietario/ADMIN)"),
+    Fila("GET", f"{P}/pedidos/", CLIENT_ADMIN_PEDIDOS),
+    Fila("GET", f"{P}/pedidos/{{pedido_id}}", CLIENT_ADMIN_PEDIDOS),
+    Fila("GET", f"{P}/pedidos/{{pedido_id}}/historial", CLIENT_ADMIN_PEDIDOS),
     Fila(
         "PATCH",
         f"{P}/pedidos/{{pedido_id}}/estado",
         ADMIN_PEDIDOS_COCINA,
-        {"estado_hacia": "CONFIRMADO"},
+        {"nuevo_estado": "CONFIRMADO"},
         dueno="C-26 (COCINA)",
     ),
-    Fila("DELETE", f"{P}/pedidos/{{pedido_id}}", ADMIN, dueno="C-11"),
+    Fila("DELETE", f"{P}/pedidos/{{pedido_id}}", CLIENT, {"motivo": "x"}),
     Fila("GET", f"{P}/pedidos/cocina/pedidos", ADMIN_PEDIDOS_COCINA, dueno="C-26"),
     # Estadísticas (59-63)
     Fila("GET", f"{P}/estadisticas/ventas", ADMIN),
