@@ -92,9 +92,9 @@ def test_subir_imagen_sin_cloudinary_responde_503_con_formato_uniforme(
 # ── MercadoPago ─────────────────────────────────────────────────────────────
 
 def test_crear_pago_sin_access_token_responde_503_nombrando_la_variable(
-    client: TestClient, pedido_db, mp_sdk: MagicMock
+    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock
 ) -> None:
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id})
+    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
 
     body = response.json()
     assert response.status_code == 503
@@ -105,12 +105,12 @@ def test_crear_pago_sin_access_token_responde_503_nombrando_la_variable(
 
 
 def test_crear_pago_con_token_pero_sin_notification_url_responde_503_nombrando_la_faltante(
-    client: TestClient, pedido_db, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
+    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "mp-token-falso")
     monkeypatch.setattr(settings, "BACKEND_PUBLIC_URL", "https://b.example")
 
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id})
+    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
 
     assert response.status_code == 503
     assert "MP_NOTIFICATION_URL" in response.json()["detail"]
@@ -119,26 +119,26 @@ def test_crear_pago_con_token_pero_sin_notification_url_responde_503_nombrando_l
 
 
 def test_crear_pago_con_token_pero_sin_backend_public_url_responde_503_nombrando_la_faltante(
-    client: TestClient, pedido_db, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
+    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "mp-token-falso")
     monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", "https://a.example/api/v1/pagos/webhook")
 
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id})
+    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
 
     assert response.status_code == 503
     assert "BACKEND_PUBLIC_URL" in response.json()["detail"]
 
 
 def test_crear_pago_con_todo_configurado_arma_notification_url_y_back_urls_con_los_valores_de_las_variables(
-    client: TestClient, pedido_db, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
+    client: TestClient, pedido_db, user_auth_headers: dict, mp_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "mp-token-falso")
     monkeypatch.setattr(settings, "MP_PUBLIC_KEY", "mp-public-falsa")
     monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", "https://a.example/api/v1/pagos/webhook")
     monkeypatch.setattr(settings, "BACKEND_PUBLIC_URL", "https://b.example")
 
-    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id})
+    response = client.post("/api/v1/pagos/crear", json={"pedido_id": pedido_db.id}, headers=user_auth_headers)
 
     assert response.status_code == 201
     mp_sdk.assert_called_once_with("mp-token-falso")

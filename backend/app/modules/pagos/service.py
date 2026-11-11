@@ -1,12 +1,15 @@
 import uuid
 import logging
 from datetime import datetime, timezone
+from collections.abc import Set as AbstractSet
 from typing import Optional
 from fastapi import HTTPException
 from sqlmodel import Session
 
 import mercadopago
 from app.core.config import settings
+from app.core.errors import AppError
+from app.core.permissions import puede_acceder_a_propio
 
 # Importaciones de los modelos y esquemas necesarios
 from app.modules.pedidos.models import Pedido
@@ -18,6 +21,7 @@ from app.modules.pedidos.service import construir_pedido_service
 logger = logging.getLogger(__name__)
 
 ESTADO_PAGO_A_DEVOLVER = "a_devolver"
+ROLES_PRIVILEGIADOS_PAGOS = frozenset({"ADMIN"})
 
 
 class PaymentService:
@@ -26,6 +30,17 @@ class PaymentService:
 
     def _get_mp_access_token(self) -> Optional[str]:
         return settings.MP_ACCESS_TOKEN
+
+    def _obtener_pedido_autorizado(
+        self, uow: PagoUnitOfWork, pedido_id: int, usuario_id: int, roles: AbstractSet[str]
+    ) -> Pedido:
+        """Pedido sobre el que el usuario puede operar pagos: 404 si no existe o está eliminado, 403 si no es suyo ni ADMIN."""
+        pedido = uow.pedidos.get_by_id(pedido_id)
+        if pedido is None or pedido.deleted_at is not None:
+            raise AppError(404, "HTTP_404", "Pedido no encontrado")
+        if not puede_acceder_a_propio(pedido.usuario_id, usuario_id, roles, ROLES_PRIVILEGIADOS_PAGOS):
+            raise AppError(403, "HTTP_403", "No tenés acceso a este pedido")
+        return pedido
 
     def _exigir_configuracion_mp(self) -> None:
         """503 (formato uniforme) si falta alguna variable necesaria para crear un pago; nombra las faltantes."""
@@ -95,10 +110,10 @@ class PaymentService:
             "external_reference": response.get("external_reference"),
         }
 
-    def crear_pago(self, pedido_id: int) -> PagoCrearResponse:
-        pedido = self._session.get(Pedido, pedido_id)
-        if not pedido:
-            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    def crear_pago(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str]) -> PagoCrearResponse:
+        with PagoUnitOfWork(self._session) as uow:
+            pedido = self._obtener_pedido_autorizado(uow, pedido_id, usuario_id, roles)
+            total = pedido.total
 
         self._exigir_configuracion_mp()
 
@@ -110,7 +125,7 @@ class PaymentService:
 
         try:
             mp_data = self._crear_preferencia_mp(
-                monto=pedido.total,
+                monto=total,
                 titulo=f"Pedido #{pedido_id} - FoodStore",
                 pedido_id=pedido_id,
                 back_urls=back_urls,
@@ -121,7 +136,7 @@ class PaymentService:
         with PagoUnitOfWork(self._session) as uow:
             pago = Pago(
                 pedido_id=pedido_id,
-                transaction_amount=pedido.total,
+                transaction_amount=total,
                 estado="pendiente",
                 mp_preference_id=mp_data["preference_id"],
                 mp_init_point=mp_data.get("init_point"),
@@ -223,8 +238,9 @@ class PaymentService:
             logger.exception("Error procesando webhook MP")
             return {"status": "error", "reason": str(e)}
 
-    def obtener_pago(self, pedido_id: int) -> PagoEstadoResponse:
+    def obtener_pago(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str]) -> PagoEstadoResponse:
         with PagoUnitOfWork(self._session) as uow:
+            self._obtener_pedido_autorizado(uow, pedido_id, usuario_id, roles)
             pago_local = uow.pagos.get_ultimo_by_pedido(pedido_id)
             return PagoEstadoResponse(
                 estado=pago_local.estado if pago_local else None,

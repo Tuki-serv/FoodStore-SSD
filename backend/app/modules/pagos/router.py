@@ -1,8 +1,11 @@
 import logging
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlmodel import Session
 
 from app.core.database import get_session
+from app.core.deps import get_current_active_user, get_current_roles
+from app.modules.usuarios.schemas import UserPublic
 from app.modules.pagos.schemas import CrearPagoRequest, PagoCrearResponse, PagoEstadoResponse
 from app.modules.pagos.service import PaymentService
 
@@ -15,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/pagos", tags=["pagos"])
 
+CurrentUser = Annotated[UserPublic, Depends(get_current_active_user)]
+CurrentRoles = Annotated[frozenset[str], Depends(get_current_roles)]
+
 def get_payment_service(session: Session = Depends(get_session)) -> PaymentService:
     return PaymentService(session)
 
@@ -23,13 +29,15 @@ def get_payment_service(session: Session = Depends(get_session)) -> PaymentServi
 @router.post("/crear", response_model=PagoCrearResponse, status_code=201)
 def crear_pago(
     data: CrearPagoRequest,
+    current_user: CurrentUser,
+    roles: CurrentRoles,
     svc: PaymentService = Depends(get_payment_service),
 ):
     """
     Rúbrica: Crea pago. En nuestra implementación (Checkout PRO),
     genera la preferencia y devuelve el init_point para redirigir.
     """
-    return svc.crear_pago(data.pedido_id)
+    return svc.crear_pago(data.pedido_id, current_user.id, roles)
 
 
 # 2. Endpoint para escuchar a MercadoPago (La Puerta Trasera)
@@ -82,12 +90,14 @@ async def webhook(
 @router.get("/{pedido_id}", response_model=PagoEstadoResponse)
 def consultar_pago(
     pedido_id: int,
+    current_user: CurrentUser,
+    roles: CurrentRoles,
     svc: PaymentService = Depends(get_payment_service),
 ):
     """
     Rúbrica: Consulta el pago asociado a un pedido.
     """
-    return svc.obtener_pago(pedido_id)
+    return svc.obtener_pago(pedido_id, current_user.id, roles)
 
 # 4. Endpoint para redirigir de vuelta al frontend (El Puente)
 @router.get("/redirect/{pedido_id}/{status}")

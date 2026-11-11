@@ -38,7 +38,7 @@ Las celdas marcadas `[DESC]` son divergencias informativas, no normativas. Leyen
 | Pedidos — cancelar | ✔ (PENDIENTE, CONFIRMADO, EN_PREP) | — | ✔ (`*` EN_PREP: ADMIN solo [DESC]) | ✔ propios en PENDIENTE/CONFIRMADO | — |
 | Pedidos — eliminar (soft) | ✔ | — | — | — | — |
 | Historial de pedido | ✔ | — | ✔ | `*` propio [INT]; en el código actual solo ADMIN/PEDIDOS | — |
-| Pagos — crear / consultar | — | — | — | C/R propios [INT]; *deuda DT-05: sin auth en el código actual* | — |
+| Pagos — crear / consultar | — | — | — | C/R propios [INT]; ADMIN también (DT-05 resuelta por C-04: 401 sin token, 403 si el pedido es ajeno, 404 si no existe) | — |
 | Pagos — webhook | — | — | — | — | Público (objetivo: validar firma; *deuda DT-06:* el código actual no la valida) |
 | Estadísticas / dashboard | ✔ | — | — | — | — |
 | Cocina: lista y WS | ✔ | — | ✔ | — | (rol `COCINA`) |
@@ -57,6 +57,6 @@ Según spec `[INT]`:
 - `POST /api/v1/pagos/webhook` (debe validar firma de MercadoPago)
 - `/docs`, `/redoc`, `/openapi.json`
 
-> **Deuda técnica (DT-05):** el código actual expone además como públicos (riesgo de seguridad; el objetivo es que `/pagos/crear` y `/pagos/{id}` exijan autenticación y propiedad): **`POST /pagos/crear`, `GET /pagos/{pedido_id}` y `GET /pagos/redirect/...` (sin ningún control de autenticación ni de propiedad del pedido)**. `GET /categorias/` (y `/arbol`, `/{id}`), `GET /ingredientes[/{id}]` y `GET /unidades-medida[/{id}]` son públicos de lectura según la matriz (no son deuda); C-08 solo oculta los eliminados al público.
+> **Deuda técnica (DT-05):** **DT-05 resuelta por C-04**: `POST /pagos/crear` y `GET /pagos/{pedido_id}` exigen autenticación y propiedad del pedido (propietario o `ADMIN`). Siguen públicos `POST /pagos/webhook` (C-05 agrega la firma) y `GET /pagos/redirect/...` (lo abre el navegador al volver de MercadoPago; C-12). `GET /categorias/` (y `/arbol`, `/{id}`), `GET /ingredientes[/{id}]` y `GET /unidades-medida[/{id}]` son públicos de lectura según la matriz (no son deuda); C-08 solo oculta los eliminados al público.
 
 Rutas excluidas del rate limiting en el código actual (extra no especificado): `/health`, `/`, `/favicon.ico`, `/openapi.json`, `/docs`, `/redoc`.

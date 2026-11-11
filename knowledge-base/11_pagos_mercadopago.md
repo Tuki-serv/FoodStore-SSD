@@ -44,9 +44,8 @@ Estados locales del pago: `pendiente`, `aprobado`, `rechazado` y `a_devolver` (a
 
 Tarjetas de prueba de `[INT]` (vencimiento indicado `11/25`, hoy vencido; usar fecha futura): Visa aprobada `4509 9535 6623 3704` (CVV 123); American Express aprobada `3714 496353 98431` (CVV 1234); Visa rechazada `4000 0000 0000 0002` (CVV 123). Credenciales `TEST-...` para sandbox; `APP_USR-...` producción. Para recibir webhooks en local se usa **ngrok** (`NGROK_URL`).
 
-## Riesgos conocidos (deuda técnica del código actual: DT-05, DT-06, DT-21)
+## Riesgos conocidos (deuda técnica del código actual: DT-06, DT-21; DT-05 resuelta por C-04)
 
-- Endpoints de pago sin autenticación: cualquiera puede crear preferencias para cualquier `pedido_id`.
 - Webhook sin verificación de firma/`x-signature`; devuelve 200 aun con error (MP no reintenta).
 - Si el pago se aprueba pero falla `cambiar_estado_pedido`, queda inconsistente (IN-22).
 - Comentario TODO en el código: "Rúbrica MP (Webhook que procesa topic=payment, avanza pedido y notifica WS)" — la notificación WS ya se dispara desde el router.
