@@ -2,21 +2,23 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from collections.abc import Set as AbstractSet
-from typing import Optional
+from typing import Callable, Optional
 from fastapi import HTTPException
 from sqlmodel import Session
 
 import mercadopago
 from app.core.config import settings
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 from app.core.permissions import puede_acceder_a_propio
 
 # Importaciones de los modelos y esquemas necesarios
 from app.modules.pedidos.models import Pedido
 from app.modules.pagos.models import Pago
-from app.modules.pagos.schemas import PagoCrearResponse, PagoEstadoResponse
+from app.modules.pagos.decision_webhook import Accion, decidir_transicion_pago
+from app.modules.pagos.firma_webhook import verificar_firma_webhook
+from app.modules.pagos.schemas import NotificacionWebhook, PagoCrearResponse, PagoEstadoResponse
 from app.modules.pagos.unit_of_work import PagoUnitOfWork
-from app.modules.pedidos.service import construir_pedido_service
+from app.modules.pedidos.service import PedidoService, construir_pedido_service
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +27,13 @@ ROLES_PRIVILEGIADOS_PAGOS = frozenset({"ADMIN"})
 
 
 class PaymentService:
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self,
+        session: Session,
+        construir_pedidos: Callable[[Session], PedidoService] = construir_pedido_service,
+    ) -> None:
         self._session = session
+        self._construir_pedidos = construir_pedidos
 
     def _get_mp_access_token(self) -> Optional[str]:
         return settings.MP_ACCESS_TOKEN
@@ -88,28 +95,6 @@ class PaymentService:
             "init_point": response.get("init_point"),
         }
 
-    def _consultar_pago_mp(self, payment_id: int) -> dict:
-        access_token = self._get_mp_access_token()
-        if not access_token:
-            raise RuntimeError("MP no configurado")
-
-        sdk = mercadopago.SDK(access_token)
-        result = sdk.payment().get(payment_id)
-
-        if result.get("status") != 200:
-            error_detail = result.get("response", {})
-            raise RuntimeError(
-                f"Error al consultar pago {payment_id}: {error_detail}")
-
-        response = result.get("response", {})
-        return {
-            "mp_payment_id": response.get("id"),
-            "mp_status": response.get("status"),
-            "mp_status_detail": response.get("status_detail"),
-            "mp_merchant_order_id": response.get("order", {}).get("id") if "order" in response else response.get("merchant_order_id"),
-            "external_reference": response.get("external_reference"),
-        }
-
     def crear_pago(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str]) -> PagoCrearResponse:
         with PagoUnitOfWork(self._session) as uow:
             pedido = self._obtener_pedido_autorizado(uow, pedido_id, usuario_id, roles)
@@ -151,92 +136,126 @@ class PaymentService:
                 public_key=settings.MP_PUBLIC_KEY,
             )
 
-    async def procesar_webhook(self, data: dict, query_params: Optional[dict] = None) -> dict:
-        if not data and query_params:
-            data = query_params
+    # ─── Webhook de MercadoPago (D4–D7): firma → tópico/id → consulta a MP → transacción única ────────────────
+    @staticmethod
+    def _resolver_tipo_e_id(notificacion: NotificacionWebhook) -> tuple[str | None, int | None]:
+        """Tópico (`type`/`topic`) e id del pago: `data.id` de la query manda; si falta, el del cuerpo; si difieren, 400."""
+        query, body = notificacion.query, notificacion.body
+        topic = query.get("type") or query.get("topic") or body.get("type") or body.get("topic")
+        data_body = body.get("data")
+        id_cuerpo = data_body.get("id") if isinstance(data_body, dict) else None
+        id_query = query.get("data.id")
+        if id_query and id_cuerpo and str(id_query) != str(id_cuerpo):
+            raise AppError(400, "HTTP_400", "El id del pago de la query y del cuerpo no coinciden")
+        crudo = id_query or id_cuerpo
+        if not crudo:
+            return topic, None
+        try:
+            return topic, int(crudo)
+        except (TypeError, ValueError):
+            raise AppError(400, "HTTP_400", "Id de pago inválido") from None
 
-        topic = data.get("type") or data.get("topic")
-        data_id = data.get("data_id") or (data.get("data") or {}).get("id")
-        payment_id = data.get("id")
+    @staticmethod
+    def _estado_local_para(estado_mp: str | None) -> str | None:
+        if estado_mp == "approved":
+            return "aprobado"
+        if estado_mp in ("rejected", "cancelled", "refunded", "charged_back"):
+            return "rechazado"
+        if estado_mp in ("pending", "in_process", "authorized"):
+            return "pendiente"
+        return None
 
-        if not data_id and query_params:
-            data_id = query_params.get("data.id") or query_params.get("id")
-        if not topic and query_params:
-            topic = query_params.get("topic") or query_params.get("type")
+    @staticmethod
+    def _resolver_pago_bloqueado(uow: PagoUnitOfWork, mp_payment_id: int, mp_info: dict) -> Pago | None:
+        """Pago local (con la fila bloqueada): por `mp_payment_id`, luego `external_reference`, luego `merchant_order_id`."""
+        pago = uow.pagos.get_by_mp_payment_id_for_update(mp_payment_id)
+        if pago is None and mp_info.get("external_reference"):
+            try:
+                pago = uow.pagos.get_ultimo_by_pedido_for_update(int(mp_info["external_reference"]))
+            except ValueError:
+                pago = None
+        if pago is None and mp_info.get("mp_merchant_order_id"):
+            pago = uow.pagos.get_by_mp_merchant_order_id_for_update(int(mp_info["mp_merchant_order_id"]))
+        return pago
 
-        pago_mp_id = data_id or payment_id
+    async def procesar_webhook(self, notificacion: NotificacionWebhook) -> dict:
+        secreto = settings.MP_WEBHOOK_SECRET
+        if not secreto:
+            raise AppError(503, "HTTP_503", "MercadoPago no configurado: falta MP_WEBHOOK_SECRET")
+        verificar_firma_webhook(
+            notificacion.x_signature, notificacion.x_request_id, notificacion.query.get("data.id"), secreto
+        )
 
-        if not pago_mp_id or topic != "payment":
+        topic, mp_payment_id = self._resolver_tipo_e_id(notificacion)
+        if topic != "payment" or mp_payment_id is None:
+            return {"status": "ignored"}
+        if not self._get_mp_access_token():
+            raise AppError(503, "HTTP_503", "MercadoPago no configurado: falta MP_ACCESS_TOKEN")
+
+        mp_info = self._consultar_pago_mp(mp_payment_id)
+        estado_mp = mp_info.get("mp_status")
+        nuevo_estado = self._estado_local_para(estado_mp)
+        if nuevo_estado is None:
             return {"status": "ignored"}
 
+        with PagoUnitOfWork(self._session) as uow:
+            pago = self._resolver_pago_bloqueado(uow, mp_payment_id, mp_info)
+            if pago is None:
+                return {"status": "ignored", "reason": "Pago not found"}
+            if (
+                decidir_transicion_pago(pago.estado, pago.mp_payment_id, mp_payment_id, nuevo_estado)
+                == Accion.YA_PROCESADO
+            ):
+                return {"status": "already_processed"}
+
+            pago.mp_payment_id = mp_payment_id
+            pago.mp_status = estado_mp
+            pago.mp_status_detail = mp_info.get("mp_status_detail")
+            pago.mp_merchant_order_id = mp_info.get("mp_merchant_order_id")
+            pago.estado = nuevo_estado
+            pago.updated_at = datetime.now(timezone.utc)
+            uow.pagos.update(pago)
+
+            if nuevo_estado != "aprobado":
+                return {"status": "processed", "pago_id": pago.id}
+            return self._confirmar_pedido_del_pago(uow, pago)
+
+    def _confirmar_pedido_del_pago(self, uow: PagoUnitOfWork, pago: Pago) -> dict:
+        """Confirmación automática (actor Sistema, misma transacción). Lo que el Sistema no puede confirmar queda `a_devolver`."""
         try:
-            mp_info = self._consultar_pago_mp(int(pago_mp_id))
-            estado_mp = mp_info.get("mp_status")
-            external_reference = mp_info.get("external_reference")
-
-            if estado_mp == "approved":
-                nuevo_estado = "aprobado"
-            elif estado_mp in ("rejected", "cancelled", "refunded", "charged_back"):
-                nuevo_estado = "rechazado"
-            elif estado_mp in ("pending", "in_process", "authorized"):
-                nuevo_estado = "pendiente"
-            else:
-                return {"status": "ignored"}
-
-            with PagoUnitOfWork(self._session) as uow:
-                pago = None
-                if external_reference:
-                    try:
-                        pedido_id = int(external_reference)
-                        pago = uow.pagos.get_ultimo_by_pedido(pedido_id)
-                    except ValueError:
-                        pass
-
-                if not pago:
-                    pago = uow.pagos.get_by_mp_payment_id(int(pago_mp_id))
-
-                if not pago and mp_info.get("mp_merchant_order_id"):
-                    pago = uow.pagos.get_by_mp_merchant_order_id(
-                        int(mp_info["mp_merchant_order_id"]))
-
-                if not pago:
-                    return {"status": "ignored", "reason": "Pago not found"}
-
-                if pago.estado != "pendiente":
-                    return {"status": "already_processed"}
-
-                pago.mp_payment_id = int(pago_mp_id)
-                pago.mp_status = estado_mp
-                pago.mp_status_detail = mp_info.get("mp_status_detail")
-                pago.mp_merchant_order_id = mp_info.get("mp_merchant_order_id")
-                pago.estado = nuevo_estado
-                pago.updated_at = datetime.now(timezone.utc)
-                uow.pagos.update(pago)
-
-                if nuevo_estado == "aprobado":
-
-                    # Confirmación automática: actor Sistema por la FSM (única vía a CONFIRMADO, spec order-lifecycle)
-                    try:
-                        resultado_pedido = construir_pedido_service(uow._session).confirmar_por_pago_aprobado(
-                            pago.pedido_id
-                        )
-                        if resultado_pedido.estado_codigo == "CANCELADO":  # pagado sin stock: queda para devolución manual
-                            pago.estado = ESTADO_PAGO_A_DEVOLVER
-                            uow.pagos.update(pago)
-
-                        # TODO: Rúbrica MP (Webhook que procesa topic=payment, avanza pedido y notifica WS).
-                        # Aquí también debería invocarse el broadcast_pedido() o send_to_room() de WSManager
-                        # para informar al frontend en tiempo real del pago exitoso.
-                        
-                        return {"status": "processed", "pago_id": pago.id, "pedido_actualizado": resultado_pedido}
-                    except Exception as e:
-                        logger.warning(
-                            f"Error al avanzar estado del pedido vía webhook: {e}")
-
+            pedido = self._construir_pedidos(self._session).confirmar_por_pago_aprobado(pago.pedido_id)
+        except AppError as exc:
+            if exc.code != ErrorCode.INVALID_TRANSITION:
+                raise
+            pago.estado = ESTADO_PAGO_A_DEVOLVER  # cobrado sin pedido que lo respalde (OQ-1)
+            uow.pagos.update(pago)
             return {"status": "processed", "pago_id": pago.id}
-        except Exception as e:
-            logger.exception("Error procesando webhook MP")
-            return {"status": "error", "reason": str(e)}
+        if pedido.estado_codigo == "CANCELADO":  # pagado sin stock: queda para devolución manual
+            pago.estado = ESTADO_PAGO_A_DEVOLVER
+            uow.pagos.update(pago)
+        return {"status": "processed", "pago_id": pago.id, "pedido_actualizado": pedido}
+
+    def _consultar_pago_mp(self, payment_id: int) -> dict:
+        """Consulta el pago a MercadoPago (borde externo); un fallo del proveedor es 502 (reintentable)."""
+        sdk = mercadopago.SDK(self._get_mp_access_token())
+        try:
+            result = sdk.payment().get(payment_id)
+        except (OSError, ValueError) as exc:  # red (requests.RequestException es OSError) o respuesta ilegible
+            logger.warning("Error al consultar el pago %s en MercadoPago: %s", payment_id, exc)
+            raise AppError(502, "HTTP_502", "No se pudo consultar el pago en MercadoPago") from exc
+
+        if result.get("status") != 200:
+            logger.warning("MercadoPago respondió %s al consultar el pago %s", result.get("status"), payment_id)
+            raise AppError(502, "HTTP_502", "No se pudo consultar el pago en MercadoPago")
+
+        response = result.get("response", {})
+        return {
+            "mp_payment_id": response.get("id"),
+            "mp_status": response.get("status"),
+            "mp_status_detail": response.get("status_detail"),
+            "mp_merchant_order_id": response.get("order", {}).get("id") if "order" in response else response.get("merchant_order_id"),
+            "external_reference": response.get("external_reference"),
+        }
 
     def obtener_pago(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str]) -> PagoEstadoResponse:
         with PagoUnitOfWork(self._session) as uow:

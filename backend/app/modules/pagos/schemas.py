@@ -13,3 +13,12 @@ class PagoCrearResponse(BaseModel):
 class PagoEstadoResponse(BaseModel):
     estado: Optional[str]
     pedido_id: int
+
+
+class NotificacionWebhook(BaseModel):
+    """Notificación de MercadoPago tal como llega: headers de firma, query string y cuerpo (JSON o form)."""
+
+    x_signature: Optional[str] = None
+    x_request_id: Optional[str] = None
+    query: dict[str, str] = {}
+    body: dict = {}

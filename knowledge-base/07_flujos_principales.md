@@ -73,19 +73,20 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 
 ## Flujo 5: Webhook IPN de MercadoPago (Sistema)
 
-> **Deuda técnica (DT-06, DT-20, DT-21):** objetivo = validar firma, verificar `idempotency_key` y consistencia transaccional pago/pedido. El actor Sistema (DT-13) ya está resuelto por C-09.
+> **Resuelto por C-05:** firma `x-signature` (DT-06), idempotencia por `mp_payment_id` (DT-20) y transacción única pago/pedido (DT-21). El actor Sistema (DT-13) lo resolvió C-09.
 
-**Disparador**: MP notifica un cambio de pago. **Actor**: Sistema.
+**Disparador**: MP notifica un cambio de pago. **Actor**: Sistema. Ruta pública: se autentica por firma, no por JWT.
 
-1. `POST /pagos/webhook` (JSON o form-data; también query `data.id`/`topic`). Ignora si no es `payment` o falta id.
-2. Consulta `sdk.payment().get(id)` → `mp_status`, `status_detail`, `external_reference`, `merchant_order_id`.
-3. Mapea estado (RN-PA-04). Busca el `Pago` por `external_reference` (último del pedido) → luego por `mp_payment_id` → luego por `merchant_order_id`.
-4. Si `pago.estado != "pendiente"` → `already_processed` (dedupe). Si no, actualiza campos del pago.
-5. Si `approved`: `PedidoService.confirmar_por_pago_aprobado(pedido_id)` (C-09) → transición `PENDIENTE→CONFIRMADO` por la FSM con **actor Sistema** (`usuario_id` NULL en el historial); el Sistema solo confirma pedidos `MERCADOPAGO` en `PENDIENTE`, sobre cualquier otro el estado no cambia y el webhook responde 200. **Objetivo (DD-20, C-10):** la confirmación pasa por la transición de la FSM (actor Sistema) y descuenta el stock en la misma transacción; si no hay stock, el pedido pasa a CANCELADO «sin stock», el pago queda marcado para devolución manual y el webhook responde 200 (no es un error a reintentar).
-6. El router emite eventos WebSocket a `role:KDS` y `pedido:{id}` (background tasks).
-7. Responde 200 `{status: processed|ignored|already_processed|error}` — **siempre 200**, incluso con error, para evitar reintentos.
+1. `POST /pagos/webhook` (JSON o form-data; query `data.id`/`type`). Sin `MP_WEBHOOK_SECRET` configurado → **503** (falla cerrado en todo entorno).
+2. Valida la firma `x-signature` (HMAC-SHA256 del manifest `id:<data.id de la query>;request-id:<x-request-id>;ts:<ts>;`, omitiendo los pares ausentes) con el validador del SDK de MercadoPago. Inválida o ausente → **401** genérico (el motivo solo se loguea). Sin ventana de tolerancia sobre `ts`.
+3. Tópico e id: `data.id` de la query; si falta, el del cuerpo; si difieren → **400**. Tópico distinto de `payment` o sin id → 200 `ignored`. Sin `MP_ACCESS_TOKEN` → **503**.
+4. Consulta `sdk.payment().get(id)` (RN-PA-03: no se confía en el payload); error del proveedor → **502** (MP reintenta). Estado no mapeado → 200 `ignored`.
+5. En **una sola transacción** (UoW reentrante con savepoint, solo la externa confirma): busca el `Pago` con `SELECT ... FOR UPDATE` por `mp_payment_id` → `external_reference` (último del pedido) → `merchant_order_id`; sin pago local → 200 `ignored`. La función pura `decidir_transicion_pago` resuelve la idempotencia: `aprobado`/`a_devolver` son terminales; un `pendiente`/`rechazado` con el mismo `mp_payment_id` y estado es una reentrega → `already_processed`; un nuevo intento con otro id se procesa.
+6. Si `approved`: `PedidoService.confirmar_por_pago_aprobado(pedido_id)` (C-09/C-10, actor Sistema, descuento de stock en la misma transacción). Si el Sistema no puede confirmar el pedido (`CANCELADO`, `EFECTIVO`/`TRANSFERENCIA`, ya confirmado: 409 `INVALID_TRANSITION`) o no hay stock, el pago queda `a_devolver` (devolución manual, PA-08) y se responde 200.
+7. El router emite eventos WebSocket a `role:KDS` y `pedido:{id}` solo si hubo `pedido_actualizado` (background tasks, después del commit).
+8. Responde 200 `{status: processed|ignored|already_processed}`.
 
-**Errores**: excepciones se registran y devuelven 200 con `status:"error"`; si falla el cambio de estado, el pago queda `aprobado` pero el pedido PENDIENTE (inconsistencia, ver IN-22).
+**Códigos**: 200 procesado/ignorado/ya procesado; 401 firma inválida; 400 ids inconsistentes; 502 falla la consulta a MP; 503 falta `MP_WEBHOOK_SECRET`/`MP_ACCESS_TOKEN`; 500 falla inesperada (todo revertido, MP reintenta).
 
 ## Flujo 6: Ciclo operativo del pedido (PEDIDOS/ADMIN)
 

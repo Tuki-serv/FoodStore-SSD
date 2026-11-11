@@ -12,6 +12,7 @@ from app.modules.pagos.models import Pago
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
+from tests.support.mp_webhook import SECRETO, post_webhook
 
 
 class _PagoAprobadoSDK:
@@ -35,6 +36,7 @@ class _PagoAprobadoSDK:
 @pytest.fixture(name="mp_aprobado")
 def mp_aprobado_fixture(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "TEST-token")
+    monkeypatch.setattr(settings, "MP_WEBHOOK_SECRET", SECRETO)
     monkeypatch.setattr("app.modules.pagos.service.mercadopago.SDK", _PagoAprobadoSDK)
 
     def _apuntar_a(pedido_id: int) -> None:
@@ -71,7 +73,7 @@ def _historial(session: Session, pedido_id: int) -> list[HistorialEstadoPedido]:
 
 
 def _webhook(client: TestClient, payment_id: str = "123"):
-    return client.post("/api/v1/pagos/webhook", json={"type": "payment", "data": {"id": payment_id}})
+    return post_webhook(client, payment_id)  # notificación firmada con HMAC real
 
 
 def _estado(session: Session, pedido_id: int) -> str:

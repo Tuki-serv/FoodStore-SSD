@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     # ─── Pagos — MercadoPago (opcionales) ────────────────────────────────────
     MP_ACCESS_TOKEN: Optional[str] = None
     MP_PUBLIC_KEY: Optional[str] = None
+    MP_WEBHOOK_SECRET: Optional[str] = None  # clave secreta de Webhooks (panel MP); sin ella el webhook responde 503
     MP_NOTIFICATION_URL: Optional[str] = None
     BACKEND_PUBLIC_URL: Optional[str] = None
     FRONTEND_URL: Optional[str] = None

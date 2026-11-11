@@ -22,6 +22,7 @@ REQUIRED_ENV: dict[str, str] = {
 OPTIONAL_ENV: dict[str, str] = {
     "MP_ACCESS_TOKEN": "mp-token-falso",
     "MP_PUBLIC_KEY": "mp-public-falsa",
+    "MP_WEBHOOK_SECRET": "mp-webhook-secret-falso",
     "MP_NOTIFICATION_URL": "https://abc.ngrok-free.app/api/v1/pagos/webhook",
     "BACKEND_PUBLIC_URL": "https://abc.ngrok-free.app",
     "FRONTEND_URL": "https://tienda.example",

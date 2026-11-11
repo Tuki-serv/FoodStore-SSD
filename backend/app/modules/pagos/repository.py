@@ -36,3 +36,23 @@ class PagoRepository(BaseRepository[Pago]):
         return self.session.exec(
             select(Pago).where(Pago.mp_merchant_order_id == merchant_order_id)
         ).first()
+
+    # ─── Lecturas con bloqueo de fila (webhook: serializa notificaciones concurrentes del mismo pago) ──────────
+    def get_by_mp_payment_id_for_update(self, mp_payment_id: int) -> Optional[Pago]:
+        return self.session.exec(
+            select(Pago).where(Pago.mp_payment_id == mp_payment_id).with_for_update()
+        ).first()
+
+    def get_ultimo_by_pedido_for_update(self, pedido_id: int) -> Optional[Pago]:
+        return self.session.exec(
+            select(Pago)
+            .where(Pago.pedido_id == pedido_id)
+            .order_by(Pago.created_at.desc(), Pago.id.desc())
+            .limit(1)
+            .with_for_update()
+        ).first()
+
+    def get_by_mp_merchant_order_id_for_update(self, merchant_order_id: int) -> Optional[Pago]:
+        return self.session.exec(
+            select(Pago).where(Pago.mp_merchant_order_id == merchant_order_id).with_for_update()
+        ).first()

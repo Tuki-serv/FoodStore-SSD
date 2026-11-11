@@ -37,3 +37,16 @@ def migrations_db_fixture(migrations_engine: Engine) -> Iterator[Engine]:
     _empty_migrations_database(migrations_engine)
     yield migrations_engine
     _empty_migrations_database(migrations_engine)
+
+
+# ─── Webhook de pagos (C-05): secreto fijado y doble del SDK de MercadoPago ──────────────────────────────────────────
+@pytest.fixture(name="mp_sdk")
+def mp_sdk_fixture(monkeypatch: pytest.MonkeyPatch):
+    """Webhook configurado (secreto + access token de prueba) y SDK de MercadoPago reemplazado por un doble."""
+    from tests.support.mp_webhook import SECRETO, MPFalso
+
+    monkeypatch.setattr(settings, "MP_WEBHOOK_SECRET", SECRETO)
+    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "TEST-token")
+    doble = MPFalso()
+    monkeypatch.setattr("app.modules.pagos.service.mercadopago.SDK", doble)
+    return doble

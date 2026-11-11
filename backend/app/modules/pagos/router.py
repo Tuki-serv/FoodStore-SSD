@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
@@ -6,7 +7,7 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import get_current_active_user, get_current_roles
 from app.modules.usuarios.schemas import UserPublic
-from app.modules.pagos.schemas import CrearPagoRequest, PagoCrearResponse, PagoEstadoResponse
+from app.modules.pagos.schemas import CrearPagoRequest, NotificacionWebhook, PagoCrearResponse, PagoEstadoResponse
 from app.modules.pagos.service import PaymentService
 
 from fastapi.responses import RedirectResponse
@@ -23,6 +24,30 @@ CurrentRoles = Annotated[frozenset[str], Depends(get_current_roles)]
 
 def get_payment_service(session: Session = Depends(get_session)) -> PaymentService:
     return PaymentService(session)
+
+
+EVENTOS_WS = {
+    "CONFIRMADO": "PEDIDO_CONFIRMADO",
+    "EN_PREP": "PEDIDO_EN_PREPARACION",
+    "CANCELADO": "PEDIDO_CANCELADO",
+}
+
+
+async def _leer_notificacion(request: Request) -> NotificacionWebhook:
+    """Extrae headers de firma, query y cuerpo (MercadoPago manda JSON o form-data); sin lógica de negocio."""
+    if request.headers.get("content-type", "").startswith("application/json"):
+        try:
+            cuerpo = await request.json()
+        except json.JSONDecodeError:
+            cuerpo = {}
+    else:
+        cuerpo = dict(await request.form())
+    return NotificacionWebhook(
+        x_signature=request.headers.get("x-signature"),
+        x_request_id=request.headers.get("x-request-id"),
+        query=dict(request.query_params),
+        body=cuerpo if isinstance(cuerpo, dict) else {},
+    )
 
 
 # 1. Endpoint para crear el pago (La Ventanilla de Cobro)
@@ -48,42 +73,18 @@ async def webhook(
     svc: PaymentService = Depends(get_payment_service),
 ):
     """
-    Rúbrica: Endpoint IPN de MercadoPago. Actualiza estado del pago y del pedido.
+    Rúbrica: Endpoint IPN de MercadoPago. Autenticado por firma (x-signature), idempotente y atómico.
+    Los errores suben como AppError (401/400/502/503) o 500 para que MercadoPago reintente lo que corresponda.
     """
-    try:
-        query_params = dict(request.query_params)
-        
-        # MercadoPago a veces manda JSON y a veces Form-Data, hay que atajar los dos:
-        if request.headers.get("content-type", "").startswith("application/json"):
-            data = await request.json()
-        else:
-            data = dict(await request.form())
-            
-        result = await svc.procesar_webhook(data, query_params=query_params)
-        
-        # Misma metodología que PedidoRouter: el router dispara el WebSocket
-        if result.get("status") == "processed" and "pedido_actualizado" in result:
-            pedido = result["pedido_actualizado"]
+    result = await svc.procesar_webhook(await _leer_notificacion(request))
 
-            
-            EVENTOS_WS = {
-                "CONFIRMADO": "PEDIDO_CONFIRMADO",
-                "EN_PREP": "PEDIDO_EN_PREPARACION",
-                "CANCELADO": "PEDIDO_CANCELADO",
-            }
-            evento = EVENTOS_WS.get(pedido.estado_codigo, "ESTADO_ACTUALIZADO")
-            
-            background_tasks.add_task(
-                manager.send_to_room, "role:KDS", evento, pedido.model_dump(mode="json")
-            )
-            background_tasks.add_task(
-                manager.send_to_room, f"pedido:{pedido.id}", evento, pedido.model_dump(mode="json")
-            )
-            
-        return result
-    except Exception as e:
-        logger.exception("Error en webhook MP")
-        return {"status": "error", "reason": str(e)}
+    # Misma metodología que PedidoRouter: el router dispara el WebSocket (las tareas corren tras el commit)
+    if result.get("status") == "processed" and "pedido_actualizado" in result:
+        pedido = result["pedido_actualizado"]
+        evento = EVENTOS_WS.get(pedido.estado_codigo, "ESTADO_ACTUALIZADO")
+        background_tasks.add_task(manager.send_to_room, "role:KDS", evento, pedido.model_dump(mode="json"))
+        background_tasks.add_task(manager.send_to_room, f"pedido:{pedido.id}", evento, pedido.model_dump(mode="json"))
+    return result
 
 
 # 3. Endpoint para consultar el estado (El Mostrador de Consultas)

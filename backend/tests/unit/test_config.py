@@ -94,6 +94,24 @@ def test_settings_opcional_definida_vacia_vale_none(
     assert cfg.CLOUDINARY_NAME is None
 
 
+def test_settings_mp_webhook_secret_definido_vale_exactamente_ese_valor(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("MP_WEBHOOK_SECRET", "secreto-de-prueba")
+
+    assert _load().MP_WEBHOOK_SECRET == "secreto-de-prueba"
+
+
+def test_settings_mp_webhook_secret_ausente_o_vacio_vale_none(
+    monkeypatch: pytest.MonkeyPatch, required_env: dict[str, str]
+) -> None:
+    assert _load().MP_WEBHOOK_SECRET is None
+
+    monkeypatch.setenv("MP_WEBHOOK_SECRET", "")
+
+    assert _load().MP_WEBHOOK_SECRET is None
+
+
 def test_settings_configuracion_completa_usa_exactamente_los_valores_provistos(full_env: dict[str, str]) -> None:
     cfg = _load()
 
