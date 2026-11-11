@@ -15,6 +15,16 @@ def tiene_algun_rol(roles: AbstractSet[str], permitidos: Iterable[str]) -> bool:
     return any(rol in roles for rol in permitidos)
 
 
+def puede_acceder_a_propio(
+    propietario_id: int,
+    usuario_id: int,
+    roles: AbstractSet[str],
+    privilegiados: Iterable[str],
+) -> bool:
+    """True si el usuario es el dueño del recurso o tiene alguno de los roles `privilegiados`."""
+    return propietario_id == usuario_id or tiene_algun_rol(roles, privilegiados)
+
+
 def union_por_roles(
     mapa: Mapping[str, Mapping[K, AbstractSet[V]]],
     roles: AbstractSet[str],

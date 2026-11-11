@@ -112,6 +112,9 @@ FILAS: tuple[Fila, ...] = (
     ),
     Fila("DELETE", f"{P}/pedidos/{{pedido_id}}", CLIENT, {"motivo": "x"}),
     Fila("GET", f"{P}/pedidos/cocina/pedidos", ADMIN_PEDIDOS_COCINA, dueno="C-26"),
+    # Pagos (C-04: autenticado; la propiedad del pedido se prueba en test_pago_autorizacion.py)
+    Fila("POST", f"{P}/pagos/crear", AUTENTICADO, {"pedido_id": ID_INEXISTENTE}),
+    Fila("GET", f"{P}/pagos/{{pedido_id}}", AUTENTICADO),
     # Estadísticas (59-63)
     Fila("GET", f"{P}/estadisticas/ventas", ADMIN),
     Fila("GET", f"{P}/estadisticas/productos-top", ADMIN),
@@ -123,9 +126,7 @@ FILAS: tuple[Fila, ...] = (
 # (método o WS, plantilla) -> motivo. Quedan fuera de la matriz a propósito.
 EXCLUIDAS: dict[tuple[str, str], str] = {
     ("GET", "/health"): "liveness sin prefijo ni autorización (fila 1)",
-    ("POST", "/api/v1/pagos/crear"): "C-04 cambia su autorización (DT-05)",
     ("POST", "/api/v1/pagos/webhook"): "C-05 (firma); llama a MercadoPago",
-    ("GET", "/api/v1/pagos/{pedido_id}"): "C-04 cambia su autorización (DT-05)",
     ("GET", "/api/v1/pagos/redirect/{pedido_id}/{status}"): "C-12; no está en la spec",
     ("WS", "/api/v1/pedidos/cocina/ws"): "C-27 (WebSocket)",
     ("WS", "/api/v1/pedidos/{pedido_id}/ws"): "C-27 (WebSocket)",

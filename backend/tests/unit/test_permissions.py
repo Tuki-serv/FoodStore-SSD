@@ -1,5 +1,5 @@
 """Primitivas puras de autorización: `tiene_algun_rol` y `union_por_roles` (sin BD)."""
-from app.core.permissions import tiene_algun_rol, union_por_roles
+from app.core.permissions import puede_acceder_a_propio, tiene_algun_rol, union_por_roles
 
 
 def test_tiene_algun_rol_con_un_rol_permitido_devuelve_true() -> None:
@@ -38,3 +38,23 @@ def test_union_por_roles_con_solapamiento_no_duplica() -> None:
     mapa = {"A": {"x": {"1", "2"}}, "B": {"x": {"2", "3"}}, "C": {"x": {"3", "1"}}}
 
     assert union_por_roles(mapa, {"A", "B", "C"}, "x") == frozenset({"1", "2", "3"})
+
+
+def test_puede_acceder_a_propio_el_dueno_sin_roles_privilegiados_devuelve_true() -> None:
+    assert puede_acceder_a_propio(7, 7, frozenset({"CLIENT"}), {"ADMIN"}) is True
+
+
+def test_puede_acceder_a_propio_otro_usuario_sin_rol_privilegiado_devuelve_false() -> None:
+    assert puede_acceder_a_propio(7, 8, frozenset({"CLIENT"}), {"ADMIN"}) is False
+
+
+def test_puede_acceder_a_propio_otro_usuario_con_rol_privilegiado_entre_varios_devuelve_true() -> None:
+    assert puede_acceder_a_propio(7, 8, frozenset({"CLIENT", "ADMIN"}), {"ADMIN"}) is True
+
+
+def test_puede_acceder_a_propio_otro_usuario_con_roles_no_privilegiados_devuelve_false() -> None:
+    assert puede_acceder_a_propio(7, 8, frozenset({"PEDIDOS", "STOCK"}), {"ADMIN"}) is False
+
+
+def test_puede_acceder_a_propio_otro_usuario_sin_roles_devuelve_false() -> None:
+    assert puede_acceder_a_propio(7, 8, frozenset(), {"ADMIN"}) is False

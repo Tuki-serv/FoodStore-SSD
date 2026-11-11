@@ -19,7 +19,7 @@ from app.modules.pedidos.fsm import (
 )
 from app.core.errors import AppError, ErrorCode
 from app.core.pagination import PageParams
-from app.core.permissions import tiene_algun_rol
+from app.core.permissions import puede_acceder_a_propio, tiene_algun_rol
 from app.core.schemas import PaginatedResponse
 from app.modules.pedidos.models import Pedido
 from app.modules.pedidos.schemas import (
@@ -185,7 +185,7 @@ class PedidoService:
     ) -> Pedido:
         """Pedido que el lector puede ver: 404 si no existe, 403 si no es suyo y no es gestor (ADMIN/PEDIDOS)."""
         pedido = self._obtener_pedido_o_404(uow, pedido_id)
-        if pedido.usuario_id != usuario_id and not tiene_algun_rol(roles, self.ROLES_GESTORES):
+        if not puede_acceder_a_propio(pedido.usuario_id, usuario_id, roles, self.ROLES_GESTORES):
             raise AppError(403, "HTTP_403", "No tenés acceso a este pedido")
         return pedido
 
