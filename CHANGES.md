@@ -40,10 +40,10 @@ C-01 ✓ baseline-backend
  ├── C-04 pagos-autorizacion-propietario
  │     └── C-05 pagos-webhook-firma-idempotencia ──┐
  └── C-06 ✓ datos-migraciones-alembic              │
-       ├── C-02 ✓ auth-sesion-tokens-bearer-refresh┼─┬── C-08 rbac-multirol-permisos-stock
+       ├── C-02 ✓ auth-sesion-tokens-bearer-refresh┼─┬── C-08 ✓ rbac-multirol-permisos-stock
        │                                           │ └── C-13b fe-foundation-auth-data (también C-13a, C-11)
-       └── C-07 datos-seed-y-catalogos             │
-             └── C-09 pedidos-fsm-en-camino  (+C-08)
+       └── C-07 ✓ datos-seed-y-catalogos           │
+             └── C-09 ✓ pedidos-fsm-en-camino  (+C-08)
                    ├── C-10 pedidos-stock-descuento
                    ├── C-11 pedidos-contrato-api-y-categorias
                    └── C-12 pagos-checkout-api-cardpayment (+C-05)
@@ -88,7 +88,7 @@ GATE 1b: C-02 ✓
   → C-08 ✓ rbac-multirol-permisos-stock         [Agente A — si C-02 ✓]
 
 GATE 2: C-07 ✓ + C-08 ✓
-  → C-09 pedidos-fsm-en-camino                [Agente A]
+  → C-09 ✓ pedidos-fsm-en-camino                [Agente A]
 
 GATE 3: C-09 ✓                                          ← FORK
   → C-10 pedidos-stock-descuento              [Agente A]
@@ -130,7 +130,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 2 | C-03 | C-04 | C-06 ✓ |
 | 3 | C-02 ✓ | C-05 | C-07 ✓ |
 | 4 | C-08 ✓ | — | C-13a |
-| 5 | C-09 | — | — |
+| 5 | C-09 ✓ | — | — |
 | 6 | C-10 | C-12 | C-11 |
 | 7 | C-25a | — | C-13b |
 | 8 | C-17a | C-15 | C-14 + C-16 |
@@ -285,7 +285,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/10_preguntas_abiertas.md` (PA-09)
 
 ### [C-09] `pedidos-fsm-en-camino`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-11-c-09-pedidos-fsm-en-camino/`)
 - **Scope**:
   - Cubre DT-03 (FSM) y DT-15.
   - FSM de 6 estados: PENDIENTE→CONFIRMADO→EN_PREP→EN_CAMINO→ENTREGADO + CANCELADO; eliminar el atajo EN_PREP→ENTREGADO; `TRANSICIONES[rol][estado]` usando todos los roles del usuario (depende de C-08).
@@ -677,8 +677,8 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 5** (C-01, C-02, C-06, C-07, C-08). **Pendientes obligatorios: 23** (7 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 6** (C-01, C-02, C-06, C-07, C-08, C-09). **Pendientes obligatorios: 22** (6 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-09 `pedidos-fsm-en-camino` (desbloqueado por C-07 ✓ y C-08 ✓), en paralelo con C-04, C-03 y C-13a; C-05 después de C-04.
+**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-10 y C-11 (desbloqueados por C-09 ✓), en paralelo con C-04, C-03 y C-13a; C-05 después de C-04 (C-12 requiere además C-05).
