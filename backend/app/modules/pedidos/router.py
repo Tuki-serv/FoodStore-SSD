@@ -11,7 +11,7 @@ from app.modules.usuarios.schemas import UserPublic
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork, get_uow
 from app.modules.pedidos.schemas import PedidoCambioEstado, PedidoCreate, PedidoReadFull, PedidoList, PedidoListAdmin
 from app.modules.historiales_estado_pedido.schemas import HistorialEstadoPedidoRead
-from app.modules.pedidos.service import PedidoService
+from app.modules.pedidos.service import PedidoService, construir_pedido_service
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
 
 router = APIRouter()
@@ -21,7 +21,7 @@ CurrentRoles = Annotated[frozenset[str], Depends(get_current_roles)]
 
 
 def get_pedido_service(session: Session = Depends(get_session)) -> PedidoService:
-    return PedidoService(PedidoUnitOfWork(session))
+    return construir_pedido_service(session)
 
 
 # ══════════════════════════════════════════════════════

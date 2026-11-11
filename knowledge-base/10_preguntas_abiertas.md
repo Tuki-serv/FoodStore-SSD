@@ -22,7 +22,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 **A** (`[DESC]`,`[INT]`): 6 estados incluyendo `EN_CAMINO` (`[DESC]` llama al tercero `EN_PREPARACIÓN`; `[INT]` `EN_PREP`).
 **B** (código actual): `seed.py` solo siembra 5 estados (sin `EN_CAMINO`; `orden` ENTREGADO=5, CANCELADO=99); la FSM permite `EN_PREP → ENTREGADO`.
 **Impacto**: El flujo de despacho y el seguimiento al cliente no existen; la rúbrica pide FSM de 6 estados.
-**Resolución (spec = objetivo; deuda DT-03)**: Agregar `EN_CAMINO` al seed y a `TRANSICIONES` (`EN_PREP → EN_CAMINO → ENTREGADO`), usar el código `EN_PREP`. **Catálogo con `EN_CAMINO` hecho en C-07** (`CANCELADO.orden=6`); las transiciones llegan en C-09.
+**Resolución (spec = objetivo; deuda DT-03)**: Agregar `EN_CAMINO` al seed y a `TRANSICIONES` (`EN_PREP → EN_CAMINO → ENTREGADO`), usar el código `EN_PREP`. **Catálogo con `EN_CAMINO` hecho en C-07** (`CANCELADO.orden=6`); las transiciones llegaron en C-09: **cerrada** (DT-03 resuelta).
 
 ### IN-04 — Quién puede cancelar y desde qué estados
 **A** (`[DESC]`): PENDIENTE→CANCELADO por Cliente/PEDIDOS/ADMIN; CONFIRMADO→CANCELADO por PEDIDOS/ADMIN (no el cliente); EN_PREP→CANCELADO solo ADMIN.
@@ -111,12 +111,12 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 
 ### IN-20 — CONFIRMADO "solo automático" vs transición manual
 **A** (`[DESC]` RN-02): nadie puede confirmar manualmente. **B** (código actual): ADMIN y PEDIDOS tienen `PENDIENTE→CONFIRMADO` en `TRANSICIONES` (útil para pagos en efectivo, pero rompe la regla).
-**Resolución (cerrada por el usuario el 2026-11-10, PA-06, DD-22; deuda DT-15 hasta C-09)**: CONFIRMADO automático por pago para `MERCADOPAGO`; la confirmación manual PENDIENTE→CONFIRMADO queda permitida **solo a ADMIN y PEDIDOS y solo para `EFECTIVO`/`TRANSFERENCIA`**. La deuda del código actual es que la permite para cualquier forma de pago.
+**Resolución (cerrada por el usuario el 2026-11-10, PA-06, DD-22; DT-15 resuelta por C-09; **cerrada**)**: CONFIRMADO automático por pago para `MERCADOPAGO`; la confirmación manual PENDIENTE→CONFIRMADO queda permitida **solo a ADMIN y PEDIDOS y solo para `EFECTIVO`/`TRANSFERENCIA`**. La deuda del código actual es que la permite para cualquier forma de pago.
 
 ### IN-21 — Actor del historial en transiciones automáticas
 **A** (`[DESC]`,`[INT]`): `usuario_id` NULL cuando es el Sistema. **B** (código actual): el webhook registra como actor al **dueño del pedido** y usa `rol="ADMIN"` para saltear permisos.
 **Impacto**: Auditoría engañosa (parece que el cliente confirmó su pedido).
-**Resolución (spec = objetivo; deuda DT-13)**: `usuario_id = NULL` para el Sistema.
+**Resolución (spec = objetivo; DT-13 resuelta en su parte de actor por C-09; **cerrada**)**: `usuario_id = NULL` para el Sistema (`ACTOR_SISTEMA`).
 
 ### IN-22 — Inconsistencia pago aprobado / pedido no confirmado
 **Detalle** (código actual): dentro del webhook el pago se marca `aprobado` y luego se intenta cambiar el pedido; si falla (p. ej. stock insuficiente ya descontado/estado distinto), se registra un warning y el pago queda `aprobado` con el pedido en PENDIENTE; el webhook siempre responde 200 (MP no reintenta).

@@ -73,7 +73,7 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 
 ## Flujo 5: Webhook IPN de MercadoPago (Sistema)
 
-> **Deuda técnica (DT-06, DT-13, DT-20, DT-21):** objetivo = validar firma, verificar `idempotency_key`, actor Sistema (`usuario_id` NULL) y consistencia transaccional pago/pedido. El detalle de abajo es el código actual.
+> **Deuda técnica (DT-06, DT-20, DT-21):** objetivo = validar firma, verificar `idempotency_key` y consistencia transaccional pago/pedido. El actor Sistema (DT-13) ya está resuelto por C-09.
 
 **Disparador**: MP notifica un cambio de pago. **Actor**: Sistema.
 
@@ -81,7 +81,7 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
 2. Consulta `sdk.payment().get(id)` → `mp_status`, `status_detail`, `external_reference`, `merchant_order_id`.
 3. Mapea estado (RN-PA-04). Busca el `Pago` por `external_reference` (último del pedido) → luego por `mp_payment_id` → luego por `merchant_order_id`.
 4. Si `pago.estado != "pendiente"` → `already_processed` (dedupe). Si no, actualiza campos del pago.
-5. Si `approved`: `PedidoService.cambiar_estado_pedido(CONFIRMADO, motivo="Pago confirmado via Webhook MercadoPago", rol="ADMIN")` → registra historial, valida FSM. **Objetivo (DD-20, C-10):** la confirmación pasa por la transición de la FSM (actor Sistema) y descuenta el stock en la misma transacción; si no hay stock, el pedido pasa a CANCELADO «sin stock», el pago queda marcado para devolución manual y el webhook responde 200 (no es un error a reintentar).
+5. Si `approved`: `PedidoService.confirmar_por_pago_aprobado(pedido_id)` (C-09) → transición `PENDIENTE→CONFIRMADO` por la FSM con **actor Sistema** (`usuario_id` NULL en el historial); el Sistema solo confirma pedidos `MERCADOPAGO` en `PENDIENTE`, sobre cualquier otro el estado no cambia y el webhook responde 200. **Objetivo (DD-20, C-10):** la confirmación pasa por la transición de la FSM (actor Sistema) y descuenta el stock en la misma transacción; si no hay stock, el pedido pasa a CANCELADO «sin stock», el pago queda marcado para devolución manual y el webhook responde 200 (no es un error a reintentar).
 6. El router emite eventos WebSocket a `role:KDS` y `pedido:{id}` (background tasks).
 7. Responde 200 `{status: processed|ignored|already_processed|error}` — **siempre 200**, incluso con error, para evitar reintentos.
 
@@ -95,7 +95,7 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET payment ──▶ Pago.update 
    - **Confirmación manual (DD-22):** PENDIENTE→CONFIRMADO la hace un usuario ADMIN o PEDIDOS solo para pedidos `EFECTIVO`/`TRANSFERENCIA`; los `MERCADOPAGO` solo se confirman automáticamente por el webhook.
    - **Despacho (DD-23):** `EN_PREP→EN_CAMINO` y `EN_CAMINO→ENTREGADO` los hacen ADMIN y PEDIDOS.
 4. Tras commit, emite WS (`PEDIDO_CONFIRMADO`, `PEDIDO_EN_PREPARACION`, `PEDIDO_CANCELADO` o `ESTADO_ACTUALIZADO`) a `role:KDS` y `pedido:{id}`.
-5. Secuencia objetivo (spec): PENDIENTE→CONFIRMADO→EN_PREP→EN_CAMINO→ENTREGADO. *Deuda DT-03:* el código actual omite EN_CAMINO.
+5. Secuencia (spec, C-09): PENDIENTE→CONFIRMADO→EN_PREP→EN_CAMINO→ENTREGADO, sin atajos.
 
 ## Flujo 7: Cancelación por el cliente
 

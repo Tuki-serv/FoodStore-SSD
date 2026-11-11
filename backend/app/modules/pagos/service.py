@@ -13,9 +13,7 @@ from app.modules.pedidos.models import Pedido
 from app.modules.pagos.models import Pago
 from app.modules.pagos.schemas import PagoCrearResponse, PagoEstadoResponse
 from app.modules.pagos.unit_of_work import PagoUnitOfWork
-from app.modules.pedidos.service import PedidoService
-from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
-from app.modules.pedidos.schemas import PedidoCambioEstado
+from app.modules.pedidos.service import construir_pedido_service
 
 logger = logging.getLogger(__name__)
 
@@ -200,22 +198,12 @@ class PaymentService:
 
                 if nuevo_estado == "aprobado":
 
-                    # Usamos la misma metodología (PedidoService para la DB y la FSM)
-                    pedido_svc = PedidoService(PedidoUnitOfWork(uow._session))
+                    # Confirmación automática: actor Sistema por la FSM (única vía a CONFIRMADO, spec order-lifecycle)
                     try:
-                        pedido = uow._session.get(Pedido, pago.pedido_id)
-                        user_id_to_log = pedido.usuario_id if pedido else None
-
-                        resultado_pedido = await pedido_svc.cambiar_estado_pedido(
-                            pedido_id=pago.pedido_id,
-                            data=PedidoCambioEstado(
-                                estado_hacia="CONFIRMADO",
-                                motivo="Pago confirmado via Webhook MercadoPago"
-                            ),
-                            usuario_id=user_id_to_log,  # Use the order's user to avoid FK error
-                            roles=frozenset({"ADMIN"})
+                        resultado_pedido = construir_pedido_service(uow._session).confirmar_por_pago_aprobado(
+                            pago.pedido_id
                         )
-                        
+
                         # TODO: Rúbrica MP (Webhook que procesa topic=payment, avanza pedido y notifica WS).
                         # Aquí también debería invocarse el broadcast_pedido() o send_to_room() de WSManager
                         # para informar al frontend en tiempo real del pago exitoso.
