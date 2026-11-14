@@ -5,10 +5,10 @@ from sqlalchemy import BigInteger, Column, CHAR
 
 from app.core.mixins.auditable_mixin import UniqueAuditableMixin
 from app.core.timestamps import aware_datetime_field
-from app.modules.direcciones_entrega.models import DireccionEntrega
+from app.modules.direcciones.models import DireccionEntrega
 
 if TYPE_CHECKING:
-    from app.modules.direcciones_entrega.models import DireccionEntrega
+    from app.modules.direcciones.models import DireccionEntrega
 
 # ==========================================
 # 1. TABLAS INTERMEDIAS (Link Models)

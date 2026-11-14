@@ -7,7 +7,7 @@
 | Patrón | Capa | Dónde se usa | Por qué |
 |--------|------|--------------|---------|
 | Repository + `BaseRepository[T]` genérico | Backend | `core/repository.py` y `modules/*/repository.py` | Aísla acceso a BD; facilita mocks. Métodos spec: `get_by_id`, `list_all(skip,limit)`, `count`, `create`, `update`, `soft_delete`, `hard_delete`. El código actual usa `get_all_by_state`, `count_model`, `add`, `update`, `delete` (soft) |
-| Unit of Work | Backend | `core/unit_of_work.py` + UoW por módulo (`PedidoUnitOfWork`, `UsuarioUnitOfWork`, ...) | Transacción atómica: commit al salir sin excepción, rollback si falla. El Service nunca hace commit |
+| Unit of Work | Backend | `core/uow.py` + UoW por módulo (`PedidoUnitOfWork`, `UsuarioUnitOfWork`, ...) | Transacción atómica: commit al salir sin excepción, rollback si falla. El Service nunca hace commit |
 | Service Layer (stateless) | Backend | `service.py`; `base_service` genérico en `core/service.py` | Concentra lógica de negocio testeable sin HTTP |
 | Snapshot | Backend/BD | `DetallePedido.*_snapshot`, `Pedido` monetario | Integridad histórica de precios/nombres |
 | Soft Delete + índices únicos parciales | Backend/BD | `UniqueAuditableMixin` | Recuperación y unicidad solo entre activos |
@@ -44,20 +44,22 @@ Food-Store-Prueba/                # raíz = gestión + orquestación (docker-com
     │   ├── db/                      # models.py (import_all_models), migrations.py (helpers Alembic), seed.py (python -m app.db.seed), reset.py
     │   ├── core/
     │   │   ├── config.py            # Settings (pydantic-settings)
-    │   │   ├── database.py  deps.py  security.py  enums.py  logger.py
-    │   │   ├── repository.py  service.py  unit_of_work.py  schemas.py (PaginatedResponse)
+    │   │   ├── database.py  security.py  enums.py  errors.py  logger.py
+    │   │   ├── repository.py  service.py  uow.py  schemas.py (PaginatedResponse)
     │   │   ├── websocket.py         # ConnectionManager (rooms)
-    │   │   ├── cloudinary/          # router, schemas, service
+    │   │   ├── cloudinary/          # schemas, service (el router de imágenes vive en modules/admin)
     │   │   ├── mixins/auditable_mixin.py
     │   │   └── rate_limit/          # limiter (slowapi) + LimitadorPorClave + Protocol RegistroIntentos
     │   ├── modules/
     │   │   ├── auth/                # auth_router (register, login, refresh, logout, logout-all, me), AuthService, cookies, AuthUnitOfWork (C-02)
     │   │   ├── refreshtokens/       # models Sesion + RefreshToken, repositorios (sin router ni service) (C-02)
-    │   │   ├── usuarios/            # usuarios_router (perfil), admin_router, UsuarioService
-    │   │   ├── direcciones_entrega/ categorias/ productos/ ingredientes/ unidades_medida/
-    │   │   ├── pedidos/ detalles_pedido/ estados_pedido/ formas_pago/ historiales_estado_pedido/
-    │   │   ├── pagos/ estadisticas/ health/
-    │   │   └── (cada módulo: models, schemas, repository, service, router, unit_of_work)
+    │   │   ├── usuarios/            # usuarios_router (perfil), UsuarioService
+    │   │   ├── direcciones/ categorias/ productos/ ingredientes/ unidades_medida/
+    │   │   ├── pedidos/             # incluye EstadoPedido, DetallePedido, HistorialEstadoPedido, filtros.py, fsm.py
+    │   │   ├── pagos/               # incluye FormaPago
+    │   │   ├── admin/               # usuarios_admin_router, estadisticas_router (EstadisticasService), imagenes_router
+    │   │   ├── health/
+    │   │   └── (cada módulo: models, schemas, repository, service, router, unit_of_work, dependencies)
     │   └── utils/errores.py         # handlers {detail, code, field}
     └── tests/ (conftest.py, support/, integration/*, unit/*)
 ```
@@ -133,3 +135,5 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 ## Testing
 
 pytest + httpx + pytest-asyncio + pytest-cov sobre **PostgreSQL 15 real** (base `foodstore_test`, creada por la suite si falta; `backend/tests/.env.test` copiado de `backend/tests/.env.test.example`). Guardia de seguridad: la suite aborta si `ENVIRONMENT != test`, si el nombre de la base no termina en `_test` o si falta la configuración. Aislamiento por test con transacción externa + savepoint (rollback al terminar); el esquema de `foodstore_test` se construye una vez por sesión con `alembic upgrade head` desde una base vacía; los tests de migraciones (upgrade/downgrade, «esquema == modelos») usan la base auxiliar `foodstore_migrations_test`, que también cumple la guardia `_test`. Una fixture autouse de `conftest.py` ejecuta `limiter.reset()` antes de cada test y desactiva el hilo de purga de `MemoryStorage` (lee el reloj real y borraría entradas creadas bajo `freezegun`); el tiempo de las ventanas se controla con `freezegun` y la IP de la conexión con `TestClient(app, client=(ip, puerto))`. Suites en `backend/tests/integration/` y `backend/tests/unit/` (config, engine, mixins, Cloudinary, plantillas `.env`, guardia de BD, `LimitadorPorClave`). Ningún test llama a las APIs reales de MercadoPago ni Cloudinary.
+
+**Cobertura (PA-16, C-25a):** el umbral vive en `backend/.coveragerc` (`[run] source = app`; `[report] fail_under = 60`, `show_missing = true`) y se mide con `pytest --cov --cov-report=term` desde `backend/` (no está en `addopts`, para no ralentizar la corrida diaria). Si el total baja de 60% el comando falla. Marker `e2e` (declarado en `pytest.ini`): flujos completos por HTTP (compra, pago, entrega; solo el SDK de MercadoPago se reemplaza), `pytest -m e2e`. **Tests de arquitectura y contrato:** `tests/unit/test_arquitectura_capas.py` (dependencia unidireccional, routers sin acceso a datos, `core` sin `modules`, capas inferiores sin FastAPI), `tests/unit/test_estructura_modulos.py` (estructura objetivo de módulos) y `tests/integration/test_contrato_rutas.py` (contrato de rutas: los renombres internos no cambian ninguna ruta pública).

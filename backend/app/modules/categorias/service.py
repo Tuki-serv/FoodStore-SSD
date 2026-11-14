@@ -1,4 +1,3 @@
-from fastapi import HTTPException
 from typing import cast, Optional
 from sqlmodel import Session
 
@@ -30,7 +29,7 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
         current_parent_id = parent_id
         while current_parent_id is not None:
             if current_parent_id == categoria_id:
-                raise HTTPException(status_code=400, detail="No se puede generar un ciclo en el árbol de categorías")
+                raise AppError.http(400, "No se puede generar un ciclo en el árbol de categorías")
             parent = self._get_or_404(current_parent_id) 
             current_parent_id = parent.parent_id
 
@@ -141,7 +140,7 @@ class CategoriaService(base_service[Categoria, CategoriaCreate, CategoriaUpdate,
 
             if "parent_id" in patch:
                 if patch["parent_id"] == item_id:
-                    raise HTTPException(status_code=400, detail="Una categoría no puede ser padre de sí misma")
+                    raise AppError.http(400, "Una categoría no puede ser padre de sí misma")
                 if patch["parent_id"] is not None and patch["parent_id"] != categoria_db.parent_id:
                     self._get_or_404(patch["parent_id"])
                     self._validar_jerarquia_padre(item_id, patch["parent_id"])

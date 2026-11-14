@@ -2,7 +2,7 @@
 import pytest
 from sqlmodel import Session, select
 
-from app.core.unit_of_work import UnitOfWork
+from app.core.uow import UnitOfWork
 from app.modules.usuarios.models import Rol
 
 

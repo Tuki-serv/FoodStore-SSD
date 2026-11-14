@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlmodel import SQLModel
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -54,3 +55,8 @@ class NotificacionWebhook(BaseModel):
     x_request_id: Optional[str] = None
     query: dict[str, str] = {}
     body: dict = {}
+
+
+class FormaPagoRead(SQLModel):
+    codigo: str
+    descripcion: str

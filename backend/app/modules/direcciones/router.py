@@ -3,21 +3,16 @@ from fastapi import APIRouter, Depends, status
 
 from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
-from app.core.deps import get_current_active_user, get_uow
+from app.modules.auth.dependencies import get_current_active_user
 from app.modules.usuarios.schemas import UserPublic
-from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
-from app.modules.direcciones_entrega.schemas import DireccionCreate, DireccionRead, DireccionUpdate
-from app.modules.direcciones_entrega.service import DireccionService
+from app.modules.direcciones.schemas import DireccionCreate, DireccionRead, DireccionUpdate
+from app.modules.direcciones.dependencies import DireccionServiceDep
 
 router = APIRouter(prefix="/direcciones", tags=["Direcciones de Entrega"])
 
 # ==========================================
 # DEPENDENCIAS
 # ==========================================
-def get_direccion_service(uow: Annotated[UsuarioUnitOfWork, Depends(get_uow)]) -> DireccionService:
-    return DireccionService(session=uow._session)
-
-DireccionServiceDep = Annotated[DireccionService, Depends(get_direccion_service)]
 CurrentUser = Annotated[UserPublic, Depends(get_current_active_user)]
 
 # ==========================================

@@ -37,18 +37,14 @@ backend/app/
 ├── modules/                # Módulos feature-first
 │   ├── health/              # GET /health (liveness)
 │   ├── usuarios/            # Gestión de usuarios
-│   ├── direcciones_entrega/ # Direcciones de entrega
+│   ├──  direcciones/         # Direcciones de entrega
 │   ├── categorias/          # Gestión de categorías
 │   ├── productos/          # Gestión de productos
 │   ├── ingredientes/       # Gestión de ingredientes
 │   ├── unidades_medida/    # Unidades de medida
-│   ├── pedidos/            # Gestión de pedidos
-│   ├── pagos/             # Gestión de pagos
-│   ├── detalles_pedido/   # Detalles de pedido
-│   ├── estados_pedido/    # Estados de pedido
-│   ├── formas_pago/       # Formas de pago
-│   ├── historiales_estado_pedido/ # Historial de estados
-│   └── estadisticas/       # Estadísticas
+│   ├── pedidos/            # Pedidos (incluye estados, detalles e historial)
+│   ├── pagos/              # Pagos (incluye formas de pago)
+│   └── admin/              # Routers de admin: usuarios, estadísticas e imágenes
 └── utils/                  # Utilidades compartidas
     └── errores.py          # Manejo centralizado de errores
 ```
@@ -319,5 +315,15 @@ docker compose up -d db
 # desde backend/
 pytest
 ```
+
+### Cobertura y flujo e2e
+
+```bash
+# desde backend/
+pytest --cov --cov-report=term   # informa el total y falla si es < 60% (backend/.coveragerc)
+pytest -m e2e                    # solo el flujo completo compra -> pago -> entrega
+```
+
+El umbral (`fail_under = 60`) y el alcance (`source = app`) viven en `backend/.coveragerc`; no está en `addopts` para que `pytest` a secas siga siendo rápido.
 
 Dentro del contenedor `backend` de compose, la `DATABASE_URL` se declara en `docker-compose.yml` (host `db:5432`) y pisa la de `backend/.env` (que apunta a `localhost:5433`, para uvicorn/pytest locales).

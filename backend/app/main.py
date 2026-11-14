@@ -12,12 +12,12 @@ from app.utils.errores import (
 )
 from app.core.logger import setup_logging
 from app.core.rate_limit import limiter
-from app.core.cloudinary.router import router as imagen_router
+from app.modules.admin.router import estadisticas_router, imagenes_router, usuarios_admin_router
 from app.modules.health.router import router as health_router
 
-from app.modules.direcciones_entrega.router import router as direccion_router
+from app.modules.direcciones.router import router as direccion_router
 from app.modules.auth.router import auth_router
-from app.modules.usuarios.router import usuarios_router, admin_router
+from app.modules.usuarios.router import usuarios_router
 
 from app.modules.productos.router import router as producto_router
 from app.modules.ingredientes.router import router as ingrediente_router
@@ -25,7 +25,6 @@ from app.modules.categorias.router import router as categoria_router
 from app.modules.unidades_medida.router import router as unidad_medida_router
 
 from app.modules.pagos.router import router as pago_router
-from app.modules.estadisticas.router import router as estadisticas_router
 from app.modules.pedidos.router import router as pedido_router
 
 
@@ -59,7 +58,7 @@ def create_app() -> FastAPI:
     # ── Dominio 1 ──────────────────────────────────────
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(usuarios_router, prefix="/api/v1")
-    app.include_router(admin_router, prefix="/api/v1")
+    app.include_router(usuarios_admin_router, prefix="/api/v1")
     app.include_router(direccion_router, prefix="/api/v1")
 
     # ── Dominio 2 ──────────────────────────────────────
@@ -67,7 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(producto_router, prefix="/api/v1/productos", tags=["Productos"])
     app.include_router(ingrediente_router, prefix="/api/v1/ingredientes", tags=["Ingredientes"])
     app.include_router(unidad_medida_router, prefix="/api/v1/unidades-medida", tags=["Unidades de Medida"])
-    app.include_router(imagen_router, prefix="/api/v1", tags=["Imágenes"])
+    app.include_router(imagenes_router, prefix="/api/v1", tags=["Imágenes"])
 
     # ── Dominio 3 ──────────────────────────────────────
     app.include_router(pedido_router,

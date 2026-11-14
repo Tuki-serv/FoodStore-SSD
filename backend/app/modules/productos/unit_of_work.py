@@ -1,5 +1,5 @@
 from sqlmodel import Session
-from app.core.unit_of_work import UnitOfWork
+from app.core.uow import UnitOfWork
 from app.modules.productos.repository import ProductoRepository
 from app.modules.categorias.repository import CategoriaRepository
 from app.modules.ingredientes.repository import IngredienteRepository

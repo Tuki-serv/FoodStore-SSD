@@ -1,13 +1,12 @@
 from collections.abc import Callable
 from collections.abc import Set as AbstractSet
 from decimal import Decimal
-from fastapi import HTTPException
 from sqlmodel import Session
-from app.modules.detalles_pedido.models import DetallePedido
+from app.modules.pedidos.models import DetallePedido
 from app.core.websocket import ConnectionManager
-from app.modules.detalles_pedido.schemas import DetallePedidoRead
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
-from app.modules.historiales_estado_pedido.schemas import HistorialEstadoPedidoRead
+from app.modules.pedidos.schemas import DetallePedidoRead
+from app.modules.pedidos.models import HistorialEstadoPedido
+from app.modules.pedidos.schemas import HistorialEstadoPedidoRead
 from app.modules.pedidos.fsm import (
     ACTOR_SISTEMA,
     CANCELADO,
@@ -21,6 +20,7 @@ from app.core.errors import AppError, ErrorCode
 from app.core.pagination import PageParams
 from app.core.permissions import puede_acceder_a_propio, tiene_algun_rol
 from app.core.schemas import PaginatedResponse
+from app.modules.pedidos.filtros import FiltrosPedidos
 from app.modules.pedidos.models import Pedido
 from app.modules.pedidos.schemas import (
     PedidoCambioEstado,
@@ -28,7 +28,6 @@ from app.modules.pedidos.schemas import (
     PedidoDetalle,
     PedidoRead,
     PedidoResumen,
-    FiltrosPedidos,
 )
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
 from app.modules.productos.stock_service import LineaStock, ProductoNoDisponible, StockInsuficiente, StockService
@@ -36,6 +35,9 @@ import logging
 
 logger = logging.getLogger("app.modules.pedidos.service")
 logging.basicConfig(level=logging.INFO)
+
+ROLES_COCINA = frozenset({"COCINA", "ADMIN", "PEDIDOS"})
+"""Roles que pueden suscribirse al tablero de cocina por WebSocket."""
 
 MOTIVO_SIN_STOCK = "Sin stock"
 MOTIVO_CANCELACION_CLIENTE = "Cancelado por el cliente"
@@ -93,21 +95,16 @@ class PedidoService:
                 pers = tuple(sorted(item.personalizacion)) if item.personalizacion else tuple()
                 identificador = (item.producto_id, pers)
                 if identificador in items_unicos:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="No puede pedir dos veces el mismo producto con la misma personalización",
-                    )
+                    raise AppError.http(400, "No puede pedir dos veces el mismo producto con la misma personalización")
                 items_unicos.add(identificador)
             subtotal = Decimal("0.00")
             detalles_creados = []
             for item in data.items:
                 producto = uow.productos.get_by_id(item.producto_id)
                 if producto is None:
-                    raise HTTPException(
-                        status_code=404, detail="Producto no encontrado")
+                    raise AppError.http(404, "Producto no encontrado")
                 if getattr(producto, "deleted_at", None) is not None:
-                    raise HTTPException(
-                        status_code=404, detail="Producto no encontrado")
+                    raise AppError.http(404, "Producto no encontrado")
                 precio_snapshot = producto.precio_base
                 subtotal_snapshot = precio_snapshot * item.cantidad
                 subtotal += subtotal_snapshot
@@ -176,9 +173,9 @@ class PedidoService:
         try:
             StockService(uow.productos).verificar(lineas)
         except ProductoNoDisponible:
-            raise HTTPException(status_code=400, detail="Producto no disponible")
+            raise AppError.http(400, "Producto no disponible")
         except StockInsuficiente:
-            raise HTTPException(status_code=400, detail="No hay stock suficiente")
+            raise AppError.http(400, "No hay stock suficiente")
 
     def _obtener_pedido_visible(
         self, uow: PedidoUnitOfWork, pedido_id: int, usuario_id: int, roles: AbstractSet[str]
@@ -250,6 +247,23 @@ class PedidoService:
             )
         return resultado
 
+    def puede_suscribirse(self, pedido_id: int, usuario_id: int) -> bool:
+        """Canal en tiempo real de un pedido: solo su dueño, y solo si el pedido existe y no fue eliminado."""
+        with self._uow as uow:
+            pedido = uow.pedidos.get_by_id(pedido_id)
+            return pedido is not None and pedido.deleted_at is None and pedido.usuario_id == usuario_id
+
+    def rol_para_cocina(self, usuario_id: int) -> str | None:
+        """Rol con el que un usuario de gestión (`COCINA`, `ADMIN`, `PEDIDOS`) se suscribe al tablero de cocina.
+
+        Devuelve el código de su primer rol, o `None` si el usuario no existe o no tiene ningún rol de gestión.
+        """
+        with self._uow as uow:
+            usuario = uow.usuarios.get_by_id(usuario_id)
+            if usuario is None or not any(rol.codigo in ROLES_COCINA for rol in usuario.roles):
+                return None
+            return usuario.roles[0].codigo
+
     def _obtener_pedido_o_404(self, uow, pedido_id: int) -> Pedido:
         pedido = uow.pedidos.get_by_id(pedido_id)
         if pedido is None or pedido.deleted_at is not None:
@@ -259,11 +273,9 @@ class PedidoService:
     def _validar_forma_pago(self, uow, codigo: str):
         forma_pago = uow.formas_pago.get_by_codigo(codigo)
         if forma_pago is None:
-            raise HTTPException(
-                status_code=400, detail="Forma de pago no encontrada")
+            raise AppError.http(400, "Forma de pago no encontrada")
         if not forma_pago.habilitado:
-            raise HTTPException(
-                status_code=400, detail="Forma de pago no está habilitada")
+            raise AppError.http(400, "Forma de pago no está habilitada")
         return forma_pago
 
     def _obtener_estado_o_error(
@@ -275,7 +287,7 @@ class PedidoService:
     ):
         estado = uow.estados.get_by_codigo(codigo)
         if estado is None:
-            raise HTTPException(status_code=status_code, detail=mensaje)
+            raise AppError.http(status_code, mensaje)
         return estado
 
     def _transicionar(
@@ -306,10 +318,7 @@ class PedidoService:
                 409, ErrorCode.INVALID_TRANSITION, detalle or f"No se puede cambiar de {origen} a {destino}"
             )
         if destino == self.ESTADOS["cancelado"] and not motivo:
-            raise HTTPException(
-                status_code=400,
-                detail="El motivo es obligatorio para cancelar un pedido",
-            )
+            raise AppError.http(400, "El motivo es obligatorio para cancelar un pedido")
 
         pedido.estado_codigo = destino
         uow.pedidos.update(pedido)

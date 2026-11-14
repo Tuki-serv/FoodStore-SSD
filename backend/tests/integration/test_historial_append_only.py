@@ -5,8 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
-from app.modules.historiales_estado_pedido.repository import (
+from app.modules.pedidos.models import HistorialEstadoPedido
+from app.modules.pedidos.repository import (
     HistorialEstadoPedidoRepository,
     HistorialInmutableError,
 )

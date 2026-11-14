@@ -1,9 +1,7 @@
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Path, Query, status
-from sqlmodel import Session
 
-from app.core.database import get_session
-from app.core.deps import lector_privilegiado, require_role
+from app.modules.auth.dependencies import lector_privilegiado, require_role
 from app.core.enums import EstadoFiltro
 from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
@@ -11,20 +9,18 @@ from app.modules.categorias.schemas import (
     CategoriaCreate, CategoriaRead, 
     CategoriaReadFull, CategoriaTreeList, CategoriaUpdate
 )
-from app.modules.categorias.service import CategoriaService
+from app.modules.categorias.dependencies import CategoriaServiceDep
 
 router = APIRouter(tags=["Categorías"])
 
 # Lectura pública: los eliminados solo los ve ADMIN (el rol se declara acá).
 VeEliminados = Annotated[bool, Depends(lector_privilegiado(["ADMIN"]))]
 
-def get_categoria_service(session: Session = Depends(get_session)) -> CategoriaService:
-    return CategoriaService(session)
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/", response_model=CategoriaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(["ADMIN"]))])
-def create_categoria(data: CategoriaCreate, svc: CategoriaService = Depends(get_categoria_service)):
+def create_categoria(data: CategoriaCreate, svc: CategoriaServiceDep):
     return svc.create(data)
 
 
@@ -35,7 +31,7 @@ def list_categorias(
     is_principal: Annotated[Optional[bool], Query(description="Traer solo principales (sin padre)")] = None,
     parent_id: Annotated[Optional[int], Query(description="Traer subcategorías de un padre")] = None,
     estado: Annotated[EstadoFiltro, Query(description="Filtrar por estado")] = EstadoFiltro.ACTIVO,
-    svc: CategoriaService = Depends(get_categoria_service)
+    *, svc: CategoriaServiceDep
 ):
     # Reemplace 4 endpoints en 1 solo llamado dinámico, Tuki aguanten los query params
     return svc.get_all_categorias(
@@ -44,7 +40,7 @@ def list_categorias(
 
 
 @router.get("/arbol", response_model=CategoriaTreeList, summary="Obtener árbol completo")
-def get_tree(svc: CategoriaService = Depends(get_categoria_service)):
+def get_tree(svc: CategoriaServiceDep):
     return svc.get_tree()
 
 
@@ -53,7 +49,7 @@ def get_categoria(
     categoria_id: Annotated[int, Path(ge=1)],
     ver_eliminados: VeEliminados,
     incluir_eliminado: Annotated[bool, Query(description="Permitir ver el registro aunque esté eliminado")] = False,
-    svc: CategoriaService = Depends(get_categoria_service)
+    *, svc: CategoriaServiceDep
 ):
     return svc.get_by_id_full(categoria_id, allow_deleted=incluir_eliminado, ver_eliminados=ver_eliminados)
 
@@ -62,7 +58,7 @@ def get_categoria(
 def update_categoria(
     categoria_id: Annotated[int, Path(ge=1)], 
     data: CategoriaUpdate, 
-    svc: CategoriaService = Depends(get_categoria_service)
+    svc: CategoriaServiceDep
 ):
     return svc.update(categoria_id, data)
 
@@ -70,7 +66,7 @@ def update_categoria(
 @router.delete("/{categoria_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(["ADMIN"]))])
 def delete_categoria(
     categoria_id: Annotated[int, Path(ge=1)], 
-    svc: CategoriaService = Depends(get_categoria_service)
+    svc: CategoriaServiceDep
 ):
     svc.delete(categoria_id)
     return None

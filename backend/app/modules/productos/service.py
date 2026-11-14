@@ -1,4 +1,4 @@
-from fastapi import HTTPException
+from app.core.errors import AppError
 from typing import Optional, cast
 from pydantic import BaseModel
 from sqlmodel import Session
@@ -62,7 +62,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         """Producto que el lector puede ver (misma regla de visibilidad para el detalle y sus ingredientes): si no, 404."""
         producto = self._get_or_404(producto_id, allow_deleted and ver_eliminados)
         if not ver_no_disponibles and not producto.disponible:
-            raise HTTPException(status_code=404, detail=f"{self.model.__name__} no encontrado/a")
+            raise AppError.http(404, f"{self.model.__name__} no encontrado/a")
         return producto
 
     def _to_read_full(self, producto: Producto) -> ProductoReadFull:
@@ -189,7 +189,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
             producto = self._get_or_404(producto_id)
             relacion = uow.producto_ingredientes.get(producto.id, ingrediente_id)
             if relacion is None:
-                raise HTTPException(status_code=404, detail="El producto no tiene asociado ese ingrediente")
+                raise AppError.http(404, "El producto no tiene asociado ese ingrediente")
             uow.producto_ingredientes.delete(relacion)
 
     def create(self, data: ProductoCreate) -> ProductoReadFull:
@@ -204,8 +204,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
             for i, cat_id in enumerate(data.categoria_ids):
                 cat = self.uow.categorias.get_by_id(cat_id)
                 if not cat or getattr(cat, "deleted_at", None) is not None:
-                    raise HTTPException(
-                        status_code=404, detail=f"Categoría con ID {cat_id} no encontrada o eliminada")
+                    raise AppError.http(404, f"Categoría con ID {cat_id} no encontrada o eliminada")
 
                 link = ProductoCategoria(
                     producto_id=cast(int, nuevo_producto.id),
@@ -219,8 +218,10 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                     ing = self.uow.ingredientes.get_by_id(
                         ing_input.ingrediente_id)
                     if not ing or getattr(ing, "deleted_at", None) is not None:
-                        raise HTTPException(
-                            status_code=404, detail=f"Ingrediente con ID {ing_input.ingrediente_id} no encontrado o eliminado")
+                        raise AppError.http(
+                            404,
+                            f"Ingrediente con ID {ing_input.ingrediente_id} no encontrado o eliminado",
+                        )
 
                     link_ing = ProductoIngrediente(
                         producto_id=cast(int, nuevo_producto.id),
@@ -244,8 +245,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                 unidad = self.uow.unidad_medida.get_by_id(
                     patch["unidad_venta_id"])
                 if not unidad:
-                    raise HTTPException(
-                        status_code=404, detail=f"Unidad de medida con ID {patch['unidad_venta_id']} no encontrada")
+                    raise AppError.http(404, f"Unidad de medida con ID {patch['unidad_venta_id']} no encontrada")
 
             self._validar_unicos(patch, excluir_id=producto_id)
 
@@ -266,8 +266,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                 for i, cat_id in enumerate(data.categoria_ids):
                     cat = self.uow.categorias.get_by_id(cat_id)
                     if not cat or getattr(cat, "deleted_at", None) is not None:
-                        raise HTTPException(
-                            status_code=404, detail=f"Categoría con ID {cat_id} no encontrada")
+                        raise AppError.http(404, f"Categoría con ID {cat_id} no encontrada")
 
                     link = ProductoCategoria(
                         producto_id=producto_id, categoria_id=cat_id, es_principal=(i == 0))
@@ -283,8 +282,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                     ing = self.uow.ingredientes.get_by_id(
                         ing_input.ingrediente_id)
                     if not ing or getattr(ing, "deleted_at", None) is not None:
-                        raise HTTPException(
-                            status_code=404, detail=f"Ingrediente con ID {ing_input.ingrediente_id} no encontrado")
+                        raise AppError.http(404, f"Ingrediente con ID {ing_input.ingrediente_id} no encontrado")
 
                     link_ing = ProductoIngrediente(
                         producto_id=producto_id,
@@ -347,13 +345,11 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
 
             ingrediente = uow.ingredientes.get_by_id(data.ingrediente_id)
             if not ingrediente or getattr(ingrediente, "deleted_at", None) is not None:
-                raise HTTPException(
-                    status_code=404, detail="Ingrediente no encontrado")
+                raise AppError.http(404, "Ingrediente no encontrado")
 
             unidad = uow.unidad_medida.get_by_id(data.unidad_medida_id)
             if not unidad or getattr(unidad, "deleted_at", None) is not None:
-                raise HTTPException(
-                    status_code=404, detail="Unidad de medida no encontrada")
+                raise AppError.http(404, "Unidad de medida no encontrada")
 
             # Buscamos si ya existe la relación (para no duplicar la PK compuesta)
             relacion = uow.producto_ingredientes.get(
@@ -401,7 +397,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
     def _get_bloqueado_or_404(self, producto_id: int) -> Producto:
         producto = self.repo.get_for_update(producto_id)
         if producto is None or producto.deleted_at is not None:
-            raise HTTPException(status_code=404, detail=f"{self.model.__name__} no encontrado/a")
+            raise AppError.http(404, f"{self.model.__name__} no encontrado/a")
         return producto
 
     def fijar_disponibilidad(self, producto_id: int, disponible: bool) -> ProductoReadFull:

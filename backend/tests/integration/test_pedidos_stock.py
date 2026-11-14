@@ -2,7 +2,7 @@
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
+from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles

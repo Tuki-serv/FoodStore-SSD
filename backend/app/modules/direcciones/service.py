@@ -1,14 +1,14 @@
 from typing import List
-from fastapi import HTTPException, status
+from app.core.errors import AppError
 from sqlmodel import Session
 
 from app.core.service import base_service
 from app.core.pagination import PageParams
 from app.core.schemas import PaginatedResponse
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
-from app.modules.direcciones_entrega.models import DireccionEntrega
-from app.modules.direcciones_entrega.schemas import DireccionCreate, DireccionRead, DireccionUpdate
-from app.modules.direcciones_entrega.repository import DireccionRepository
+from app.modules.direcciones.models import DireccionEntrega
+from app.modules.direcciones.schemas import DireccionCreate, DireccionRead, DireccionUpdate
+from app.modules.direcciones.repository import DireccionRepository
 
 class DireccionService(base_service[DireccionEntrega, DireccionCreate, DireccionUpdate, UsuarioUnitOfWork]):
     def __init__(self, session: Session):
@@ -26,10 +26,7 @@ class DireccionService(base_service[DireccionEntrega, DireccionCreate, Direccion
     def _get_direccion_segura_or_404(self, direccion_id: int, usuario_id: int) -> DireccionEntrega:
         direccion = self._get_or_404(direccion_id)
         if direccion.usuario_id != usuario_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para operar sobre esta dirección"
-            )
+            raise AppError.http(403, "No tienes permisos para operar sobre esta dirección")
         return direccion
 
     def obtener_direccion_propia(self, direccion_id: int, usuario_id: int) -> DireccionEntrega:

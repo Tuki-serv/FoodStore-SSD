@@ -4,7 +4,7 @@ from sqlalchemy.orm import selectinload
 from app.core.pagination import PageParams
 from app.core.repository import BaseRepository
 from app.core.enums import EstadoFiltro
-from app.modules.direcciones_entrega.models import DireccionEntrega
+from app.modules.direcciones.models import DireccionEntrega
 
 class DireccionRepository(BaseRepository[DireccionEntrega]):
     def __init__(self, session: Session):

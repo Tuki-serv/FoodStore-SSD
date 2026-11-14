@@ -2,7 +2,7 @@ from typing import Optional, List
 from uuid import UUID
 from sqlmodel import Session, select
 from app.core.repository import BaseRepository
-from app.modules.pagos.models import Pago
+from app.modules.pagos.models import FormaPago, Pago
 
 class PagoRepository(BaseRepository[Pago]):
     """Repositorio de pagos con métodos de búsqueda específicos de MP."""
@@ -53,3 +53,15 @@ class PagoRepository(BaseRepository[Pago]):
         return self.session.exec(
             select(Pago).where(Pago.mp_merchant_order_id == merchant_order_id).with_for_update()
         ).first()
+
+
+#============= POR SI HACE FALTA ===============
+# Puede ser utilizado para verificar que la forma de pago existe
+
+class FormaPagoRepository (BaseRepository[FormaPago]):
+    def __init__(self, session: Session):
+        super().__init__(session, FormaPago)
+
+    def get_by_codigo(self, codigo: str) -> FormaPago | None:
+        statement = select(FormaPago).where(FormaPago.codigo == codigo)
+        return self.session.exec(statement).first()

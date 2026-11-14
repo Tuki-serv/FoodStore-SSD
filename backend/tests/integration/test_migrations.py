@@ -14,9 +14,9 @@ from sqlmodel import Session
 
 from app.db.migrations import build_alembic_config, current_and_head, upgrade_to_head
 from app.db.models import import_all_models
-from app.modules.detalles_pedido.models import DetallePedido
-from app.modules.estados_pedido.models import EstadoPedido
-from app.modules.formas_pago.models import FormaPago
+from app.modules.pedidos.models import DetallePedido
+from app.modules.pedidos.models import EstadoPedido
+from app.modules.pagos.models import FormaPago
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from app.modules.unidades_medida.models import UnidadMedida

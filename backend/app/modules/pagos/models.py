@@ -38,3 +38,11 @@ class Pago(SQLModel, table=True):
 #============== Audit ================
     created_at: datetime = aware_datetime_field(default_now=True)
     updated_at: datetime = aware_datetime_field(default_now=True)
+
+
+class FormaPago(SQLModel, table=True):
+    __tablename__ = "forma_pago"
+
+    codigo: str = Field(primary_key=True, max_length=20)
+    descripcion: str = Field(max_length=80 , nullable=False)
+    habilitado: bool = Field(nullable=False, default=True) 

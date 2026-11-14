@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.main import app
-from app.modules.pagos.router import get_payment_service
+from app.modules.pagos.dependencies import get_payment_service
 from app.modules.pagos.service import PaymentService
 from app.modules.pedidos.service import PedidoService, descontar_stock_al_confirmar
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork

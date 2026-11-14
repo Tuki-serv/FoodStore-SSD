@@ -3,8 +3,8 @@ from uuid import uuid4
 
 from sqlmodel import Session, select
 
-from app.modules.detalles_pedido.models import DetallePedido
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
+from app.modules.pedidos.models import DetallePedido
+from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pagos.models import Pago
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto

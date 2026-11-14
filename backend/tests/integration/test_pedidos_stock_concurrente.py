@@ -16,10 +16,10 @@ from sqlmodel import Session, select
 from app.core.database import get_session
 from app.db.seed import seed_catalogos
 from app.main import app
-from app.modules.detalles_pedido.models import DetallePedido
-from app.modules.estados_pedido.models import EstadoPedido
-from app.modules.formas_pago.models import FormaPago
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
+from app.modules.pedidos.models import DetallePedido
+from app.modules.pedidos.models import EstadoPedido
+from app.modules.pagos.models import FormaPago
+from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from app.modules.usuarios.models import Rol, Usuario, UsuarioRol

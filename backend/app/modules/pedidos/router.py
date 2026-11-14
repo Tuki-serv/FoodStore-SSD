@@ -1,29 +1,22 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status, Query, WebSocket, WebSocketDisconnect, BackgroundTasks
-from app.core.websocket import ConnectionManager, get_connection_manager, manager
-from sqlmodel import Session
+from app.core.websocket import ConnectionManager, get_connection_manager
 
 from app.core.security import decode_access_token
-from app.core.database import get_session
-from app.core.deps import get_current_active_user, get_current_roles, require_role
+from app.modules.auth.dependencies import get_current_active_user, get_current_roles, require_role
 from app.modules.usuarios.schemas import UserPublic
-from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork, get_uow
 from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
-from app.modules.pedidos.schemas import FiltrosPedidos, PedidoCambioEstado, PedidoCancelacion, PedidoCreate, PedidoDetalle, PedidoResumen
-from app.modules.historiales_estado_pedido.schemas import HistorialEstadoPedidoRead
-from app.modules.pedidos.service import PedidoService, construir_pedido_service
-from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
+from app.modules.pedidos.dependencies import PedidoServiceDep
+from app.modules.pedidos.filtros import FiltrosPedidos
+from app.modules.pedidos.schemas import PedidoCambioEstado, PedidoCancelacion, PedidoCreate, PedidoDetalle, PedidoResumen
+from app.modules.pedidos.schemas import HistorialEstadoPedidoRead
 
 router = APIRouter()
 
 CurrentUser = Annotated[UserPublic, Depends(get_current_active_user)]
 CurrentRoles = Annotated[frozenset[str], Depends(get_current_roles)]
-
-
-def get_pedido_service(session: Session = Depends(get_session)) -> PedidoService:
-    return construir_pedido_service(session)
 
 
 # ══════════════════════════════════════════════════════
@@ -35,7 +28,7 @@ def get_pedido_service(session: Session = Depends(get_session)) -> PedidoService
 def crear_pedido(
     data: PedidoCreate,
     current_user: CurrentUser,
-    service: PedidoService = Depends(get_pedido_service),
+    service: PedidoServiceDep,
 ) -> PedidoDetalle:
     resultado = service.crear_pedido(data, current_user.id)
     return resultado
@@ -51,7 +44,7 @@ def listar_pedidos(
     roles: CurrentRoles,
     params: PageQuery,
     filtros: Annotated[FiltrosPedidos, Depends()],
-    service: PedidoService = Depends(get_pedido_service),
+    service: PedidoServiceDep,
 ) -> PaginatedResponse[PedidoResumen]:
     return service.listar_pedidos(current_user.id, roles, filtros, params)
 
@@ -61,7 +54,7 @@ def obtener_pedido(
     pedido_id: int,
     current_user: CurrentUser,
     roles: CurrentRoles,
-    service: PedidoService = Depends(get_pedido_service),
+    service: PedidoServiceDep,
 ) -> PedidoDetalle:
     return service.obtener_detalle(pedido_id, current_user.id, roles)
 
@@ -71,7 +64,7 @@ def obtener_historial_pedido(
     pedido_id: int,
     current_user: CurrentUser,
     roles: CurrentRoles,
-    service: PedidoService = Depends(get_pedido_service),
+    service: PedidoServiceDep,
 ) -> list[HistorialEstadoPedidoRead]:
     return service.obtener_historial(pedido_id, current_user.id, roles)
 
@@ -83,7 +76,7 @@ async def cambiar_estado_pedido(
     current_user: CurrentUser,
     roles: CurrentRoles,
     ws_manager: ConnectionManager = Depends(get_connection_manager),
-    service: PedidoService = Depends(get_pedido_service),
+    *, service: PedidoServiceDep,
 ) -> PedidoDetalle:
     resultado = await service.cambiar_estado_pedido(
         pedido_id, 
@@ -102,7 +95,7 @@ def cancelar_pedido(
     current_user: CurrentUser,
     roles: CurrentRoles,
     data: PedidoCancelacion | None = None,
-    service: PedidoService = Depends(get_pedido_service),
+    *, service: PedidoServiceDep,
 ) -> PedidoDetalle:
     """El cliente cancela su propio pedido. Body opcional `{motivo}`; la baja nunca borra el pedido."""
     return service.cancelar_pedido_propio(pedido_id, current_user.id, roles, data.motivo if data else None)
@@ -114,7 +107,7 @@ def cancelar_pedido(
 @router.get("/cocina/pedidos", response_model=PaginatedResponse[PedidoResumen], dependencies=[Depends(require_role(["COCINA", "ADMIN", "PEDIDOS"]))])
 def obtener_pedidos_cocina(
     params: PageQuery,
-    service: PedidoService = Depends(get_pedido_service),
+    service: PedidoServiceDep,
 ) -> PaginatedResponse[PedidoResumen]:
     return service.listar_cocina(params)
 
@@ -122,10 +115,10 @@ def obtener_pedidos_cocina(
 @router.websocket("/cocina/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
+    # Inyectamos el service: él decide si el usuario puede ver el tablero de cocina
+    service: PedidoServiceDep,
     # Inyectamos el manager para tener acceso a la lista global de túneles abiertos
     manager: ConnectionManager = Depends(get_connection_manager),
-    # Inyectamos el UnitOfWork para poder consultar la base de datos de usuarios
-    uow: UsuarioUnitOfWork = Depends(get_uow),
 ):
     # FASE 1: BÚSQUEDA DE LA CREDENCIAL
     # A diferencia de un endpoint HTTP normal, el frontend en JavaScript no puede
@@ -167,24 +160,19 @@ async def websocket_endpoint(
     # FASE 3: VALIDACIÓN DE NEGOCIO (EL "PATOVICA")
     # Ya sabemos que el token es criptográficamente válido, pero ¿el usuario sigue existiendo
     # en la base de datos? ¿Y tiene permiso para ver esta pantalla?
-    with uow:
-        # Buscamos al usuario en la BD usando el ID que sacamos del token
-        user = uow.usuarios.get_by_id(user_id)
-
-        # Validamos dos cosas de un plumazo:
-        # 1. Que el usuario exista ('not user')
-        # 2. Que su rol (en mayúsculas por seguridad) sea uno de los permitidos.
-        # Si es un cliente normal (rol "CLIENT"), lo rebotamos.
-        if not user or not any(rol.codigo in ["COCINA", "ADMIN", "PEDIDOS"] for rol in user.roles):
-            await websocket.accept()
-            await websocket.close(code=1008, reason="Permisos insuficientes")
-            return
+    # El service verifica dos cosas: que el usuario exista y que tenga un rol de gestión
+    # (COCINA, ADMIN o PEDIDOS). Si es un cliente normal (rol "CLIENT"), lo rebotamos.
+    rol = service.rol_para_cocina(user_id)
+    if rol is None:
+        await websocket.accept()
+        await websocket.close(code=1008, reason="Permisos insuficientes")
+        return
 
     # FASE 4: EL REGISTRO
     # ¡Pasó todos los controles de seguridad! Oficialmente le abrimos la puerta.
     # El manager suscribe este websocket a la room de su rol y a la room
     # funcional KDS para recibir los eventos en tiempo real.
-    await manager.connect(websocket, user.roles[0].codigo, user_id)
+    await manager.connect(websocket, rol, user_id)
     manager.join_role_room(websocket, "KDS")
 
     # FASE 5: LA VIGILIA (MANTENER EL TÚNEL VIVO)
@@ -202,20 +190,20 @@ async def websocket_endpoint(
     except WebSocketDisconnect:
         # Capturamos la explosión en silencio y le avisamos al manager que borre
         # a este websocket de su memoria porque ya no sirve más.
-        await manager.disconnect(websocket)
+        manager.disconnect(websocket)
 
     # Por las dudas, si ocurre CUALQUIER otro error raro, también lo desconectamos
     # para no dejar conexiones fantasma ocupando memoria RAM en el servidor.
     except Exception:
-        await manager.disconnect(websocket)
+        manager.disconnect(websocket)
 
 
 @router.websocket("/{pedido_id}/ws")
 async def websocket_pedido_endpoint(
     pedido_id: int,
     websocket: WebSocket,
+    service: PedidoServiceDep,
     manager: ConnectionManager = Depends(get_connection_manager),
-    session: Session = Depends(get_session)
 ):
     token = websocket.cookies.get("access_token")
 
@@ -243,13 +231,10 @@ async def websocket_pedido_endpoint(
         await websocket.close(code=1008, reason="Token inválido (sub no es entero)")
         return
 
-    pedido_uow = PedidoUnitOfWork(session)
-    with pedido_uow:
-        pedido = pedido_uow.pedidos.get_by_id(pedido_id)
-        if not pedido or pedido.usuario_id != user_id:
-            await websocket.accept()
-            await websocket.close(code=1008, reason="Pedido no encontrado o permisos insuficientes")
-            return
+    if not service.puede_suscribirse(pedido_id, user_id):
+        await websocket.accept()
+        await websocket.close(code=1008, reason="Pedido no encontrado o permisos insuficientes")
+        return
 
     await manager.connect(websocket, "CLIENT", user_id)
     manager.join_role_room(websocket, f"pedido:{pedido_id}")
@@ -258,6 +243,6 @@ async def websocket_pedido_endpoint(
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        await manager.disconnect(websocket)
+        manager.disconnect(websocket)
     except Exception:
-        await manager.disconnect(websocket)
+        manager.disconnect(websocket)

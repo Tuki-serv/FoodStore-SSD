@@ -1,5 +1,5 @@
 """
-Dependencias de autenticación y autorización para FastAPI.
+Dependencias del módulo `auth`: autenticación y autorización para FastAPI, y composición de `AuthService` (D1, D2).
 
 Este módulo define funciones que se inyectan con Depends() para:
 - Extraer el token JWT desde el request
@@ -29,7 +29,7 @@ Convenciones HTTP:
     403 → Autenticado pero sin permisos suficientes
 
 Arquitectura:
-    - Capa Core (dependencias reutilizables)
+    - Módulo `auth` (dependencias reutilizables por los routers de los demás módulos)
     - Depende de:
         * Unit of Work (acceso a datos)
         * Seguridad (JWT)
@@ -43,10 +43,14 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status  # Inyección y manejo de errores HTTP
 from fastapi.security import OAuth2PasswordBearer  # Manejo estándar de OAuth2 con Bearer
 
+from app.core.database import SessionDep
 from app.core.permissions import tiene_algun_rol  # Primitiva pura de autorización
+from app.core.rate_limit import LimitadorPorClave, RegistroIntentos, limiter
 from app.core.security import decode_access_token  # Función para decodificar JWT
-# from app.core.unit_of_work import UnitOfWork, get_uow       # Patrón Unit of Work para DB
-from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork, get_uow # Patrón Unit of Work para DB
+from app.modules.auth.service import LIMITE_FALLOS_LOGIN, AuthService
+from app.modules.auth.unit_of_work import AuthUnitOfWork
+from app.modules.usuarios.dependencies import get_uow
+from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
 from app.modules.usuarios.models import Usuario     # Modelo de dominio Usuario
 
 # El access viaja SOLO por `Authorization: Bearer` (una cookie `access_token` no autentica).
@@ -185,3 +189,23 @@ def lector_privilegiado(roles: list[str]):
         return tiene_algun_rol({rol.codigo for rol in usuario.roles}, roles)
 
     return lector
+
+
+# ─── Composición de `AuthService` ────────────────────────────────────────────────────────────────────────────────────
+def get_auth_uow(session: SessionDep) -> AuthUnitOfWork:
+    return AuthUnitOfWork(session)
+
+
+def get_registro_intentos_login() -> RegistroIntentos:
+    """Cuenta los logins fallidos por IP (ámbito `login-fallos`); sobrescribible en tests."""
+    return LimitadorPorClave(limiter, LIMITE_FALLOS_LOGIN, "login-fallos")
+
+
+def get_auth_service(
+    uow: Annotated[AuthUnitOfWork, Depends(get_auth_uow)],
+    intentos: Annotated[RegistroIntentos, Depends(get_registro_intentos_login)],
+) -> AuthService:
+    return AuthService(uow, intentos)
+
+
+AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]

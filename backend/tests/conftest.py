@@ -248,7 +248,7 @@ def producto_db_fixture(session: Session):
 @pytest.fixture(name="direccion_db")
 def direccion_db_fixture(session: Session, normal_user: dict):
     """Dirección real del usuario normal: evita ids hardcodeados (las secuencias de Postgres no se revierten)."""
-    from app.modules.direcciones_entrega.models import DireccionEntrega
+    from app.modules.direcciones.models import DireccionEntrega
 
     direccion = DireccionEntrega(
         usuario_id=normal_user["id"], linea1="Calle Falsa 123", ciudad="Mendoza", es_principal=True
@@ -274,7 +274,7 @@ def unidad_medida_db_fixture(session: Session):
 @pytest.fixture(name="pedido_db")
 def pedido_db_fixture(session: Session, normal_user: dict, producto_db, direccion_db):
     from app.modules.pedidos.models import Pedido
-    from app.modules.detalles_pedido.models import DetallePedido
+    from app.modules.pedidos.models import DetallePedido
 
     pedido = Pedido(
         usuario_id=normal_user["id"],

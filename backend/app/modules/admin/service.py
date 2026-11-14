@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
-from app.modules.estadisticas.schemas import (
+from app.modules.admin.schemas import (
     VentasPeriodoItem,
     ProductoTopItem,
     PedidosEstadoItem,

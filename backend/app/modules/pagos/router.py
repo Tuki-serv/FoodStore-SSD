@@ -2,13 +2,11 @@ import json
 import logging
 from typing import Annotated
 from fastapi import APIRouter, Depends, Request, BackgroundTasks
-from sqlmodel import Session
 
-from app.core.database import get_session
-from app.core.deps import get_current_active_user, get_current_roles
+from app.modules.auth.dependencies import get_current_active_user, get_current_roles
 from app.modules.usuarios.schemas import UserPublic
 from app.modules.pagos.schemas import CrearPagoRequest, NotificacionWebhook, PagoCrearResponse, PagoEstadoResponse
-from app.modules.pagos.service import PaymentService
+from app.modules.pagos.dependencies import PaymentServiceDep
 from app.modules.pedidos.schemas import PedidoDetalle
 from app.core.websocket import manager
 
@@ -18,9 +16,6 @@ router = APIRouter(prefix="/api/v1/pagos", tags=["pagos"])
 
 CurrentUser = Annotated[UserPublic, Depends(get_current_active_user)]
 CurrentRoles = Annotated[frozenset[str], Depends(get_current_roles)]
-
-def get_payment_service(session: Session = Depends(get_session)) -> PaymentService:
-    return PaymentService(session)
 
 
 EVENTOS_WS = {
@@ -61,7 +56,7 @@ def crear_pago(
     background_tasks: BackgroundTasks,
     current_user: CurrentUser,
     roles: CurrentRoles,
-    svc: PaymentService = Depends(get_payment_service),
+    svc: PaymentServiceDep,
 ):
     """
     Rúbrica: Crea pago (Checkout API). Cobra con el token de tarjeta del brick `CardPayment` de forma sincrónica y
@@ -78,7 +73,7 @@ def crear_pago(
 async def webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    svc: PaymentService = Depends(get_payment_service),
+    svc: PaymentServiceDep,
 ):
     """
     Rúbrica: Endpoint IPN de MercadoPago. Autenticado por firma (x-signature), idempotente y atómico.
@@ -97,7 +92,7 @@ def consultar_pago(
     pedido_id: int,
     current_user: CurrentUser,
     roles: CurrentRoles,
-    svc: PaymentService = Depends(get_payment_service),
+    svc: PaymentServiceDep,
 ):
     """
     Rúbrica: Consulta el pago asociado a un pedido.

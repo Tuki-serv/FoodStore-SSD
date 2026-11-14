@@ -1,4 +1,3 @@
-from fastapi import HTTPException
 from typing import cast, Optional
 from sqlmodel import Session
 

@@ -49,13 +49,14 @@
 
 | Capa | Archivo | Responsabilidad |
 |------|---------|-----------------|
-| Router | `router.py` | HTTP puro: parsear/validar con Pydantic, delegar al Service, serializar con `response_model`. Sin lógica de negocio |
-| Service | `service.py` | Lógica de negocio, stateless; recibe el UoW; lanza `HTTPException`; **no** hace commit/rollback directo |
-| UoW | `core/unit_of_work.py` | Context manager: `commit()` al salir sin excepción, `rollback()` si hay error; expone repositorios |
+| Router | `router.py` | HTTP puro: parsear/validar con Pydantic, delegar al Service (inyectado con `XServiceDep`), serializar con `response_model`. Sin lógica de negocio ni acceso a datos |
+| Composición | `dependencies.py` | Raíz de composición del módulo: única que importa `SessionDep` y arma `UoW → Service`; expone `get_<x>_service` y `XServiceDep`. Sin lógica de negocio |
+| Service | `service.py` | Lógica de negocio, stateless; recibe el UoW; lanza `AppError` (`AppError.http(status, detalle)` para errores genéricos) sin importar FastAPI; **no** hace commit/rollback directo |
+| UoW | `core/uow.py` | Context manager: `commit()` al salir sin excepción, `rollback()` si hay error; expone repositorios |
 | Repository | `repository.py` | Acceso a BD sin lógica de negocio; hereda de `BaseRepository[T]` |
 | Model | `model.py` | Tablas SQLModel y relaciones |
 
-Organización **feature-first** (módulo por funcionalidad). Módulos `[INT]`: `auth`, `refreshtokens`, `usuarios`, `direcciones`, `categorias`, `productos`, `pedidos`, `pagos`, `admin`. Módulos reales del backend: `usuarios` (incluye auth/refresh/admin), `direcciones_entrega`, `categorias`, `productos`, `ingredientes`, `unidades_medida`, `pedidos`, `detalles_pedido`, `estados_pedido`, `formas_pago`, `historiales_estado_pedido`, `pagos`, `estadisticas`, más `core/` (config, deps, security, unit_of_work, repository, service, websocket, cloudinary, rate_limit, mixin de auditoría).
+Organización **feature-first** (módulo por funcionalidad). Módulos `[INT]`: `auth`, `refreshtokens`, `usuarios`, `direcciones`, `categorias`, `productos`, `pedidos`, `pagos`, `admin`. Módulos reales del backend (C-25a): `auth`, `refreshtokens`, `usuarios`, `direcciones`, `categorias`, `productos`, `ingredientes`, `unidades_medida`, `pedidos` (incluye `EstadoPedido`, `DetallePedido` e `HistorialEstadoPedido`), `pagos` (incluye `FormaPago`), `admin` (routers de usuarios-admin, estadísticas e imágenes) y `health`, más `core/` (config, database, security, uow, repository, service, errors, websocket, cloudinary, rate_limit, mixin de auditoría). Cada módulo con `dependencies.py` como raíz de composición.
 
 ### Frontend: Feature-Sliced Design
 
