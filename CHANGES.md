@@ -63,7 +63,7 @@ C-13a fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        ├── C-22 fe-gestion-operativa-pedidos (+C-09, C-11)
        │     └── C-24 fe-dashboard-metricas
        └── C-23 fe-admin-usuarios-roles (+C-08)
-C-25a backend-capas-y-renombres (C-01..C-12; en paralelo con el frontend)
+C-25a ✓ backend-capas-y-renombres (C-01..C-12; en paralelo con el frontend)
 C-25b entrega-docs-video (todo lo anterior)
 
 FASE 2 (opcional/bloqueado: COCINA/KDS de PA-07, PA-19)
@@ -97,7 +97,7 @@ GATE 3: C-09 ✓                                          ← FORK
 
 GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
   → C-13b fe-foundation-auth-data             [Agente C]
-  → C-25a backend-capas-y-renombres           [Agente A — si C-01..C-12 ✓; independiente del frontend]
+  → C-25a ✓ backend-capas-y-renombres        [Agente A — si C-01..C-12 ✓; independiente del frontend]
 
 GATE 5: C-13b ✓                                         ← FORK
   → C-14 fe-auth-cuenta                       [Agente C]
@@ -132,7 +132,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 4 | C-08 ✓ | — | C-13a |
 | 5 | C-09 ✓ | — | — |
 | 6 | C-10 ✓ | C-12 | C-11 ✓ |
-| 7 | C-25a | — | C-13b |
+| 7 | C-25a ✓ | — | C-13b |
 | 8 | C-17a | C-15 | C-14 + C-16 |
 | 9 | C-17b | C-22 | C-18 |
 | 10 | C-23 | C-24 | C-19 |
@@ -590,7 +590,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/02_descripcion_general.md`
 
 ### [C-25a] `backend-capas-y-renombres`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-14-c-25a-backend-capas-y-renombres/`)
 - **Scope**:
   - DT-25 (capas): sacar `Session`/`get_session` de los routers de `categorias`, `ingredientes`, `pagos`, `pedidos` y `productos` (delegar al service) y cortar la dependencia `core/deps.py` → `modules/`; si un change anterior toca alguno de esos routers, lo corrige ahí.
   - Incluye la sugerencia pendiente del verify de C-02: mover `UsuarioServiceDep` fuera de `usuarios/router.py`.
@@ -681,7 +681,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 11** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11). **Pendientes obligatorios: 17** (1 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 12** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-25a). **Pendientes obligatorios: 16** (1 de Fase 0 + 15 de Fase 1) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
