@@ -59,7 +59,7 @@ La fuente de verdad del dominio vive en `knowledge-base/` (índice: [README](kno
 | [12_tiempo_real_websocket.md](knowledge-base/12_tiempo_real_websocket.md) | WebSocket / KDS (extra, no especificado) |
 | [13_rubrica_y_entrega.md](knowledge-base/13_rubrica_y_entrega.md) | Rúbrica de 200 pts y entrega |
 
-Otros recursos: [design-system/README.md](design-system/README.md) (Revision 1 aprobada; política `system-and-mockups`: todo change visual necesita un mockup aprobado antes de `/opsx:apply`), [openspec/](openspec/) (changes y specs).
+Otros recursos: [design-system/README.md](design-system/README.md) (Revision 2 aprobada, navegación por panel lateral DD-25; política `system-and-mockups`: todo change visual necesita un mockup aprobado antes de `/opsx:apply`), [openspec/](openspec/) (changes y specs).
 
 > ⚠️ **Decisiones del usuario (2026-11-10)**: PA-01 (alcance con frontend completo), PA-03 (stock se descuenta al confirmar el pedido, sin TTL), PA-05 (Checkout API con `CardPayment`), PA-06 (confirmación manual de `EFECTIVO`/`TRANSFERENCIA` por ADMIN/PEDIDOS) y PA-04 (refresh en cookie HttpOnly, C-02) están **resueltas** (DD-19..DD-23). De prioridad **Alta** solo sigue abierta la parte de **PA-07** sobre el rol `COCINA`/KDS/WebSocket (¿se incorporan o se eliminan?), que se decide al final y no se toca ahora; `EN_CAMINO` lo despachan ADMIN y PEDIDOS. Leé `10_preguntas_abiertas.md` antes de codear en Fase 2; las de prioridad Media/Baja (p. ej. PA-08, PA-14) no bloquean y los changes afectados las marcan con `[PENDIENTE DE DECISIÓN: PA-xx]` en CHANGES.md.
 

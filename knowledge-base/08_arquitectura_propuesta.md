@@ -87,7 +87,9 @@ frontend/src/
 | `authStore` | accessToken, usuario, isAuthenticated | `persist` + `partialize`: solo `accessToken` `[INT]` (`[DESC]`: tokens+usuario). No leer el token a mano fuera del store |
 | `cartStore` | items, cantidades, personalizaciones; `totalItems/totalPrice/getItem` | `persist` (items completos, v1) |
 | `paymentStore` | estado del checkout/pago MP, `mpPaymentId`, errores | Ninguna (se resetea al recargar) |
-| `uiStore` | cartOpen, sidebarOpen, confirmModal, tema, toasts | Ninguna (tema opcionalmente persistido) |
+| `uiStore` | cartOpen, sidebarOpen (drawer mobile), sidebarCollapsed (desktop, solo íconos), confirmModal, tema, toasts | `persist` + `partialize`: solo `sidebarCollapsed` (y opcionalmente tema); el resto no se persiste |
+
+**Navegación (DD-25)**: panel lateral izquierdo para toda la app, con secciones según rol. Desktop: colapsable a solo íconos (`sidebarCollapsed`, preferencia persistida). Mobile: oculto tras un botón ☰, entra como drawer (`sidebarOpen`, no persistido). Detalle de secciones por rol en [09](09_decisiones_y_supuestos.md) (DD-25).
 
 Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), nunca el store completo sin selector, `getState()` fuera de React (interceptores).
 

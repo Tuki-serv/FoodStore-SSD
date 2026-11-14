@@ -14,7 +14,7 @@
 - **PA-07 parcial (DD-23):** `EN_CAMINO` lo despachan ADMIN y PEDIDOS. El rol `COCINA`, el KDS y el WebSocket quedan para el final (C-26, C-27 en Fase 2) y no se tocan ahora.
 
 **Leyenda de marcas**
-- `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 1 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
+- `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 2 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
 - `[PENDIENTE DE DECISIÓN: PA-xx]` = el orden o scope puede cambiar según una pregunta abierta que sigue abierta (hoy PA-08, PA-14); **no bloquea** el roadmap (se implementa con el supuesto indicado y se ajusta).
 - `[OPCIONAL/BLOQUEADO]` = Fase 2; no iniciar hasta resolver la parte abierta de PA-07 (COCINA/KDS) y PA-19.
 - Los sufijos `a`/`b` (`C-13a`, `C-13b`, `C-17a`, `C-17b`, `C-25a`, `C-25b`) parten un change en dos sin renumerar el resto.
@@ -371,7 +371,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 
 ## FASE 1 — Features por épica (sobre base corregida)
 
-> El alcance incluye el frontend completo (PA-01 resuelta, DD-19; DT-24, SU-01). Los changes visuales deben tener mockup aprobado (Revision 1 del design system) antes de apply. El frontend consume el backend ya corregido en la Fase 0: autenticación por Bearer con refresh por cookie HttpOnly (`withCredentials` hacia `/api/v1/auth`).
+> El alcance incluye el frontend completo (PA-01 resuelta, DD-19; DT-24, SU-01). Los changes visuales deben tener mockup aprobado (Revision 2 del design system, con panel lateral DD-25) antes de apply. El frontend consume el backend ya corregido en la Fase 0: autenticación por Bearer con refresh por cookie HttpOnly (`withCredentials` hacia `/api/v1/auth`).
 
 ### [C-13a] `fe-foundation-scaffold`
 - **Estado**: `[ ]` pendiente
