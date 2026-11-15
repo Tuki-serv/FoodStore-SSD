@@ -45,7 +45,7 @@ Archivos de soporte: `mockup.css` (reglas del shell de `components.html` + estil
 
 ## Cómo previsualizar
 
-1. Abrir cualquier `.html` de esta carpeta directamente en el navegador (no hace falta servidor; las rutas a `design-system/` son relativas: `../../../../design-system/`).
+1. Abrir cualquier `.html` de esta carpeta directamente en el navegador (no hace falta servidor; las rutas a `design-system/` son relativas: `../../../../../design-system/`).
 2. Desktop: ventana ≥ 1024 px; el botón del encabezado colapsa/expande (la preferencia se guarda en `localStorage`, clave `foodstore.mockup.sidebarCollapsed`). Mobile: < 1024 px o modo dispositivo; «Abrir menú», cerrar con ✕, scrim o Esc.
 3. Para capturas: agregar `?nav=expanded`, `?nav=collapsed` o `?nav=drawer` (este último solo en mobile).
 4. Re-render: headless Edge (`msedge --headless --screenshot=… --window-size=1440,900 "file:///…/shell-anon.html?nav=expanded"`); para 390 px, cargar el mockup dentro de un iframe de 390x844 (Edge headless no baja de ~500 px de ancho). Usar un `--user-data-dir` distinto por captura.

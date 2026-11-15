@@ -1,4 +1,4 @@
-/* Mockups C-13a. Tokens: ../../../../design-system/tokens.css (importado en cada HTML, no se copian valores).
+/* Mockups C-13a. Tokens: ../../../../../design-system/tokens.css (importado en cada HTML, no se copian valores).
    Las reglas del shell son las de design-system/components.html (Revision 2), sin cambios: es lo que la app porta en app-shell.css (design D4). */
 *{box-sizing:border-box}
 body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-sans);font-size:var(--text-base);line-height:var(--leading-normal)}
