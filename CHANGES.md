@@ -49,7 +49,7 @@ C-01 ✓ baseline-backend
                    └── C-12 pagos-checkout-api-cardpayment (+C-05)
 
 FASE 1 (frontend sobre base corregida)
-C-13a fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
+C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
  └── C-13b fe-foundation-auth-data (C-13a, C-02, C-11)
        ├── C-14 fe-auth-cuenta
        ├── C-15 fe-direcciones
@@ -77,7 +77,7 @@ GATE 0: C-01 ✓                                          ← FORK
   → C-04 ✓ pagos-autorizacion-propietario    [Agente B — CRITICO]
   → C-06 ✓ datos-migraciones-alembic          [Agente C]
   → C-03 ✓ auth-rate-limit-slowapi           [Agente A, en paralelo a C-06]
-  → C-13a fe-foundation-scaffold              [Agente C — sin dependencia de backend; puede ir en cualquier hueco]
+  → C-13a ✓ fe-foundation-scaffold            [Agente C — sin dependencia de backend; puede ir en cualquier hueco]
 
 GATE 1: C-04 ✓ / C-06 ✓
   → C-02 ✓ auth-sesion-tokens-bearer-refresh [Agente A — CRITICO, tras C-06]
@@ -129,7 +129,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 | C-01 ✓ | — | — |
 | 2 | C-03 ✓ | C-04 ✓ | C-06 ✓ |
 | 3 | C-02 ✓ | C-05 ✓ | C-07 ✓ |
-| 4 | C-08 ✓ | — | C-13a |
+| 4 | C-08 ✓ | — | C-13a ✓ |
 | 5 | C-09 ✓ | — | — |
 | 6 | C-10 ✓ | C-12 | C-11 ✓ |
 | 7 | C-25a ✓ | — | C-13b |
@@ -374,7 +374,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 > El alcance incluye el frontend completo (PA-01 resuelta, DD-19; DT-24, SU-01). Los changes visuales deben tener mockup aprobado (Revision 2 del design system, con panel lateral DD-25) antes de apply. El frontend consume el backend ya corregido en la Fase 0: autenticación por Bearer con refresh por cookie HttpOnly (`withCredentials` hacia `/api/v1/auth`).
 
 ### [C-13a] `fe-foundation-scaffold`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-15). Verify: PASS WITH FINDINGS; las 3 de prioridad major se corrigieron en el mismo change, las menores se derivaron a C-13b, C-18 y C-25b (ver «Heredado de C-13a» en cada uno). **Pendiente del usuario**: revisar los mockups (se aplicó sin su revisión, a pedido suyo) y confirmar las secciones del rol `STOCK` en el panel (OQ-2, provisorio en DD-25).
 - **Scope**:
   - Proyecto Vite + React + TS (`strict`, sin `any`) + Tailwind en estructura FSD bajo `frontend/`; `VITE_API_URL`; importar `design-system/tokens.css`.
   - Router (sin guards todavía), layout base / shell y navegación, página de error/404.
@@ -400,6 +400,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - **Decisión a tomar en el propose**: la spec `[INT]` pide que `authStore` persista solo `accessToken`, mientras que C-02 (D3/PA-04) dejó escrito que el access vive solo en memoria. Hay que elegir y, si cambia, actualizar la KB (`knowledge-base/05` RN-AU-10, `08` §Seguridad, `10` IN-07).
   - Punto de partida (C-08): los roles para la UI se toman de `GET /auth/me` (el claim `roles` del access es informativo y no autoriza); las lecturas públicas (`GET /productos`, `/categorias`, `/ingredientes`, `/unidades-medida`) con un access inválido responden 401, así que el interceptor renueva y reintenta.
   - Punto de partida (C-11): contrato de pedidos: `GET /pedidos` (scoped), `GET /pedidos/{id}`, `PATCH /pedidos/{id}/estado` con `{nuevo_estado, motivo}`, `DELETE /pedidos/{id}` con body OPCIONAL `{motivo}` (por defecto «Cancelado por el cliente»); paginación `{items,total,page,size,pages}`; errores `{detail, code, field}` con códigos de negocio.
+  - **Heredado de C-13a** (verify 2026-11-15): pasar los roles de `GET /auth/me` y el usuario a `AppShell` (props `roles`, `usuario`, `onCerrarSesion`; hoy muestra siempre la variante sin sesión) y verificar visualmente la variante ADMIN contra `mockups/shell-admin.html` del change archivado; `error-page.test.tsx` usa `vi.unstubAllGlobals()` y borra el stub de `Request` de `src/test/setup.ts` (frágil: restaurar solo lo propio); activar los future flags de React Router o silenciar su aviso en los tests; quitar `RUTAS.raiz` si sigue sin uso y exportar `UsuarioShell` desde la API pública del shell; agregar a `uiStore` los campos que falten junto con los otros tres stores.
 - **Dependencias**: `C-13a, C-02, C-11`
 - **Governance**: ALTO
 - **UI**: sin mockup propio (usa el shell aprobado de C-13a).
@@ -492,6 +493,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - US-015 carrito persistente en localStorage (sobrevive refresh, cierre y logout/login, CE-14), suscripción por slice a `cartStore`.
   - US-016 personalizar producto: excluir ingredientes removibles (`personalizacion` = IDs).
   - Tests: persistencia, personalización, totales.
+  - **Heredado de C-13a**: contador de ítems del carrito en el panel lateral y en la barra superior mobile (clase `.count` del design system; C-13a no lo portó porque no hay `cartStore`).
 - **Dependencias**: `C-16`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` drawer/página de carrito y selector de personalización.
@@ -612,6 +614,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Prueba end-to-end del flujo completo (frontend incluido): compra→pago→entrega.
   - Checklist de entrega de la rúbrica de 200 pts; capturas de las 10 pantallas; video de la entrega; metadatos faltantes (PA-18); deploy opcional (PA-17).
   - Verificación visual contra mockups aprobados.
+  - **Heredado de C-13a** (menores del verify 2026-11-15): favicon (hoy `/favicon.ico` da 404 en consola); accesibilidad del drawer mobile (`role="dialog"`/`aria-modal`, trampa de foco, contenido `inert` detrás del scrim); test que exija `index.ts` en cada slice/segmento FSD; título del 404 en mobile (una línea en la app, dos en el mockup); decidir si se quita la escala por defecto de Tailwind (hoy `h-10` sale como `2.5rem` literal, fuera de los tokens); sumar los íconos `obra`, `brujula` y `alerta` al sprite de `design-system/components.html` (cambio visual del design system: requiere revisión del usuario); test de `readConfig` con valor vacío que no distingue del caso URL inválida; imagen de producción del frontend (el Dockerfile actual es solo servidor de desarrollo).
 - **Dependencias**: `C-01 a C-24, C-25a`
 - **Governance**: MEDIO
 - **Decisión pendiente**: PA-16, PA-17, PA-18
@@ -681,7 +684,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 12** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-25a). **Pendientes obligatorios: 16** (1 de Fase 0 + 15 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 13** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-13a, C-25a). **Pendientes obligatorios: 15** (1 de Fase 0 + 14 de Fase 1) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

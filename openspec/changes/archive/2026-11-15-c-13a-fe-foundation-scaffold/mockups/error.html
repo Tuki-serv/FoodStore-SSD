@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-13a - Error genérico (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<!-- Fuera del shell (design D9): el error puede venir del shell mismo. ?nav no aplica en esta página. -->
+<body>
+<div class="err-page">
+  <div class="banner">Mockup C-13a · Error genérico a pantalla completa (fuera del shell) · Revision 2 · pendiente de aprobación · logo y nombre (TBD)</div>
+  <main class="err-wrap">
+    <img class="logo" src="../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">
+    <section class="err-card" aria-labelledby="err-title">
+      <span class="badge-ico" aria-hidden="true"><svg class="ico"><use href="#i-alerta"/></svg></span>
+      <h1 id="err-title">Algo salió mal</h1>
+      <p>Tuvimos un problema al mostrar esta página. Probá de nuevo; si sigue pasando, volvé al inicio.</p>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" onclick="location.reload()">Reintentar</button>
+        <a class="btn btn-secondary" href="#/">Volver al inicio</a>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="../../../../design-system/brand.js"></script>
+<script src="mockup.js"></script>
+</body>
+</html>
