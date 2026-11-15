@@ -20,7 +20,7 @@ Shared visual foundation for the Food Store frontend (React + TS + Vite + Tailwi
 
 ## Files
 - `brand.md` brand facts and tone; `brand.js` name constant bound to `[data-brand-name]`
-- `tokens.css` color, type, spacing, radii, shadow, focus, motion and app-shell tokens (+ reduced motion)
+- `tokens.css` color, type, spacing, radii, shadow, focus, motion and app-shell tokens (+ reduced motion). Since C-13a the frontend imports it as is and the Tailwind theme only references these variables (`frontend/tailwind.config.ts`, checked by a test)
 - `components.html` component and state reference; `assets/logo.svg` provisional logo
 - `previews/components-desktop.png` (1440 wide, full page), `previews/components-mobile.png` (390 wide, full page)
 - `previews/nav-desktop-expanded.png`, `previews/nav-desktop-collapsed.png` (1440x900)
@@ -40,12 +40,12 @@ Shared visual foundation for the Food Store frontend (React + TS + Vite + Tailwi
 - Compact logo mark for the collapsed sidebar (today the logo is hidden when collapsed)
 - Product photography style (Cloudinary images)
 - Final palette approval (terracotta primary, basil green accent, warm cream background)
-- Whether to map tokens into Tailwind theme (proposed: yes, in the frontend setup change)
+- Icons `obra`, `brujula` and `alerta` used by the app (C-13a) are not yet in the `components.html` sprite; adding them is a visual change that needs user review (tracked in CHANGES.md C-25b)
 - Copy details: delivery time estimate, cash/transfer payment options (KB PA-06)
 - Role COCINA / KDS screens not specified by spec (KB PA-07, PA-19); no components or sidebar section defined for them
 
 ## Replacement steps
-1. Name: edit `BRAND_NAME` in `brand.js`.
+1. Name: edit `BRAND_NAME` in `brand.js` AND the constant in `frontend/src/shared/config/brand.ts` (the app keeps its own copy since C-13a).
 2. Logo: replace `assets/logo.svg` keeping the path; remove the "LOGO PROVISIONAL" text.
 3. Colors/type/spacing: edit values in `tokens.css` only; bump `Revision:` and reset Approval to pending.
 4. Re-render `components.html` at 390x844 and 1440x900 into `previews/`.

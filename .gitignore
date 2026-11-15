@@ -66,3 +66,9 @@ ejemplo-mp/
 # Backups del estado del orquestador y carpeta de trabajo local
 .active-orchestrator-state.json.bak*
 todoAMd/
+
+# =========================================
+# Frontend (Node)
+# =========================================
+node_modules/
+frontend/coverage/

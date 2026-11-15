@@ -1,0 +1,2 @@
+import { Y } from '@/pages/otra/ui/y';
+export const crearRouter = Y;

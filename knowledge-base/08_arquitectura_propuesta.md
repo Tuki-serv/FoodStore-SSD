@@ -66,7 +66,7 @@ Food-Store-Prueba/                # raíz = gestión + orquestación (docker-com
 
 **Estructura objetivo (norma)** según spec `[INT]` (`backend/app/main.py` y `backend/app/db/seed.py` ya cumplidos en C-01): `backend/app/main.py`, `backend/app/db/seed.py`, `backend/app/modules/{auth,refreshtokens,usuarios,direcciones,categorias,productos,pedidos,pagos,admin}/`, `backend/app/core/uow.py`. Comandos de backend: se corren desde `backend/`.
 
-Frontend objetivo (spec, FSD):
+Frontend objetivo (spec, FSD) — **`[INT]` literal** (norma de la spec; el mapeo a FSD v2.1 está debajo):
 
 ```
 frontend/src/
@@ -80,6 +80,40 @@ frontend/src/
 └── types/
 ```
 
+Frontend real tras C-13a (`frontend/`, FSD v2.1: `app` → `pages` → `shared`; `features`/`entities`/`widgets` a demanda). Detalle y reglas en `frontend/README.md`:
+
+```
+frontend/
+├── package.json, vite.config.ts, tailwind.config.ts, tsconfig.json, eslint.config.js, Dockerfile, .env.example
+├── tests/architecture/        # fronteras FSD (fsd-boundaries) y tokens de Tailwind (tailwind-tokens), con fixtures
+└── src/
+    ├── app/
+    │   ├── providers/         # AppProviders (RouterProvider; TanStack Query y sesión en C-13b)
+    │   ├── router/            # routes.tsx (árbol único), route-map.ts (ruta → título → change dueño)
+    │   ├── layouts/app-shell/ # AppShell, Sidebar, Topbar, NavSections, app-shell.css, model/navigation.ts
+    │   └── styles/index.css   # importa design-system/tokens.css y las directivas de Tailwind
+    ├── pages/                 # placeholder/ (PlaceholderPage), not-found/, error/ (una carpeta por slice)
+    ├── shared/
+    │   ├── config/            # env.ts (readConfig, VITE_API_URL), roles.ts, routes.ts (RUTAS), brand.ts
+    │   ├── model/             # ui-store.ts (uiStore)
+    │   ├── lib/media-query/   # useMediaQuery
+    │   └── ui/                # Icon (sprite del design system), estilos de botón
+    └── test/                  # setup de Vitest y matchMedia controlable (fuera de las capas)
+```
+
+| `[INT]` | FSD en este repo |
+|---------|------------------|
+| `app/` (providers, router, estilos) | `src/app/` (`providers/`, `router/`, `layouts/app-shell/`, `styles/`) |
+| `pages/` | `src/pages/<slice>/` (uno por ruta) |
+| `features/` | `src/features/<slice>/` (desde C-14) |
+| `components/` | `src/shared/ui/` |
+| `hooks/` | segmentos `api/` y `model/` de cada slice |
+| `store/` (4 stores) | `uiStore` en `src/shared/model/`; `authStore` en `shared/auth` o `entities/session` (C-13b); `cartStore` (C-18); `paymentStore` (C-20) |
+| `api/` | `src/shared/api/` (C-13b) |
+| `types/` | segmento `model/` del slice; contratos HTTP en `shared/api` |
+
+Comandos de frontend: se corren desde `frontend/` (`npm install`, `npm run dev`, `npm test`, `npm run typecheck`, `npm run lint`); requieren `frontend/.env` copiado de `frontend/.env.example` (`VITE_API_URL`).
+
 ## Estado del cliente (Zustand) — 4 stores
 
 | Store | Estado | Persistencia |
@@ -87,7 +121,7 @@ frontend/src/
 | `authStore` | accessToken, usuario, isAuthenticated | `persist` + `partialize`: solo `accessToken` `[INT]` (`[DESC]`: tokens+usuario). No leer el token a mano fuera del store |
 | `cartStore` | items, cantidades, personalizaciones; `totalItems/totalPrice/getItem` | `persist` (items completos, v1) |
 | `paymentStore` | estado del checkout/pago MP, `mpPaymentId`, errores | Ninguna (se resetea al recargar) |
-| `uiStore` | cartOpen, sidebarOpen (drawer mobile), sidebarCollapsed (desktop, solo íconos), confirmModal, tema, toasts | `persist` + `partialize`: solo `sidebarCollapsed` (y opcionalmente tema); el resto no se persiste |
+| `uiStore` | cartOpen, sidebarOpen (drawer mobile), sidebarCollapsed (desktop, solo íconos), confirmModal, tema, toasts | `persist` + `partialize`: solo `sidebarCollapsed` (y opcionalmente tema); el resto no se persiste. **Hoy (C-13a)** vive en `src/shared/model/ui-store.ts` (clave `foodstore.ui`, v1) con solo `sidebarCollapsed` y `sidebarOpen`; `cartOpen`, `confirmModal`, tema y toasts los agrega el change que los usa |
 
 **Navegación (DD-25)**: panel lateral izquierdo para toda la app, con secciones según rol. Desktop: colapsable a solo íconos (`sidebarCollapsed`, preferencia persistida). Mobile: oculto tras un botón ☰, entra como drawer (`sidebarOpen`, no persistido). Detalle de secciones por rol en [09](09_decisiones_y_supuestos.md) (DD-25).
 

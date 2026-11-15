@@ -1,0 +1,3 @@
+import { Boton } from '@/shared/ui';
+import { dato } from '../model/dato';
+export const PaginaX = [Boton, dato];

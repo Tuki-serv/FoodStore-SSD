@@ -40,7 +40,23 @@ services:
       db:
         condition: service_healthy
 
-  # frontend:  (se agrega en C-13a)
+  # Servidor de desarrollo de Vite. Requiere frontend/.env (copiar de frontend/.env.example).
+  # design-system/ se monta en solo lectura en /design-system para que `../design-system` desde /app
+  # resuelva igual que en local (el contexto de build ./frontend no lo incluye).
+  # VITE_API_URL apunta al host (http://localhost:8000): lo usa el navegador, no el contenedor.
+  frontend:
+    build:
+      context: ./frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./design-system:/design-system:ro
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

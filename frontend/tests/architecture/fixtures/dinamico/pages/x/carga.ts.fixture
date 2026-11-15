@@ -1,0 +1,2 @@
+const modulo = 'otra';
+export const cargar = () => import(`@/pages/${modulo}`);

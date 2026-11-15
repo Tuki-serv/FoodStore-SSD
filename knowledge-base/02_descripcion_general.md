@@ -103,3 +103,5 @@ Convenciones transversales: soft delete (los GET filtran `deleted_at IS NULL`), 
 ## Entorno y arranque (código actual)
 
 Desde la raíz: `docker compose up -d db`; luego desde `backend/`: venv → `pip install -r requirements.txt` → `python -m app.db.seed` → `uvicorn app.main:app --reload` (API en `http://localhost:8000`). El entry point es `backend/app/main.py`. Ver [08](08_arquitectura_propuesta.md) para variables de entorno.
+
+Frontend (desde C-13a): desde `frontend/`, `cp .env.example .env` (define `VITE_API_URL`) → `npm install` → `npm run dev` (en `http://localhost:5173`). Tests: `npm test`; chequeos: `npm run typecheck` y `npm run lint`. Con Docker: `docker compose up -d frontend` desde la raíz (requiere `frontend/.env`). Detalle en `frontend/README.md`.
