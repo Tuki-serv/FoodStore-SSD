@@ -31,7 +31,7 @@ Shared visual foundation for the Food Store frontend (React + TS + Vite + Tailwi
 - Markup reference: `.shell` > `.sidebar` (`.sidebar-head`, `.sidebar-nav`, `.sidebar-foot`) + `.shell-main` (`.topbar` on mobile, then the page).
 - States: `.sidebar.is-collapsed` (desktop, icons only, label shown as tooltip); `.shell.drawer-open` (mobile). In the app these map to `uiStore.sidebarCollapsed` (persisted) and `uiStore.sidebarOpen` (not persisted).
 - Item states: normal, hover, keyboard focus, current page (`aria-current="page"`), with counter.
-- Sections per role (`data-roles` in the markup): no session = Catálogo, Ingresar, Registrarse; CLIENT = Catálogo, Carrito, Mis pedidos, Direcciones, Mi cuenta; PEDIDOS = CLIENT + Gestión de pedidos; ADMIN = all + group «Administración» (Categorías, Ingredientes, Productos y stock, Usuarios, Dashboard).
+- Sections per role (`data-roles` in the markup): no session = Catálogo, Ingresar, Registrarse; CLIENT = Catálogo, Carrito, Mis pedidos, Direcciones, Mi cuenta; PEDIDOS = CLIENT + Gestión de pedidos; STOCK = CLIENT + group «Administración» with only Productos y stock; ADMIN = all + group «Administración» (Categorías, Ingredientes, Productos y stock, Usuarios, Dashboard).
 - Transitions are enabled only after the first render (`.shell.is-ready`), so a saved collapsed state does not animate on load.
 - Preview helpers in `components.html`: `?nav=collapsed`, `?nav=expanded`, `?nav=drawer`.
 

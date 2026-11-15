@@ -374,7 +374,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 > El alcance incluye el frontend completo (PA-01 resuelta, DD-19; DT-24, SU-01). Los changes visuales deben tener mockup aprobado (Revision 2 del design system, con panel lateral DD-25) antes de apply. El frontend consume el backend ya corregido en la Fase 0: autenticación por Bearer con refresh por cookie HttpOnly (`withCredentials` hacia `/api/v1/auth`).
 
 ### [C-13a] `fe-foundation-scaffold`
-- **Estado**: `[x]` cerrado (2026-11-15). Verify: PASS WITH FINDINGS; las 3 de prioridad major se corrigieron en el mismo change, las menores se derivaron a C-13b, C-18 y C-25b (ver «Heredado de C-13a» en cada uno). **Pendiente del usuario**: revisar los mockups (se aplicó sin su revisión, a pedido suyo) y confirmar las secciones del rol `STOCK` en el panel (OQ-2, provisorio en DD-25).
+- **Estado**: `[x]` cerrado (2026-11-15). Verify: PASS WITH FINDINGS; las 3 de prioridad major se corrigieron en el mismo change, las menores se derivaron a C-13b, C-18 y C-25b (ver «Heredado de C-13a» en cada uno). **Pendiente del usuario**: revisar los mockups (se aplicó sin su revisión, a pedido suyo). Las secciones del rol `STOCK` en el panel (OQ-2) las confirmó el usuario el 2026-11-15 (DD-25).
 - **Scope**:
   - Proyecto Vite + React + TS (`strict`, sin `any`) + Tailwind en estructura FSD bajo `frontend/`; `VITE_API_URL`; importar `design-system/tokens.css`.
   - Router (sin guards todavía), layout base / shell y navegación, página de error/404.

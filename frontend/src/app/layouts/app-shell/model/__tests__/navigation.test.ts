@@ -41,7 +41,7 @@ describe('seccionesParaRoles con sesión', () => {
     expect(grupo?.items.map((item) => item.label)).toEqual(ADMIN_GRUPO);
   });
 
-  it('STOCK ve las de CLIENT y un grupo Administración con solo Productos y stock (OQ-2, provisorio)', () => {
+  it('STOCK ve las de CLIENT y un grupo Administración con solo Productos y stock (DD-25)', () => {
     const secciones = seccionesParaRoles(['STOCK']);
 
     expect(etiquetas(secciones)).toEqual([...CLIENTE, 'Productos y stock']);

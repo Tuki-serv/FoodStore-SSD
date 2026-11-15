@@ -47,7 +47,7 @@ Con varios roles la navegación SHALL mostrar la unión de las secciones de cada
 - **THEN** son las mismas que para `CLIENT`
 
 ### Requirement: Secciones del gestor de stock
-`STOCK` SHALL ver las secciones de `CLIENT` más el grupo «Administración» con un único ítem, Productos y stock. Un grupo SHALL mostrarse solo si contiene al menos un ítem visible. [PENDIENTE DE DECISIÓN: OQ-2 de este change; DD-25 no menciona `STOCK`]
+`STOCK` SHALL ver las secciones de `CLIENT` más el grupo «Administración» con un único ítem, Productos y stock. Un grupo SHALL mostrarse solo si contiene al menos un ítem visible. (Confirmado por el usuario el 2026-11-15, DD-25.)
 
 #### Scenario: Gestor de stock
 - **WHEN** se calculan las secciones para `STOCK`
