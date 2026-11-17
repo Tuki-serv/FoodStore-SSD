@@ -22,12 +22,12 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 
 ### US-003 — Renovación transparente de sesión
 **Como** usuario **Quiero** que mi sesión se renueve sola **Para** no re-loguearme cada 30 min.
-- [ ] El interceptor Axios, ante 401, llama a `/auth/refresh`, actualiza el store y reintenta el request original `[Pendiente-FE]`
+- [ ] El interceptor Axios, ante 401, llama a `/auth/refresh`, actualiza el store y reintenta el request original `[Cubierto por C-13b]` (una sola renovación para los 401 concurrentes)
 - [ ] El refresh token se rota en cada uso
 **Reglas**: RN-AU-05
 
 ### US-004 — Cierre de sesión
-- [ ] Invalida el refresh token y limpia cookie/store; responde 204
+- [ ] Invalida el refresh token y limpia cookie/store; responde 204 (frontend: `useCerrarSesion` deja la sesión anónima y descarta la caché privada, el carrito persiste; cubierto por C-13b; el botón «Cerrar todas las sesiones» es de C-14)
 **Reglas**: RN-AU-06
 
 ### US-005 — Gestión de perfil propio

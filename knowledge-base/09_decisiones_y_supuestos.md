@@ -114,6 +114,9 @@ El esquema se crea y modifica solo con migraciones (`alembic upgrade head` desde
 
 **`STOCK` (C-13a OQ-2, confirmado por el usuario el 2026-11-15):** `STOCK` → las secciones de CLIENT + grupo «Administración» con solo «Productos y stock» (mismo patrón que PEDIDOS = CLIENT + su sección; la pantalla la limita C-17b). Con `ADMIN` + `STOCK` se muestra lo de ADMIN.
 
+### DD-27 — El access token vive solo en memoria del frontend (C-13b, OQ-1)
+**Decisión (confirmada por el usuario, 2026-11-17)**: el access token se guarda únicamente en memoria (`authStore` sin `persist`); no se escribe en `localStorage`, `sessionStorage` ni IndexedDB. Al recargar, `SesionGate` rehidrata la sesión una sola vez con `POST /auth/refresh` (la cookie HttpOnly `refresh_token` viaja sola) y `GET /auth/me`. **Alternativa descartada**: `persist` + `partialize` del `accessToken` en `localStorage` (texto literal de la spec `[INT]`): el access (30 min, no revocable antes de `exp`, RN-AU-06) quedaría legible por cualquier XSS y sobreviviría al cierre del navegador; además contradice RN-AU-10 y C-02 D3. **Consecuencias**: un `POST /auth/refresh` por carga de página (la gracia de 30 s cubre varias pestañas, RN-AU-05); desvío consciente de `[INT]` («`partialize` solo `accessToken`»), que la propia spec matiza con «NO en localStorage directamente»; los 401 concurrentes comparten una sola renovación para no disparar la detección de reuso. Ver [08](08_arquitectura_propuesta.md) (Estado del cliente, Seguridad), [05](05_reglas_de_negocio.md) (RN-AU-10) y [10](10_preguntas_abiertas.md) (IN-07, PA-04).
+
 ## Deuda técnica / divergencias código vs spec (tabla consolidada)
 
 Objetivo = integrador v5.0 (normativo, DD-16). Código actual =. Detalle de cada inconsistencia en [10](10_preguntas_abiertas.md).

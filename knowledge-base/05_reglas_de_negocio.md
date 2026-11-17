@@ -15,7 +15,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 - **RN-AU-07**: Registro público asigna automáticamente rol `CLIENT`; email ya registrado (usuario activo) → **409** (también en el alta por ADMIN). `[DESC,INT]` (IN-09; DT-12 resuelta por C-02)
 - **RN-AU-08**: Rate limiting en autenticación: objetivo (slowapi) = **5 intentos fallidos por IP en 15 min** en `POST /auth/login` con 429 + `Retry-After`. **Cumplido por C-03 (DT-10 resuelta):** slowapi con ventana deslizante en memoria; solo cuentan los fallos de login (credenciales inválidas), un login correcto reinicia la cuenta de esa IP y un 429 corta antes de verificar credenciales; el resto de la API no tiene límite. (IN-10)
 - **RN-AU-09**: Un usuario desactivado (`deleted_at`) no puede operar; el sistema responde 404 en vez de revelar el estado.
-- **RN-AU-10**: El access token viaja **solo** en `Authorization: Bearer` (el frontend lo guarda en memoria, `authStore`); una cookie `access_token` no autentica. El refresh viaja en la cookie HttpOnly `refresh_token` con `Path=/api/v1/auth`, `SameSite`/`Secure` configurables (`REFRESH_COOKIE_SAMESITE`, `REFRESH_COOKIE_SECURE`) y CORS con credenciales sin `*`. (IN-07; DT-11 resuelta por C-02)
+- **RN-AU-10**: El access token viaja **solo** en `Authorization: Bearer` (el frontend lo guarda en memoria, `authStore`); una cookie `access_token` no autentica. El refresh viaja en la cookie HttpOnly `refresh_token` con `Path=/api/v1/auth`, `SameSite`/`Secure` configurables (`REFRESH_COOKIE_SAMESITE`, `REFRESH_COOKIE_SECURE`) y CORS con credenciales sin `*`. (IN-07, DD-27; DT-11 resuelta por C-02)
 
 ## Dominio: Usuarios y Roles (RN-US)
 

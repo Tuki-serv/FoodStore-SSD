@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-/** Trazos de cada ícono (viewBox 24x24), trasladados del sprite de `design-system/components.html` (+ 3 de los mockups de C-13a). */
+/** Trazos de cada ícono (viewBox 24x24), trasladados del sprite de `design-system/components.html` (+ 3 de los mockups de C-13a y `candado` de los de C-13b; este último falta en el sprite de components.html). */
 const TRAZOS = {
   catalogo: (
     <>
@@ -110,6 +110,12 @@ const TRAZOS = {
     <>
       <path d="M3 20h18M5 20l3-12h8l3 12" />
       <path d="M7 14h10M9.5 8V5h5v3" />
+    </>
+  ),
+  candado: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2" />
     </>
   ),
 } satisfies Record<string, ReactElement>;

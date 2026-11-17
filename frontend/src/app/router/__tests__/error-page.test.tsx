@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router-dom';
+import { RouterProvider, type RouteObject } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { crearRouterDePrueba } from '@/test/router';
 import { routes } from '../routes';
 
 function PaginaQueFalla(): never {
@@ -15,15 +16,17 @@ function renderConRutaQueFalla() {
   const conFalla: RouteObject[] = [
     { errorElement: raiz.errorElement, children: [...(raiz.children ?? []), { path: '/falla', element: <PaginaQueFalla /> }] },
   ];
-  const router = createMemoryRouter(conFalla, { initialEntries: ['/falla'] });
-  render(<RouterProvider router={router} />);
+  const router = crearRouterDePrueba(conFalla, ['/falla']);
+  render(<RouterProvider router={router} future={{ v7_startTransition: true }} />);
   return router;
 }
+
+const ubicacionOriginal = window.location;
 
 describe('página de error genérica', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    vi.stubGlobal('location', ubicacionOriginal);
   });
 
   it('un error de render muestra el aviso a pantalla completa, sin shell ni detalles internos', async () => {

@@ -21,6 +21,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['src/test/setup.ts'],
     css: false,
+    // Los tests no dependen del `.env` local: la URL del backend es fija (los pedidos los intercepta MSW).
+    env: { VITE_API_URL: 'http://localhost:8000' },
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
   },
 });
