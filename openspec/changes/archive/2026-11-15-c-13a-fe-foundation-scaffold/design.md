@@ -124,7 +124,7 @@ El usuario pidió seguir de largo sin responder una por una, así que OQ-1..OQ-8
 - Design system revision: 2
 - Decision: yes (2026-11-15)
 - Mockups: openspec/changes/c-13a-fe-foundation-scaffold/mockups/
-- Approval: pending (el usuario NO revisó los mockups; el 2026-11-15 pidió aplicar sin esperar su revisión: «apenas termine, aplicalo» / «dale, seguí de largo». Dispensa solo para este change; los mockups siguen siendo criterio de aceptación y el usuario los revisa después del apply)
+- Approval: pending (el usuario NO revisó los mockups; el 2026-11-15 pidió aplicar sin esperar su revisión: «apenas termine, aplicalo» / «dale, seguí de largo». Dispensa solo para este change; los mockups siguen siendo criterio de aceptación y el usuario los revisa después del apply) **Actualización 2026-11-15:** el usuario revisó los mockups después del apply y los aprobó → `approved (2026-11-15, by user)`.
 - Preview: rendered (2026-11-15, mockups/previews/shell-anon-desktop-expanded.png, shell-anon-desktop-collapsed.png, shell-anon-mobile-closed.png, shell-anon-mobile-drawer.png, shell-admin-desktop-expanded.png, shell-admin-desktop-collapsed.png, shell-admin-mobile-drawer.png, not-found-desktop.png, not-found-mobile.png, error-desktop.png, error-mobile.png)
 - Visual verify: differences (2026-11-15; 2 major corregidas en el mismo change y re-capturadas, quedan diferencias menores; ver ## Verify y «Correcciones posteriores al verify»)
 

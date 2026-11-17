@@ -1,7 +1,7 @@
 # Mockups — C-13a `fe-foundation-scaffold`
 
 - Design system revision: 2 (`design-system/README.md`, aprobada 2026-11-14)
-- Approval: pending
+- Approval: approved (2026-11-15, by user; revisados después del apply)
 - Preview: rendered (2026-11-15, headless Microsoft Edge desde `file://`, 1440x900 y 390x844)
 
 ## Brief
