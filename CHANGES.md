@@ -41,7 +41,7 @@ C-01 ✓ baseline-backend
  │     └── C-05 ✓ pagos-webhook-firma-idempotencia ──┐
  └── C-06 ✓ datos-migraciones-alembic              │
        ├── C-02 ✓ auth-sesion-tokens-bearer-refresh┼─┬── C-08 ✓ rbac-multirol-permisos-stock
-       │                                           │ └── C-13b fe-foundation-auth-data (también C-13a, C-11)
+       │                                           │ └── C-13b ✓ fe-foundation-auth-data (también C-13a, C-11)
        └── C-07 ✓ datos-seed-y-catalogos           │
              └── C-09 ✓ pedidos-fsm-en-camino  (+C-08)
                    ├── C-10 ✓ pedidos-stock-descuento
@@ -50,7 +50,7 @@ C-01 ✓ baseline-backend
 
 FASE 1 (frontend sobre base corregida)
 C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
- └── C-13b fe-foundation-auth-data (C-13a, C-02, C-11)
+ └── C-13b ✓ fe-foundation-auth-data (C-13a, C-02, C-11)
        ├── C-14 fe-auth-cuenta
        ├── C-15 fe-direcciones
        ├── C-16 fe-catalogo-publico
@@ -96,7 +96,7 @@ GATE 3: C-09 ✓                                          ← FORK
   → C-12 ✓ pagos-checkout-api-cardpayment     [Agente B — si C-05 ✓]
 
 GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
-  → C-13b fe-foundation-auth-data             [Agente C]
+  → C-13b ✓ fe-foundation-auth-data           [Agente C]
   → C-25a ✓ backend-capas-y-renombres        [Agente A — si C-01..C-12 ✓; independiente del frontend]
 
 GATE 5: C-13b ✓                                         ← FORK
@@ -391,7 +391,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `design-system/README.md`
 
 ### [C-13b] `fe-foundation-auth-data`
-- **Estado**: `[ ]` en implementación (apply 2026-11-17; mockups aprobados; pendiente verify y archive: se marca `[x]` al archivar)
+- **Estado**: `[x]` cerrado (2026-11-17). Verify: PASS WITH FINDINGS; los 4 menores (race de renovación tras logout, test sin rastro en storage, casos de open-redirect, nota de logout con backend caído) se corrigieron en el mismo change. Verify visual: passed con el backend real (capturas en el change archivado, `mockups/verify/`).
 - **Scope**:
   - Cliente Axios con interceptor: `Authorization: Bearer`, ante 401 llama `POST /auth/refresh` con `withCredentials` (la cookie HttpOnly `refresh_token` viaja sola hacia `/api/v1/auth`), actualiza `authStore` y reintenta la petición original (US-003). El refresh nunca se lee ni se guarda desde JS.
   - 4 stores Zustand (`authStore`, `cartStore`, etc.); provider de TanStack Query; guards de rutas por rol; manejo de errores `{detail, code, field}`.
@@ -690,7 +690,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 14** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-25a). **Pendientes obligatorios: 14** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 15** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-25a). **Pendientes obligatorios: 13** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

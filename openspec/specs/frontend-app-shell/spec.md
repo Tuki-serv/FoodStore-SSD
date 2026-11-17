@@ -57,17 +57,6 @@ Con varios roles la navegación SHALL mostrar la unión de las secciones de cada
 - **WHEN** se calculan las secciones para `ADMIN` + `STOCK`
 - **THEN** son las mismas que para `ADMIN`
 
-### Requirement: Shell sin sesión hasta que exista autenticación
-Mientras la aplicación no tenga sesión (C-13a no incluye autenticación), el shell SHALL mostrar la variante «sin sesión»: sus secciones, sin pie de usuario. El shell SHALL aceptar los roles como entrada para que la sesión los provea sin cambiar el shell.
-
-#### Scenario: Shell por defecto
-- **WHEN** la aplicación arranca
-- **THEN** la navegación muestra Catálogo, Ingresar y Registrarse, y no hay pie de usuario
-
-#### Scenario: Shell con roles provistos
-- **WHEN** el shell se renderiza con los roles `ADMIN`
-- **THEN** la navegación muestra el grupo «Administración» con sus cinco ítems
-
 ### Requirement: Panel colapsable en desktop
 Con ventana de 1024 px o más, el panel SHALL poder colapsarse a solo íconos y expandirse con un botón del encabezado cuyo nombre accesible y `aria-expanded` reflejen el estado. Colapsado, cada ítem SHALL conservar su nombre accesible y mostrar la etiqueta como tooltip.
 
@@ -131,13 +120,6 @@ Cada sección de la navegación SHALL tener una ruta propia en español (`/catal
 - **WHEN** el visitante abre `/`
 - **THEN** la URL pasa a `/catalogo`
 
-### Requirement: Rutas sin control de acceso en el scaffold
-Hasta que existan los guards por rol (C-13b), todas las rutas del mapa SHALL ser alcanzables por URL y las páginas provisorias no SHALL mostrar ni pedir datos del backend.
-
-#### Scenario: Ruta de administración sin sesión
-- **WHEN** un visitante sin sesión abre `/admin/usuarios`
-- **THEN** ve la página provisoria «Usuarios» sin datos, y la navegación sigue mostrando solo las secciones «sin sesión»
-
 ### Requirement: Página no encontrada
 Una URL que no corresponde a ninguna ruta SHALL mostrar, dentro del shell, una página «Página no encontrada» con la ruta pedida y un enlace a Catálogo.
 
@@ -155,3 +137,25 @@ Si el render de una ruta falla, la aplicación SHALL mostrar una página de erro
 #### Scenario: Reintentar
 - **WHEN** el usuario activa «Reintentar» en la página de error
 - **THEN** la página se recarga
+
+### Requirement: Shell alimentado por la sesión
+El shell SHALL mostrar la navegación de los roles de la sesión y, con sesión, el pie del panel con el nombre y apellido del usuario, su rol principal (el primero presente en el orden `ADMIN`, `PEDIDOS`, `STOCK`, `CLIENT`) y el botón «Cerrar sesión». Sin sesión SHALL mostrar la variante «sin sesión», sin pie.
+
+#### Scenario: Administradora con sesión
+- **WHEN** la sesión es de Ana Gómez con roles `CLIENT` y `ADMIN`
+- **THEN** la navegación incluye el grupo «Administración» con cinco ítems y el pie muestra «Ana Gómez», «ADMIN» y el botón «Cerrar sesión»
+
+#### Scenario: Visitante anónimo
+- **WHEN** la sesión está `anonima`
+- **THEN** la navegación muestra Catálogo, Ingresar y Registrarse, y no hay pie de usuario
+
+### Requirement: Cerrar sesión desde el panel
+Activar «Cerrar sesión» en el pie del panel SHALL cerrar la sesión (spec `frontend-session`) y llevar a `/catalogo`; mientras el cierre está en curso el botón no SHALL disparar un segundo cierre.
+
+#### Scenario: Cerrar sesión
+- **WHEN** un usuario con sesión activa «Cerrar sesión»
+- **THEN** se hace un `POST /auth/logout`, la URL pasa a `/catalogo` y el pie de usuario desaparece
+
+#### Scenario: Doble clic
+- **WHEN** el usuario activa «Cerrar sesión» dos veces seguidas
+- **THEN** se hace un solo `POST /auth/logout`

@@ -41,7 +41,7 @@ La captura de carga muestra el indicador en un instante de su giro; con «reduci
 
 ## Cómo previsualizar
 
-1. Abrir cualquier `.html` directamente en el navegador. Las rutas a `design-system/` son relativas: `../../../../design-system/` (**pasa a `../../../../../design-system/` al archivar el change**, igual que en C-13a).
+1. Abrir cualquier `.html` directamente en el navegador. Las rutas a `design-system/` son relativas: `../../../../../design-system/` (ajustadas al archivar el change, igual que en C-13a).
 2. Mobile: ventana < 1024 px; menú con «Abrir menú». Para capturas: `?nav=drawer`.
 3. Re-render: headless Edge con `--screenshot`; para 390 px, un iframe de 390x844 dentro de un HTML contenedor y recortar a 390 de ancho (Edge no baja de ~500 px).
 
