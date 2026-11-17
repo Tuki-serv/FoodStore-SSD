@@ -5,32 +5,14 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from slowapi.util import get_remote_address
 
-from app.core.rate_limit import LimitadorPorClave, RegistroIntentos, limiter
-from app.core.deps import AccessClaims, get_access_claims, get_current_active_user
+from app.modules.auth.dependencies import AccessClaims, AuthServiceDep, get_access_claims, get_current_active_user
 from app.modules.auth.cookies import REFRESH_COOKIE_NAME, clear_refresh_cookie, set_refresh_cookie
 from app.modules.auth.schemas import Token
-from app.modules.auth.service import LIMITE_FALLOS_LOGIN, AuthService, RefreshRechazado
-from app.modules.auth.unit_of_work import AuthUnitOfWork, get_auth_uow
-from app.modules.usuarios.models import Usuario
-from app.modules.usuarios.router import UsuarioServiceDep
+from app.modules.auth.service import RefreshRechazado
+from app.modules.usuarios.dependencies import UsuarioServiceDep
 from app.modules.usuarios.schemas import UserCreate, UserPublic, UserPublicAdminPanel
 
 auth_router = APIRouter(prefix="/auth", tags=["Autenticación"])
-
-
-def get_registro_intentos_login() -> RegistroIntentos:
-    """Cuenta los logins fallidos por IP (ámbito `login-fallos`); sobrescribible en tests."""
-    return LimitadorPorClave(limiter, LIMITE_FALLOS_LOGIN, "login-fallos")
-
-
-def get_auth_service(
-    uow: Annotated[AuthUnitOfWork, Depends(get_auth_uow)],
-    intentos: Annotated[RegistroIntentos, Depends(get_registro_intentos_login)],
-) -> AuthService:
-    return AuthService(uow, intentos)
-
-
-AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
 @auth_router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
@@ -55,7 +37,7 @@ def login(
 
 
 @auth_router.get("/me", response_model=UserPublicAdminPanel)
-def read_me(current_user: Annotated[Usuario, Depends(get_current_active_user)]) -> Any:
+def read_me(current_user: Annotated[UserPublic, Depends(get_current_active_user)]) -> Any:
     """Devuelve el usuario autenticado por el access, con sus roles."""
     return current_user
 

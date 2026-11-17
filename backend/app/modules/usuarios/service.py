@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from app.core.errors import AppError
 from typing import List, Optional
 
 from app.modules.usuarios.unit_of_work import UsuarioUnitOfWork
@@ -17,10 +17,7 @@ class UsuarioService:
         user = self.uow.usuarios.get_by_id(usuario_id)
         
         if not user or user.deleted_at is not None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario no encontrado"
-            )
+            raise AppError.http(404, "Usuario no encontrado")
         
         return user
 
@@ -31,10 +28,7 @@ class UsuarioService:
         """
         # La verificación de email se hace aquí para que afecte a ambos flujos
         if self.uow.usuarios.get_by_email(user_in.email):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="El email ya está registrado"
-            )
+            raise AppError.http(409, "El email ya está registrado")
 
         nuevo_usuario = Usuario(
             nombre=user_in.nombre,
@@ -68,10 +62,7 @@ class UsuarioService:
         with self.uow:
             rol_default = self.uow.roles.get_by_codigo("CLIENT")
             if not rol_default:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Configuración de sistema inválida: Rol 'CLIENT' no existe."
-                )
+                raise AppError.http(500, "Configuración de sistema inválida: Rol 'CLIENT' no existe.")
             return self._crear_usuario_core(user_in, [rol_default])
 
 
@@ -82,10 +73,7 @@ class UsuarioService:
             for codigo in roles_codigos:
                 rol = self.uow.roles.get_by_codigo(codigo)
                 if not rol:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"El código de rol '{codigo}' no es válido."
-                    )
+                    raise AppError.http(400, f"El código de rol '{codigo}' no es válido.")
                 objetos_roles.append(rol)
             
             return self._crear_usuario_core(user_in, objetos_roles)
@@ -110,10 +98,7 @@ class UsuarioService:
                 for codigo in roles_codigos:
                     rol = uow.roles.get_by_id(codigo)
                     if not rol:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"El codigo de rol {codigo} no es valido"
-                        )
+                        raise AppError.http(400, f"El codigo de rol {codigo} no es valido")
                     objetos_roles.append(rol)
 
             return self._update_user_core(user_id, data_dict=data, nuevos_roles=objetos_roles)

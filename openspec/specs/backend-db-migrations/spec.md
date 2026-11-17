@@ -197,7 +197,7 @@ El servicio `backend` de docker-compose SHALL aplicar `alembic upgrade head` ant
 La migración `002`, siguiente a la `001`, SHALL crear la tabla `sesion` (`id` UUID, `usuario_id`, `expires_at`, `revoked_at`, `revoked_reason`, `created_at`, `ip`, `user_agent`) y SHALL ajustar `refresh_token`: agrega `sesion_id` UUID NOT NULL con FK a `sesion.id` y quita `expires_at` y `usuario_id`. Sus restricciones e índices SHALL tener nombre explícito.
 
 #### Scenario: Esquema tras el upgrade
-- **WHEN** se aplica `alembic upgrade head` sobre una base vacía
+- **WHEN** se aplica `alembic upgrade 002` sobre una base vacía
 - **THEN** la versión actual es `002`, existen las 17 tablas de la `001` más `sesion`, `refresh_token` tiene `sesion_id` de tipo `uuid` y no tiene `expires_at` ni `usuario_id`
 
 #### Scenario: Motivo de cierre acotado
@@ -219,3 +219,41 @@ La migración `002`, siguiente a la `001`, SHALL crear la tabla `sesion` (`id` U
 #### Scenario: Downgrade a la 001
 - **WHEN** sobre una base en `002` se ejecuta `alembic downgrade 001`
 - **THEN** no existe `sesion` y `refresh_token` vuelve a tener `usuario_id` y `expires_at` y no tiene `sesion_id`
+
+### Requirement: La migración 003 adapta los pagos a Checkout API
+La migración `003`, siguiente a la `002`, SHALL convertir `pagos.external_reference` en un UUID obligatorio con unicidad de nombre explícito `uq_pagos_external_reference`, y SHALL quitar de `pagos` las columnas de Checkout Pro `mp_preference_id` y `mp_init_point`.
+
+#### Scenario: Esquema tras el upgrade
+- **WHEN** se aplica `alembic upgrade 003` sobre una base vacía
+- **THEN** la versión actual es `003`, `pagos.external_reference` es de tipo `uuid` y no admite nulos, existe la restricción `uq_pagos_external_reference` y `pagos` no tiene `mp_preference_id` ni `mp_init_point`
+
+#### Scenario: Referencia externa duplicada
+- **WHEN** se insertan directamente en la base dos pagos con la misma `external_reference`
+- **THEN** la base rechaza el segundo por violación de `uq_pagos_external_reference`
+
+#### Scenario: Pagos existentes reciben una referencia
+- **WHEN** se aplica la `003` sobre una base en la `002` con un pago de `external_reference` `"42"` y otro con `external_reference` nula
+- **THEN** el upgrade termina sin errores y cada pago queda con un UUID propio y distinto en `external_reference`, sin perder sus demás datos
+
+#### Scenario: Downgrade a la 002
+- **WHEN** sobre una base en `003` se ejecuta `alembic downgrade 002`
+- **THEN** `pagos.external_reference` vuelve a ser texto de hasta 100 caracteres que admite nulos, sin `uq_pagos_external_reference`, y `pagos` vuelve a tener `mp_preference_id` y `mp_init_point` vacíos
+
+### Requirement: La migración 004 adapta los pagos a la Orders API
+La migración `004`, siguiente a la `003`, SHALL agregar a `pagos` la columna `mp_order_id` (texto de hasta 64 caracteres, admite nulos) con unicidad de nombre explícito `uq_pagos_mp_order_id`, SHALL convertir `mp_payment_id` de entero a texto de hasta 64 caracteres conservando su unicidad y sus valores, y SHALL quitar `mp_merchant_order_id`. Pasa a ser la cabeza del historial.
+
+#### Scenario: Esquema tras el upgrade
+- **WHEN** se aplica `alembic upgrade head` sobre una base vacía
+- **THEN** la versión actual es `004`, `pagos.mp_order_id` es texto que admite nulos, existe la restricción `uq_pagos_mp_order_id`, `pagos.mp_payment_id` es texto y `pagos` no tiene `mp_merchant_order_id`
+
+#### Scenario: Id de orden duplicado
+- **WHEN** se insertan directamente en la base dos pagos con el mismo `mp_order_id`
+- **THEN** la base rechaza el segundo por violación de `uq_pagos_mp_order_id`, y dos pagos con `mp_order_id` nulo se aceptan
+
+#### Scenario: Pagos existentes conservan su id de MercadoPago
+- **WHEN** se aplica la `004` sobre una base en la `003` con un pago de `mp_payment_id` `123456` y `mp_merchant_order_id` `999`
+- **THEN** el upgrade termina sin errores, el pago queda con `mp_payment_id` `"123456"`, `mp_order_id` nulo y sus demás datos sin cambios
+
+#### Scenario: Downgrade a la 003
+- **WHEN** sobre una base en `004` con un pago de `mp_payment_id` `"PAY01ABC"` y otro de `mp_payment_id` `"123456"` se ejecuta `alembic downgrade 003`
+- **THEN** `pagos` no tiene `mp_order_id` ni `uq_pagos_mp_order_id`, `mp_payment_id` vuelve a ser entero (el primero queda nulo y el segundo `123456`) y `pagos` vuelve a tener `mp_merchant_order_id` vacía

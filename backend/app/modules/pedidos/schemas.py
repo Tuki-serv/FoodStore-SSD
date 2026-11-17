@@ -1,14 +1,46 @@
-from dataclasses import dataclass
 from decimal import Decimal
-from typing import Literal, Optional, List
-from datetime import date, datetime
+from typing import Optional, List
+from datetime import datetime
 
 from sqlmodel import SQLModel, Field
 from pydantic import ConfigDict, ValidationInfo, field_validator
-from app.modules.detalles_pedido.schemas import (
-    DetallePedidoCreate,
-    DetallePedidoRead,
-)
+
+
+class EstadoPedidoRead(SQLModel):
+    codigo: str
+
+
+
+class HistorialEstadoPedidoRead(SQLModel):
+    id: int
+    pedido_id: int
+    estado_desde: Optional[str] = None
+    estado_hacia: str
+    motivo: Optional[str] = None
+    usuario_id: Optional[int] = None
+    created_at: datetime
+
+
+
+class DetallePedidoCreate(SQLModel):
+    producto_id: int = Field(..., description="ID del producto")
+    cantidad: int = Field(..., ge=1, description="Cantidad del producto")
+    personalizacion: Optional[List[int]] = Field(default=None, description="ID de la personalización")
+
+class DetallePedidoRead(SQLModel):
+    pedido_id: int
+    producto_id: int
+
+    cantidad: int
+
+    nombre_snapshot: str
+    precio_snapshot: Decimal
+    subtotal_snapshot: Decimal
+    
+    personalizacion: Optional[List[int]] = None
+    personalizacion_snapshot: Optional[List[str]] = None
+    created_at: datetime
+
 
 class PedidoCreate(SQLModel):
     direccion_id: Optional[int] = Field(
@@ -78,14 +110,3 @@ class PedidoDetalle(PedidoResumen):
     """Detalle completo: el resumen más la dirección de entrega y los ítems."""
     direccion_id: Optional[int] = None
     items: List[DetallePedidoRead] = Field(default_factory=list)
-
-
-EstadoPedidoCodigo = Literal["PENDIENTE", "CONFIRMADO", "EN_PREP", "EN_CAMINO", "ENTREGADO", "CANCELADO"]
-
-
-@dataclass(frozen=True)
-class FiltrosPedidos:
-    """Filtros opcionales del listado (query params): estado y rango de fechas de creación, inclusivo, en UTC."""
-    estado: EstadoPedidoCodigo | None = None
-    desde: date | None = None
-    hasta: date | None = None

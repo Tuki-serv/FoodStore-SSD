@@ -14,7 +14,7 @@
 - **PA-07 parcial (DD-23):** `EN_CAMINO` lo despachan ADMIN y PEDIDOS. El rol `COCINA`, el KDS y el WebSocket quedan para el final (C-26, C-27 en Fase 2) y no se tocan ahora.
 
 **Leyenda de marcas**
-- `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 1 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
+- `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 2 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
 - `[PENDIENTE DE DECISIÓN: PA-xx]` = el orden o scope puede cambiar según una pregunta abierta que sigue abierta (hoy PA-08, PA-14); **no bloquea** el roadmap (se implementa con el supuesto indicado y se ajusta).
 - `[OPCIONAL/BLOQUEADO]` = Fase 2; no iniciar hasta resolver la parte abierta de PA-07 (COCINA/KDS) y PA-19.
 - Los sufijos `a`/`b` (`C-13a`, `C-13b`, `C-17a`, `C-17b`, `C-25a`, `C-25b`) parten un change en dos sin renumerar el resto.
@@ -46,10 +46,10 @@ C-01 ✓ baseline-backend
              └── C-09 ✓ pedidos-fsm-en-camino  (+C-08)
                    ├── C-10 ✓ pedidos-stock-descuento
                    ├── C-11 ✓ pedidos-contrato-api-y-categorias
-                   └── C-12 pagos-checkout-api-cardpayment (+C-05)
+                   └── C-12 ✓ pagos-checkout-api-cardpayment (+C-05)
 
 FASE 1 (frontend sobre base corregida)
-C-13a fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
+C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
  └── C-13b fe-foundation-auth-data (C-13a, C-02, C-11)
        ├── C-14 fe-auth-cuenta
        ├── C-15 fe-direcciones
@@ -63,7 +63,7 @@ C-13a fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        ├── C-22 fe-gestion-operativa-pedidos (+C-09, C-11)
        │     └── C-24 fe-dashboard-metricas
        └── C-23 fe-admin-usuarios-roles (+C-08)
-C-25a backend-capas-y-renombres (C-01..C-12; en paralelo con el frontend)
+C-25a ✓ backend-capas-y-renombres (C-01..C-12; en paralelo con el frontend)
 C-25b entrega-docs-video (todo lo anterior)
 
 FASE 2 (opcional/bloqueado: COCINA/KDS de PA-07, PA-19)
@@ -77,7 +77,7 @@ GATE 0: C-01 ✓                                          ← FORK
   → C-04 ✓ pagos-autorizacion-propietario    [Agente B — CRITICO]
   → C-06 ✓ datos-migraciones-alembic          [Agente C]
   → C-03 ✓ auth-rate-limit-slowapi           [Agente A, en paralelo a C-06]
-  → C-13a fe-foundation-scaffold              [Agente C — sin dependencia de backend; puede ir en cualquier hueco]
+  → C-13a ✓ fe-foundation-scaffold            [Agente C — sin dependencia de backend; puede ir en cualquier hueco]
 
 GATE 1: C-04 ✓ / C-06 ✓
   → C-02 ✓ auth-sesion-tokens-bearer-refresh [Agente A — CRITICO, tras C-06]
@@ -93,11 +93,11 @@ GATE 2: C-07 ✓ + C-08 ✓
 GATE 3: C-09 ✓                                          ← FORK
   → C-10 ✓ pedidos-stock-descuento              [Agente A]
   → C-11 ✓ pedidos-contrato-api-y-categorias    [Agente C]
-  → C-12 pagos-checkout-api-cardpayment       [Agente B — si C-05 ✓]
+  → C-12 ✓ pagos-checkout-api-cardpayment     [Agente B — si C-05 ✓]
 
 GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
   → C-13b fe-foundation-auth-data             [Agente C]
-  → C-25a backend-capas-y-renombres           [Agente A — si C-01..C-12 ✓; independiente del frontend]
+  → C-25a ✓ backend-capas-y-renombres        [Agente A — si C-01..C-12 ✓; independiente del frontend]
 
 GATE 5: C-13b ✓                                         ← FORK
   → C-14 fe-auth-cuenta                       [Agente C]
@@ -129,10 +129,10 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 | C-01 ✓ | — | — |
 | 2 | C-03 ✓ | C-04 ✓ | C-06 ✓ |
 | 3 | C-02 ✓ | C-05 ✓ | C-07 ✓ |
-| 4 | C-08 ✓ | — | C-13a |
+| 4 | C-08 ✓ | — | C-13a ✓ |
 | 5 | C-09 ✓ | — | — |
-| 6 | C-10 ✓ | C-12 | C-11 ✓ |
-| 7 | C-25a | — | C-13b |
+| 6 | C-10 ✓ | C-12 ✓ | C-11 ✓ |
+| 7 | C-25a ✓ | — | C-13b |
 | 8 | C-17a | C-15 | C-14 + C-16 |
 | 9 | C-17b | C-22 | C-18 |
 | 10 | C-23 | C-24 | C-19 |
@@ -153,7 +153,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 - **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-06-c-01-baseline-backend/`)
 - **Scope**:
   - Incorporar el backend FastAPI base al repo y reubicarlo en la estructura de la spec bajo `backend/` (la raíz es solo gestión; código en `backend/` y `frontend/`, D9): `backend/app/main.py`, `backend/app/db/seed.py`, módulos feature-first (DT-09 parte de layout; DD-02).
-  - Alinear variables de entorno: `ACCESS_TOKEN_EXPIRE_MINUTES`, `MP_ACCESS_TOKEN`, `MP_NOTIFICATION_URL`, `VITE_API_URL`, `CORS_ORIGINS` (JSON); retirar `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL` (DT-22). `backend/.env.example`.
+  - Alinear variables de entorno: `ACCESS_TOKEN_EXPIRE_MINUTES`, `MP_ACCESS_TOKEN`, `MP_NOTIFICATION_URL` (retirada después por C-12, revisión Orders), `VITE_API_URL`, `CORS_ORIGINS` (JSON); retirar `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL` (DT-22). `backend/.env.example`.
   - Auditar los permisos de productos, ingredientes y `cloudinary/service.py` y dejar nota en el change (PA-09).
   - Arrancar suite pytest baseline y fijar estrategia de BD de pruebas (Postgres vs SQLite, PA-10).
   - Tests: arranque de app, health, config por entorno.
@@ -349,12 +349,12 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/09_decisiones_y_supuestos.md` (DT-17, DT-18, DT-19)
 
 ### [C-12] `pagos-checkout-api-cardpayment`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-17). Implementado sobre la Orders API de MercadoPago (DD-26) tras comprobar en sandbox que `/v1/payments` responde 401 con las credenciales de prueba. Verify: PASS WITH FINDINGS, sin blocker ni major; los menores se derivaron a C-20 y C-25a (ver «Heredado de C-12»). Sandbox manual: aprobado, fondos insuficientes, reintento y webhook firmado comprobados; `OTHE`, `CONT` y clave de idempotencia repetida (OQ-14) no se ejecutaron.
 - **Scope**:
-  - Cubre DT-01. Migrar de Checkout Pro (preferencia + `init_point`) a Checkout API/Orders con token de tarjeta (`CardPayment` brick): `POST /pagos/crear` recibe `token`, `payment_method_id`, `installments`, `issuer_id`; la tarjeta nunca toca el backend (SAQ-A); `X-Idempotency-Key`. PA-05 resuelta (DD-21): se hace como está planeado, sin Checkout Pro como etapa intermedia ni alternativa de redirect.
+  - Cubre DT-01. Migrar de Checkout Pro (preferencia + `init_point`) a Checkout API con token de tarjeta (`CardPayment` brick), implementada sobre la **Orders API** (`POST /v1/orders`, `sdk.order()`; revisión 2026-11-15, DD-26): `POST /pagos/crear` recibe `token`, `payment_method_id`, `payment_type_id`, `installments`, `issuer_id` (aceptado, no reenviado); la tarjeta nunca toca el backend (SAQ-A); `X-Idempotency-Key`; credenciales rechazadas por MercadoPago → 503. PA-05 resuelta (DD-21): se hace como está planeado, sin Checkout Pro como etapa intermedia ni alternativa de redirect.
   - Reintento tras rechazo; `GET /pagos/{pedido_id}` con `mp_status_detail`.
-  - Cubre DT-26: `pagos.external_reference` como UUID único y obligatorio (generado por el backend), con su migración (la siguiente a la cabeza vigente, hoy `002`).
-  - Mantener el webhook de C-05 como confirmación.
+  - Cubre DT-26: `pagos.external_reference` como UUID único y obligatorio (generado por el backend), con su migración (la siguiente a la cabeza vigente, hoy `002`; la revisión Orders suma la `004`: `mp_order_id`, `mp_payment_id` como texto, sin `mp_merchant_order_id`).
+  - Mantener el webhook de C-05 como confirmación, ahora por el tópico `order` (evento «Order (Mercado Pago)») con consulta `GET /v1/orders/{id}`; se retira `MP_NOTIFICATION_URL` (la URL del webhook se configura solo en el panel de MercadoPago).
   - Punto de partida (C-07): `TARJETA` quedó deshabilitada en el catálogo de formas de pago (no se siembra); la tarjeta es un medio dentro de `MERCADOPAGO`.
   - Tests con sandbox mockeado: aprobado, rechazado, pendiente, reintento.
   - Al retirar el redirect de Checkout Pro se eliminan `FRONTEND_URL` y `BACKEND_PUBLIC_URL` (opcionales, introducidas en C-01). El chequeo «MercadoPago no configurado» (503, formato uniforme `{detail, code, field}`) debe conservarse en el flujo nuevo.
@@ -371,10 +371,10 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 
 ## FASE 1 — Features por épica (sobre base corregida)
 
-> El alcance incluye el frontend completo (PA-01 resuelta, DD-19; DT-24, SU-01). Los changes visuales deben tener mockup aprobado (Revision 1 del design system) antes de apply. El frontend consume el backend ya corregido en la Fase 0: autenticación por Bearer con refresh por cookie HttpOnly (`withCredentials` hacia `/api/v1/auth`).
+> El alcance incluye el frontend completo (PA-01 resuelta, DD-19; DT-24, SU-01). Los changes visuales deben tener mockup aprobado (Revision 2 del design system, con panel lateral DD-25) antes de apply. El frontend consume el backend ya corregido en la Fase 0: autenticación por Bearer con refresh por cookie HttpOnly (`withCredentials` hacia `/api/v1/auth`).
 
 ### [C-13a] `fe-foundation-scaffold`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-15). Verify: PASS WITH FINDINGS; las 3 de prioridad major se corrigieron en el mismo change, las menores se derivaron a C-13b, C-18 y C-25b (ver «Heredado de C-13a» en cada uno). Los mockups se aplicaron sin revisión previa (a pedido del usuario) y el usuario los aprobó después, el 2026-11-15. Las secciones del rol `STOCK` en el panel (OQ-2) las confirmó el usuario el 2026-11-15 (DD-25).
 - **Scope**:
   - Proyecto Vite + React + TS (`strict`, sin `any`) + Tailwind en estructura FSD bajo `frontend/`; `VITE_API_URL`; importar `design-system/tokens.css`.
   - Router (sin guards todavía), layout base / shell y navegación, página de error/404.
@@ -400,6 +400,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - **Decisión a tomar en el propose**: la spec `[INT]` pide que `authStore` persista solo `accessToken`, mientras que C-02 (D3/PA-04) dejó escrito que el access vive solo en memoria. Hay que elegir y, si cambia, actualizar la KB (`knowledge-base/05` RN-AU-10, `08` §Seguridad, `10` IN-07).
   - Punto de partida (C-08): los roles para la UI se toman de `GET /auth/me` (el claim `roles` del access es informativo y no autoriza); las lecturas públicas (`GET /productos`, `/categorias`, `/ingredientes`, `/unidades-medida`) con un access inválido responden 401, así que el interceptor renueva y reintenta.
   - Punto de partida (C-11): contrato de pedidos: `GET /pedidos` (scoped), `GET /pedidos/{id}`, `PATCH /pedidos/{id}/estado` con `{nuevo_estado, motivo}`, `DELETE /pedidos/{id}` con body OPCIONAL `{motivo}` (por defecto «Cancelado por el cliente»); paginación `{items,total,page,size,pages}`; errores `{detail, code, field}` con códigos de negocio.
+  - **Heredado de C-13a** (verify 2026-11-15): pasar los roles de `GET /auth/me` y el usuario a `AppShell` (props `roles`, `usuario`, `onCerrarSesion`; hoy muestra siempre la variante sin sesión) y verificar visualmente la variante ADMIN contra `mockups/shell-admin.html` del change archivado; `error-page.test.tsx` usa `vi.unstubAllGlobals()` y borra el stub de `Request` de `src/test/setup.ts` (frágil: restaurar solo lo propio); activar los future flags de React Router o silenciar su aviso en los tests; quitar `RUTAS.raiz` si sigue sin uso y exportar `UsuarioShell` desde la API pública del shell; agregar a `uiStore` los campos que falten junto con los otros tres stores.
 - **Dependencias**: `C-13a, C-02, C-11`
 - **Governance**: ALTO
 - **UI**: sin mockup propio (usa el shell aprobado de C-13a).
@@ -492,6 +493,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - US-015 carrito persistente en localStorage (sobrevive refresh, cierre y logout/login, CE-14), suscripción por slice a `cartStore`.
   - US-016 personalizar producto: excluir ingredientes removibles (`personalizacion` = IDs).
   - Tests: persistencia, personalización, totales.
+  - **Heredado de C-13a**: contador de ítems del carrito en el panel lateral y en la barra superior mobile (clase `.count` del design system; C-13a no lo portó porque no hay `cartStore`).
 - **Dependencias**: `C-16`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` drawer/página de carrito y selector de personalización.
@@ -523,6 +525,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - US-024 pago con `CardPayment` brick (PA-05 resuelta, DD-21: sin alternativa de redirect a Checkout Pro), reintento tras rechazo; US-025 reflejo de la confirmación por webhook (polling del estado); US-026 estado de pago con `mp_status_detail`.
   - Pantallas de éxito/pendiente/rechazo; incluir el caso «pago aprobado pero pedido cancelado por falta de stock» (DD-20).
   - Tests: aprobado, rechazado, reintento (MP mockeado).
+  - **Heredado de C-12** (2026-11-17): el backend cobra por la Orders API (DD-26). El pedido a `POST /api/v1/pagos/crear` exige `payment_type_id` (`credit_card`/`debit_card`), que el brick entrega en `additionalData.paymentTypeId`; `issuer_id` se acepta pero no se envía a MercadoPago; los estados de MercadoPago son los de la orden (`processed`, `failed`, `processing`, `action_required`) y `mp_payment_id` es texto. La página `sandbox/pago-prueba.html` del change archivado sirve de referencia del contrato. Para probar: aplicación creada como Checkout API con «API de Orders», credenciales `APP_USR-` de la cuenta vendedora de prueba, email de una cuenta compradora de prueba y webhook del panel con el evento «Order (Mercado Pago)».
 - **Dependencias**: `C-19, C-12`
 - **Governance**: CRITICO
 - **UI**: `[UI-MOCKUP]` pantalla de pago y resultados.
@@ -590,13 +593,14 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/02_descripcion_general.md`
 
 ### [C-25a] `backend-capas-y-renombres`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado (archivado en `openspec/changes/archive/2026-11-14-c-25a-backend-capas-y-renombres/`)
 - **Scope**:
   - DT-25 (capas): sacar `Session`/`get_session` de los routers de `categorias`, `ingredientes`, `pagos`, `pedidos` y `productos` (delegar al service) y cortar la dependencia `core/deps.py` → `modules/`; si un change anterior toca alguno de esos routers, lo corrige ahí.
   - Incluye la sugerencia pendiente del verify de C-02: mover `UsuarioServiceDep` fuera de `usuarios/router.py`.
   - Renombrar `direcciones_entrega` → `direcciones`, `admin`, `core/unit_of_work.py` → `core/uow.py` y el resto de los módulos a la estructura objetivo de la spec (`knowledge-base/08` §Estructura).
   - Cobertura pytest > 60% (auth, pedidos, pagos, categorías, direcciones, ingredientes, productos, estadísticas); prueba end-to-end del flujo compra→pago→entrega a nivel API.
   - Es solo backend: puede correr en paralelo con el frontend; se cierra antes de `C-25b`.
+  - **Heredado de C-12** (menores del verify 2026-11-17; C-25a ya está cerrado, así que se toman en un change de endurecimiento de pagos antes de `C-25b` o dentro de él; gobernanza CRÍTICO): (1) tests directos del mapeo de estados `canceled`, `charged_back` y `created`; (2) `partially_refunded → aprobado` está en el código y en D20 pero no en la spec, y no tiene test: agregarlo a la spec o quitarlo; (3) la respuesta 200 del webhook incluye el `PedidoDetalle` completo: devolver solo `status`; (4) `procesar_webhook` y su handler son `async def` con I/O bloqueante (SDK y base): pasarlos a `def` para no bloquear el event loop; (5) comparar el `total_amount` de la orden con el monto del pago local antes de confirmar; (6) probar por el endpoint que los logs no contienen secretos; (7) decidir si se retira la variante «tal cual» de la firma del webhook (en sandbox MercadoPago firmó con el id en minúsculas); (8) casos de sandbox no ejecutados: `OTHE`, `CONT` y clave de idempotencia repetida (OQ-14); (9) `python -m app.db.seed` falla en la consola de Windows (cp1252) al imprimir emojis y revierte todo: forzar UTF-8 en la salida o quitar los emojis.
   - Punto de partida (C-11): `pedidos/repository.py` importa `FiltrosPedidos` desde `pedidos/schemas.py`; moverlo a un lugar neutro (la capa de repositorio no debe importar de schemas).
 - **Dependencias**: `C-01 a C-12`
 - **Governance**: MEDIO
@@ -612,6 +616,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Prueba end-to-end del flujo completo (frontend incluido): compra→pago→entrega.
   - Checklist de entrega de la rúbrica de 200 pts; capturas de las 10 pantallas; video de la entrega; metadatos faltantes (PA-18); deploy opcional (PA-17).
   - Verificación visual contra mockups aprobados.
+  - **Heredado de C-13a** (menores del verify 2026-11-15): favicon (hoy `/favicon.ico` da 404 en consola); accesibilidad del drawer mobile (`role="dialog"`/`aria-modal`, trampa de foco, contenido `inert` detrás del scrim); test que exija `index.ts` en cada slice/segmento FSD; título del 404 en mobile (una línea en la app, dos en el mockup); decidir si se quita la escala por defecto de Tailwind (hoy `h-10` sale como `2.5rem` literal, fuera de los tokens); sumar los íconos `obra`, `brujula` y `alerta` al sprite de `design-system/components.html` (cambio visual del design system: requiere revisión del usuario); test de `readConfig` con valor vacío que no distingue del caso URL inválida; imagen de producción del frontend (el Dockerfile actual es solo servidor de desarrollo).
 - **Dependencias**: `C-01 a C-24, C-25a`
 - **Governance**: MEDIO
 - **Decisión pendiente**: PA-16, PA-17, PA-18
@@ -681,8 +686,8 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 11** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11). **Pendientes obligatorios: 17** (1 de Fase 0 + 16 de Fase 1) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 14** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-25a). **Pendientes obligatorios: 14** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
-**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-13a (`fe-foundation-scaffold`) y luego C-13b (`fe-foundation-auth-data`, ya desbloqueado en backend: requiere C-13a, C-02 ✓ y C-11 ✓). Fase 0 pendiente: C-12 (C-12 ya tiene todas sus dependencias cerradas: C-05, C-09).
+**Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-13a (`fe-foundation-scaffold`) y luego C-13b (`fe-foundation-auth-data`, ya desbloqueado en backend: requiere C-13a, C-02 ✓ y C-11 ✓). Fase 0 completa: C-12 se cerró el 2026-11-17.

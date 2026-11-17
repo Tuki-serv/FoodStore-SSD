@@ -1,7 +1,8 @@
 from typing import Optional, List
+from uuid import UUID
 from sqlmodel import Session, select
 from app.core.repository import BaseRepository
-from app.modules.pagos.models import Pago
+from app.modules.pagos.models import FormaPago, Pago
 
 class PagoRepository(BaseRepository[Pago]):
     """Repositorio de pagos con métodos de búsqueda específicos de MP."""
@@ -14,7 +15,7 @@ class PagoRepository(BaseRepository[Pago]):
             self.session.exec(
                 select(Pago)
                 .where(Pago.pedido_id == pedido_id)
-                .order_by(Pago.created_at.desc())
+                .order_by(Pago.created_at.desc(), Pago.id.desc())
             ).all()
         )
 
@@ -27,32 +28,30 @@ class PagoRepository(BaseRepository[Pago]):
             select(Pago).where(Pago.idempotency_key == key)
         ).first()
 
-    def get_by_mp_payment_id(self, mp_payment_id: int) -> Optional[Pago]:
+    def get_by_mp_order_id(self, mp_order_id: str) -> Optional[Pago]:
         return self.session.exec(
-            select(Pago).where(Pago.mp_payment_id == mp_payment_id)
+            select(Pago).where(Pago.mp_order_id == mp_order_id)
         ).first()
 
-    def get_by_mp_merchant_order_id(self, merchant_order_id: int) -> Optional[Pago]:
+    # ─── Lecturas con bloqueo de fila (webhook: serializa notificaciones concurrentes de la misma orden) ──────────
+    def get_by_mp_order_id_for_update(self, mp_order_id: str) -> Optional[Pago]:
         return self.session.exec(
-            select(Pago).where(Pago.mp_merchant_order_id == merchant_order_id)
+            select(Pago).where(Pago.mp_order_id == mp_order_id).with_for_update()
         ).first()
 
-    # ─── Lecturas con bloqueo de fila (webhook: serializa notificaciones concurrentes del mismo pago) ──────────
-    def get_by_mp_payment_id_for_update(self, mp_payment_id: int) -> Optional[Pago]:
+    def get_by_external_reference_for_update(self, external_reference: UUID) -> Optional[Pago]:
         return self.session.exec(
-            select(Pago).where(Pago.mp_payment_id == mp_payment_id).with_for_update()
+            select(Pago).where(Pago.external_reference == external_reference).with_for_update()
         ).first()
 
-    def get_ultimo_by_pedido_for_update(self, pedido_id: int) -> Optional[Pago]:
-        return self.session.exec(
-            select(Pago)
-            .where(Pago.pedido_id == pedido_id)
-            .order_by(Pago.created_at.desc(), Pago.id.desc())
-            .limit(1)
-            .with_for_update()
-        ).first()
 
-    def get_by_mp_merchant_order_id_for_update(self, merchant_order_id: int) -> Optional[Pago]:
-        return self.session.exec(
-            select(Pago).where(Pago.mp_merchant_order_id == merchant_order_id).with_for_update()
-        ).first()
+#============= POR SI HACE FALTA ===============
+# Puede ser utilizado para verificar que la forma de pago existe
+
+class FormaPagoRepository (BaseRepository[FormaPago]):
+    def __init__(self, session: Session):
+        super().__init__(session, FormaPago)
+
+    def get_by_codigo(self, codigo: str) -> FormaPago | None:
+        statement = select(FormaPago).where(FormaPago.codigo == codigo)
+        return self.session.exec(statement).first()

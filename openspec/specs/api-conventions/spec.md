@@ -66,7 +66,7 @@ Un error sin código de negocio SHALL usar `HTTP_<status>` (por ejemplo `HTTP_40
 - **THEN** recibe 422 con `code` `VALIDATION_ERROR` y `field` `nuevo_estado`
 
 ### Requirement: Códigos de error de negocio
-Los errores que el cliente debe distinguir SHALL usar códigos de negocio estables: `INVALID_TRANSITION` (409, transición no permitida o pedido terminal), `INSUFFICIENT_STOCK` (409, confirmación sin stock), `DUPLICATE_VALUE` (409, con `field`), `CATEGORY_HAS_PRODUCTS` (409) y `CATEGORY_HAS_CHILDREN` (409).
+Los errores que el cliente debe distinguir SHALL usar códigos de negocio estables: `INVALID_TRANSITION` (409, transición no permitida o pedido terminal), `INSUFFICIENT_STOCK` (409, confirmación sin stock), `DUPLICATE_VALUE` (409, con `field`), `CATEGORY_HAS_PRODUCTS` (409), `CATEGORY_HAS_CHILDREN` (409) y `PAYMENT_NOT_ALLOWED` (409, el pedido no admite un nuevo pago: no es `MERCADOPAGO`, no está `PENDIENTE`, ya está pagado o tiene un pago en proceso).
 
 #### Scenario: Transición inválida
 - **WHEN** un usuario `ADMIN` pide pasar a `ENTREGADO` un pedido en `EN_PREP`
@@ -75,6 +75,10 @@ Los errores que el cliente debe distinguir SHALL usar códigos de negocio establ
 #### Scenario: Confirmación sin stock
 - **WHEN** un usuario `PEDIDOS` confirma un pedido `EFECTIVO` de 2 unidades de un producto con stock 1
 - **THEN** recibe 409 con `code` `INSUFFICIENT_STOCK` y el pedido sigue en `PENDIENTE`
+
+#### Scenario: Pago no permitido
+- **WHEN** el dueño de un pedido `TRANSFERENCIA` en `PENDIENTE` llama a `POST /api/v1/pagos/crear` con ese pedido
+- **THEN** recibe 409 con `code` `PAYMENT_NOT_ALLOWED` y `field` nulo
 
 ### Requirement: Límite de peticiones con el formato de error
 Superar el límite de peticiones SHALL responder 429 con `{detail, code, field}`, `code` `RATE_LIMIT_EXCEEDED` y `field` nulo, conservando el header `Retry-After` con un entero positivo de segundos. El cuerpo no SHALL tener la clave `error`. El único límite vigente es el de intentos fallidos de `POST /api/v1/auth/login` (spec `auth-session`); ningún otro endpoint SHALL responder 429 ni headers `X-RateLimit-*`.

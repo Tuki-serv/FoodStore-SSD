@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C-12 · Prueba de pago en sandbox</title>
+<!--
+  Herramienta de prueba manual de la tarea 10.2 de C-12. NO es parte del frontend.
+  - Usar solo con credenciales TEST- de MercadoPago y usuarios de prueba.
+  - No guarda nada: la clave pública, la contraseña y el access token viven solo en memoria de esta pestaña.
+  - Servir desde un origen incluido en CORS_ORIGINS del backend (ver README.md de esta carpeta).
+-->
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; color: #2b2118; }
+  h1 { font-size: 1.3rem; }
+  fieldset { border: 1px solid #d8cdbf; border-radius: 8px; margin: 16px 0; padding: 12px 16px; }
+  legend { font-weight: 700; padding: 0 6px; }
+  label { display: block; margin: 8px 0 2px; font-size: .9rem; }
+  input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #b9ab99; border-radius: 6px; font: inherit; }
+  button { margin-top: 10px; padding: 8px 14px; border: 0; border-radius: 6px; background: #b5482a; color: #fff; font: inherit; cursor: pointer; }
+  button:disabled { background: #b9ab99; cursor: not-allowed; }
+  pre { background: #f6f0e8; border-radius: 6px; padding: 10px; white-space: pre-wrap; word-break: break-word; font-size: .85rem; min-height: 1.2em; }
+  .nota { font-size: .85rem; color: #6b5d4e; }
+</style>
+</head>
+<body>
+<h1>C-12 · Prueba de pago en sandbox (Checkout API, brick CardPayment)</h1>
+<p class="nota">Solo para credenciales de prueba. Esta página no guarda nada.</p>
+<pre id="aviso-origen" hidden></pre>
+
+<fieldset>
+  <legend>1. Conexión</legend>
+  <label for="api">URL del backend</label>
+  <input id="api" value="http://127.0.0.1:8000">
+  <label for="pk">Clave pública de MercadoPago (TEST-…)</label>
+  <input id="pk" autocomplete="off" placeholder="TEST-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+</fieldset>
+
+<fieldset>
+  <legend>2. Sesión (usuario CLIENT de prueba)</legend>
+  <label for="email">Email</label>
+  <input id="email" type="email" autocomplete="off">
+  <label for="clave">Contraseña</label>
+  <input id="clave" type="password" autocomplete="off">
+  <button id="btn-login" type="button">Ingresar</button>
+  <pre id="out-login"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>3. Pedido a pagar</legend>
+  <label for="pedido">ID del pedido (creado antes, en estado PENDIENTE)</label>
+  <input id="pedido" type="number" min="1">
+  <button id="btn-pedido" type="button" disabled>Cargar pedido y mostrar el formulario de tarjeta</button>
+  <pre id="out-pedido"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>4. Tarjeta de prueba</legend>
+  <div id="brick"></div>
+  <pre id="out-pago"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>5. Estado del pago</legend>
+  <button id="btn-estado" type="button" disabled>Consultar GET /api/v1/pagos/{pedido_id}</button>
+  <pre id="out-estado"></pre>
+</fieldset>
+
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const mostrar = (id, dato) => { $(id).textContent = typeof dato === 'string' ? dato : JSON.stringify(dato, null, 2); };
+  const api = () => $('api').value.replace(/\/+$/, '');
+
+  // El backend solo acepta por CORS el origen http://localhost:5173: abierta de otra forma, todo pedido falla.
+  if (location.origin !== 'http://localhost:5173') {
+    $('aviso-origen').hidden = false;
+    mostrar('aviso-origen', 'ATENCIÓN: esta página está abierta desde "' + location.origin + '" (' + location.protocol +
+      '). El backend la va a rechazar por CORS. Abrila desde http://localhost:5173/pago-prueba.html');
+  }
+  const errorDeRed = (e) => 'Error de red o de CORS: ' + e.message + '\nPágina abierta desde: ' + location.origin +
+    '\nBackend consultado: ' + api() + '\nRevisá que la página esté en http://localhost:5173 y que el backend esté levantado.';
+
+  let accessToken = null;
+  let brick = null;
+
+  async function pedir(ruta, opciones = {}) {
+    const respuesta = await fetch(api() + ruta, {
+      ...opciones,
+      headers: { ...(opciones.headers || {}), ...(accessToken ? { Authorization: 'Bearer ' + accessToken } : {}) },
+    });
+    const texto = await respuesta.text();
+    let cuerpo;
+    try { cuerpo = JSON.parse(texto); } catch { cuerpo = texto; }
+    return { status: respuesta.status, cuerpo };
+  }
+
+  $('btn-login').addEventListener('click', async () => {
+    try {
+      const form = new URLSearchParams({ username: $('email').value, password: $('clave').value });
+      const r = await pedir('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form,
+      });
+      $('clave').value = '';
+      if (r.status === 200 && r.cuerpo.access_token) {
+        accessToken = r.cuerpo.access_token;
+        mostrar('out-login', 'HTTP 200: sesión abierta.');
+        $('btn-pedido').disabled = false;
+        $('btn-estado').disabled = false;
+      } else {
+        mostrar('out-login', { status: r.status, cuerpo: r.cuerpo });
+      }
+    } catch (e) {
+      mostrar('out-login', errorDeRed(e));
+    }
+  });
+
+  $('btn-pedido').addEventListener('click', async () => {
+    const pedidoId = Number($('pedido').value);
+    if (!pedidoId) { mostrar('out-pedido', 'Falta el ID del pedido.'); return; }
+    if (!/^(APP_USR|TEST)-/.test($('pk').value.trim())) {
+      mostrar('out-pedido', 'La clave pública no parece válida: tiene que empezar con APP_USR- o TEST-.\n' +
+        'Es el valor de MP_PUBLIC_KEY (la "Public Key" de las credenciales), no el Access Token ni la clave secreta del webhook.');
+      return;
+    }
+    try {
+      const r = await pedir('/api/v1/pedidos/' + pedidoId);
+      if (r.status !== 200) { mostrar('out-pedido', { status: r.status, cuerpo: r.cuerpo }); return; }
+      const total = Number(r.cuerpo.total);
+      mostrar('out-pedido', { id: r.cuerpo.id, estado: r.cuerpo.estado_codigo, total: r.cuerpo.total });
+      await montarBrick(pedidoId, total);
+    } catch (e) {
+      mostrar('out-pedido', 'Error: ' + e.message);
+    }
+  });
+
+  async function montarBrick(pedidoId, total) {
+    if (brick) { await brick.unmount(); brick = null; }
+    mostrar('out-pago', '');
+    const mp = new MercadoPago($('pk').value.trim(), { locale: 'es-AR' });
+    mostrar('out-pago', 'Cargando el formulario de tarjeta…');
+    setTimeout(() => {
+      if (!$('brick').children.length) {
+        mostrar('out-pago', 'El formulario de tarjeta no cargó. Lo más probable es que la clave pública sea incorrecta ' +
+          '(MercadoPago no la reconoce). Revisala y volvé a tocar el botón del paso 3.');
+      }
+    }, 8000);
+    brick = await mp.bricks().create('cardPayment', 'brick', {
+      initialization: { amount: total },
+      callbacks: {
+        onReady: () => mostrar('out-pago', 'Formulario listo: completá la tarjeta de prueba y pagá.'),
+        onError: (error) => mostrar('out-pago', { errorDelBrick: error }),
+        onSubmit: async (datos, additionalData) => {
+          // El backend rechaza cualquier campo extra (PCI SAQ-A): se manda solo lo que acepta CrearPagoRequest.
+          const pagador = { email: datos.payer.email };
+          if (datos.payer.identification && datos.payer.identification.number) {
+            pagador.identification = { type: datos.payer.identification.type, number: datos.payer.identification.number };
+          }
+          const cuerpo = {
+            pedido_id: pedidoId,
+            token: datos.token,
+            payment_method_id: datos.payment_method_id,
+            // Orders exige el tipo de medio de pago: el brick lo entrega en additionalData.paymentTypeId (credit_card | debit_card).
+            payment_type_id: additionalData && additionalData.paymentTypeId,
+            installments: Number(datos.installments),
+            issuer_id: datos.issuer_id ? Number(datos.issuer_id) : null,
+            payer: pagador,
+          };
+          const r = await pedir('/api/v1/pagos/crear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cuerpo),
+          });
+          mostrar('out-pago', { status: r.status, cuerpo: r.cuerpo });
+        },
+      },
+    });
+  }
+
+  $('btn-estado').addEventListener('click', async () => {
+    const pedidoId = Number($('pedido').value);
+    if (!pedidoId) { mostrar('out-estado', 'Falta el ID del pedido.'); return; }
+    try {
+      const pago = await pedir('/api/v1/pagos/' + pedidoId);
+      const pedido = await pedir('/api/v1/pedidos/' + pedidoId);
+      mostrar('out-estado', {
+        pago: { status: pago.status, cuerpo: pago.cuerpo },
+        pedido: { status: pedido.status, estado: pedido.cuerpo && pedido.cuerpo.estado_codigo },
+      });
+    } catch (e) {
+      mostrar('out-estado', 'Error: ' + e.message);
+    }
+  });
+})();
+</script>
+</body>
+</html>

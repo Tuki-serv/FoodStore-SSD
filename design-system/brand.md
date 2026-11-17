@@ -1,4 +1,4 @@
-# Brand - Food Store (Revision 1, provisional)
+# Brand - Food Store (Revision 2, provisional)
 
 | Aspect | Value | Source |
 |---|---|---|

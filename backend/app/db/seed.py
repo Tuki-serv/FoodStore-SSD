@@ -17,8 +17,8 @@ from app.modules.categorias.models import Categoria
 from app.modules.ingredientes.models import Ingrediente
 from app.modules.productos.models import Producto, ProductoCategoria, ProductoIngrediente
 from app.modules.unidades_medida.models import UnidadMedida
-from app.modules.estados_pedido.models import EstadoPedido
-from app.modules.formas_pago.models import FormaPago
+from app.modules.pedidos.models import EstadoPedido
+from app.modules.pagos.models import FormaPago
 
 ROLES: tuple[dict[str, object], ...] = (
     {"codigo": "ADMIN",   "nombre": "Administrador",     "descripcion": "Acceso total sin restricciones"},

@@ -1,0 +1,5 @@
+import { PaginaX } from '@/pages/x';
+import { Boton } from '@/shared/ui';
+import { util } from './util';
+import { createBrowserRouter } from 'react-router-dom';
+export const rutas = [PaginaX, Boton, util, createBrowserRouter];

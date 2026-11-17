@@ -1,9 +1,7 @@
 from typing import Annotated, Optional, List
 from fastapi import APIRouter, Depends, Path, Query, status
-from sqlmodel import Session
 
-from app.core.deps import lector_privilegiado, require_role
-from app.core.database import get_session
+from app.modules.auth.dependencies import lector_privilegiado, require_role
 from app.core.enums import EstadoFiltro
 from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
@@ -17,7 +15,7 @@ from app.modules.productos.schemas import (
     ProductoUpdateImagenes, 
     ProductoIngredienteCreate
 )
-from app.modules.productos.service import ProductoService
+from app.modules.productos.dependencies import ProductoServiceDep
 
 router = APIRouter(tags=["Productos"])
 
@@ -25,8 +23,6 @@ router = APIRouter(tags=["Productos"])
 VeNoDisponibles = Annotated[bool, Depends(lector_privilegiado(["ADMIN", "STOCK"]))]
 VeEliminados = Annotated[bool, Depends(lector_privilegiado(["ADMIN"]))]
 
-def get_producto_service(session: Session = Depends(get_session)) -> ProductoService:
-    return ProductoService(session)
 
 
 # ══════════════════════════════════════════════════════
@@ -43,7 +39,7 @@ def list_productos(
     categoria_ids: Annotated[Optional[List[int]], Query(description="Filtrar por múltiples categorías")] = None,
     ingrediente_ids: Annotated[Optional[List[int]], Query(description="Filtrar por múltiples ingredientes")] = None,
     q: Annotated[Optional[str], Query(description="Buscar en nombre o descripción")] = None,
-    svc: ProductoService = Depends(get_producto_service)
+    *, svc: ProductoServiceDep
 ):
     """
     Endpoint unificado. Reemplaza todos los métodos de búsqueda anteriores.
@@ -68,7 +64,7 @@ def get_producto(
     ver_no_disponibles: VeNoDisponibles,
     ver_eliminados: VeEliminados,
     include_deleted: Annotated[bool, Query(description="Permitir ver el registro aunque esté eliminado")] = False,
-    svc: ProductoService = Depends(get_producto_service)
+    *, svc: ProductoServiceDep
 ):
     return svc.get_by_id_full(
         producto_id,
@@ -85,7 +81,7 @@ def get_producto(
 @router.post("/", response_model=ProductoReadFull, status_code=status.HTTP_201_CREATED, summary="Crear producto", dependencies=[Depends(require_role(["ADMIN"]))])
 def create_producto(
     data: ProductoCreate,
-    svc: ProductoService = Depends(get_producto_service)
+    svc: ProductoServiceDep
 ):
     return svc.create(data)
 
@@ -94,7 +90,7 @@ def create_producto(
 def update_producto(
     producto_id: Annotated[int, Path(ge=1)],
     data: ProductoUpdate,
-    svc: ProductoService = Depends(get_producto_service)
+    svc: ProductoServiceDep
 ):
     return svc.update(producto_id, data)
 
@@ -103,7 +99,7 @@ def update_producto(
 def fijar_disponibilidad(
     producto_id: Annotated[int, Path(ge=1)],
     data: ProductoDisponibilidadUpdate,
-    svc: ProductoService = Depends(get_producto_service)
+    svc: ProductoServiceDep
 ):
     return svc.fijar_disponibilidad(producto_id, data.disponible)
 
@@ -112,7 +108,7 @@ def fijar_disponibilidad(
 def fijar_stock(
     producto_id: Annotated[int, Path(ge=1)],
     data: ProductoStockUpdate,
-    svc: ProductoService = Depends(get_producto_service)
+    svc: ProductoServiceDep
 ):
     return svc.fijar_stock(producto_id, data.stock_cantidad)
 
@@ -120,7 +116,7 @@ def fijar_stock(
 @router.delete("/{producto_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Eliminar producto", dependencies=[Depends(require_role(["ADMIN"]))])
 def delete_producto(
     producto_id: Annotated[int, Path(ge=1)],
-    svc: ProductoService = Depends(get_producto_service)
+    svc: ProductoServiceDep
 ):
     # El delete genérico del padre maneja el 404, hace el Soft Delete
     svc.delete(producto_id)
@@ -135,7 +131,7 @@ def delete_producto(
 def update_imagenes_producto(
     producto_id: Annotated[int, Path(ge=1)],
     data: ProductoUpdateImagenes,
-    svc: ProductoService = Depends(get_producto_service)
+    svc: ProductoServiceDep
 ):
     """Actualiza la lista imagenes_url[] y imagenes_public_id[] del producto."""
     return svc.actualizar_imagenes(producto_id, data.imagenes_url, data.imagenes_public_id)
@@ -146,7 +142,7 @@ def list_ingredientes_producto(
     producto_id: Annotated[int, Path(ge=1)],
     ver_no_disponibles: VeNoDisponibles,
     ver_eliminados: VeEliminados,
-    svc: ProductoService = Depends(get_producto_service),
+    svc: ProductoServiceDep,
 ):
     """Público; sigue la visibilidad del producto (no disponible: solo ADMIN/STOCK)."""
     return svc.listar_ingredientes(producto_id, ver_no_disponibles=ver_no_disponibles, ver_eliminados=ver_eliminados)
@@ -156,7 +152,7 @@ def list_ingredientes_producto(
 def quitar_ingrediente_producto(
     producto_id: Annotated[int, Path(ge=1)],
     ingrediente_id: Annotated[int, Path(ge=1)],
-    svc: ProductoService = Depends(get_producto_service),
+    svc: ProductoServiceDep,
 ):
     svc.quitar_ingrediente(producto_id, ingrediente_id)
     return None
@@ -166,7 +162,7 @@ def quitar_ingrediente_producto(
 def asociar_ingrediente_producto(
     producto_id: Annotated[int, Path(ge=1)],
     data: ProductoIngredienteCreate,
-    svc: ProductoService = Depends(get_producto_service)
+    svc: ProductoServiceDep
 ):
     """Asocia un ingrediente con cantidad y unidad a un producto específico."""
     return svc.asociar_ingrediente(producto_id, data)

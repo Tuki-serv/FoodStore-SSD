@@ -65,8 +65,8 @@ _PERFILES: dict[str, list[str] | None] = {**PERFILES_SIMPLES, **PERFILES_MULTIRO
 @pytest.fixture(autouse=True)
 def _sin_nube(monkeypatch: pytest.MonkeyPatch) -> None:
     """Cloudinary es un borde externo: la matriz solo verifica autorización, nunca sube ni borra imágenes."""
-    monkeypatch.setattr("app.core.cloudinary.router.subir_imagen", lambda *a, **k: None)
-    monkeypatch.setattr("app.core.cloudinary.router.eliminar_imagen", lambda *a, **k: True)
+    monkeypatch.setattr("app.modules.admin.router.subir_imagen", lambda *a, **k: None)
+    monkeypatch.setattr("app.modules.admin.router.eliminar_imagen", lambda *a, **k: True)
 
 
 @pytest.mark.slow  # ~600 casos (~145 s): se marca pero NO se excluye de la corrida por defecto

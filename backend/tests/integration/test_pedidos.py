@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.db.seed import seed_catalogos
-from app.modules.formas_pago.models import FormaPago
+from app.modules.pagos.models import FormaPago
 from app.modules.pedidos.models import Pedido
 
 # ===========================================================================
@@ -184,3 +184,64 @@ class TestRBACPedidos:
             headers=user_auth_headers
         )
         assert response.status_code == 403
+
+
+class TestSuscripcionTiempoReal:
+    """`PedidoService.puede_suscribirse` y `rol_para_cocina`: la verificación de los WebSockets vive en el service (C-25a, D5)."""
+
+    def test_puede_suscribirse_el_dueno_del_pedido(self, session: Session, pedido_db: Pedido, normal_user: dict):
+        from app.modules.pedidos.service import construir_pedido_service
+
+        assert construir_pedido_service(session).puede_suscribirse(pedido_db.id, normal_user["id"]) is True
+
+    def test_no_puede_suscribirse_otro_usuario(self, session: Session, pedido_db: Pedido, usuario_con_roles):
+        from app.modules.pedidos.service import construir_pedido_service
+
+        otro_id, _ = usuario_con_roles(["CLIENT"])
+
+        assert construir_pedido_service(session).puede_suscribirse(pedido_db.id, otro_id) is False
+
+    def test_no_puede_suscribirse_a_un_pedido_inexistente(self, session: Session, normal_user: dict):
+        from app.modules.pedidos.service import construir_pedido_service
+
+        assert construir_pedido_service(session).puede_suscribirse(999_999_999, normal_user["id"]) is False
+
+    def test_no_puede_suscribirse_a_un_pedido_eliminado(self, session: Session, pedido_db: Pedido, normal_user: dict):
+        from datetime import datetime, timezone
+
+        from app.modules.pedidos.service import construir_pedido_service
+
+        pedido_db.deleted_at = datetime.now(timezone.utc)
+        session.add(pedido_db)
+        session.commit()
+
+        assert construir_pedido_service(session).puede_suscribirse(pedido_db.id, normal_user["id"]) is False
+
+    @pytest.mark.parametrize("roles, esperado", [(["ADMIN"], "ADMIN"), (["PEDIDOS"], "PEDIDOS"), (["COCINA"], "COCINA")])
+    def test_rol_para_cocina_devuelve_el_primer_rol_del_usuario_de_gestion(
+        self, session: Session, usuario_con_roles, roles: list[str], esperado: str
+    ):
+        from app.modules.pedidos.service import construir_pedido_service
+
+        usuario_id, _ = usuario_con_roles(roles)
+
+        assert construir_pedido_service(session).rol_para_cocina(usuario_id) == esperado
+
+    def test_rol_para_cocina_con_roles_de_cliente_y_de_gestion_devuelve_uno_de_los_roles_del_usuario(
+        self, session: Session, usuario_con_roles
+    ):
+        from app.modules.pedidos.service import construir_pedido_service
+
+        usuario_id, _ = usuario_con_roles(["CLIENT", "PEDIDOS"])
+
+        assert construir_pedido_service(session).rol_para_cocina(usuario_id) in {"CLIENT", "PEDIDOS"}
+
+    def test_rol_para_cocina_es_none_para_un_cliente_y_para_un_usuario_inexistente(
+        self, session: Session, usuario_con_roles
+    ):
+        from app.modules.pedidos.service import construir_pedido_service
+
+        cliente_id, _ = usuario_con_roles(["CLIENT"])
+        servicio = construir_pedido_service(session)
+
+        assert (servicio.rol_para_cocina(cliente_id), servicio.rol_para_cocina(999_999_999)) == (None, None)

@@ -1,5 +1,5 @@
 from sqlmodel import Session
-from app.core.unit_of_work import UnitOfWork
+from app.core.uow import UnitOfWork
 from app.modules.unidades_medida.repository import UnidadMedidaRepository
 
 class UnidadMedidaUnitOfWork(UnitOfWork):

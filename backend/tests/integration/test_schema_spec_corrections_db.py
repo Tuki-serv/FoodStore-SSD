@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app.core.security import hash_password
 from app.modules.categorias.models import Categoria
-from app.modules.direcciones_entrega.models import DireccionEntrega
+from app.modules.direcciones.models import DireccionEntrega
 from app.modules.productos.models import Producto
 from app.modules.usuarios.models import Usuario
 

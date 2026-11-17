@@ -6,10 +6,10 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.main import app
-from app.modules.formas_pago.models import FormaPago
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
+from app.modules.pagos.models import FormaPago
+from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pedidos.models import Pedido
-from app.modules.pedidos.router import get_pedido_service
+from app.modules.pedidos.dependencies import get_pedido_service
 from app.modules.pedidos.service import PedidoService
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles

@@ -37,18 +37,14 @@ backend/app/
 ├── modules/                # Módulos feature-first
 │   ├── health/              # GET /health (liveness)
 │   ├── usuarios/            # Gestión de usuarios
-│   ├── direcciones_entrega/ # Direcciones de entrega
+│   ├──  direcciones/         # Direcciones de entrega
 │   ├── categorias/          # Gestión de categorías
 │   ├── productos/          # Gestión de productos
 │   ├── ingredientes/       # Gestión de ingredientes
 │   ├── unidades_medida/    # Unidades de medida
-│   ├── pedidos/            # Gestión de pedidos
-│   ├── pagos/             # Gestión de pagos
-│   ├── detalles_pedido/   # Detalles de pedido
-│   ├── estados_pedido/    # Estados de pedido
-│   ├── formas_pago/       # Formas de pago
-│   ├── historiales_estado_pedido/ # Historial de estados
-│   └── estadisticas/       # Estadísticas
+│   ├── pedidos/            # Pedidos (incluye estados, detalles e historial)
+│   ├── pagos/              # Pagos (incluye formas de pago)
+│   └── admin/              # Routers de admin: usuarios, estadísticas e imágenes
 └── utils/                  # Utilidades compartidas
     └── errores.py          # Manejo centralizado de errores
 ```
@@ -275,7 +271,7 @@ Copiar `backend/.env.example` a `backend/.env` y reemplazar los `CHANGE_ME_*`. C
 
 | Integración | Variables que habilita | Sin ellas |
 |---|---|---|
-| Pagos (MercadoPago) | `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_NOTIFICATION_URL`, `BACKEND_PUBLIC_URL`, `FRONTEND_URL` | `POST /api/v1/pagos/crear` y el redirect post-pago responden 503 |
+| Pagos (MercadoPago, Orders API) | `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_WEBHOOK_SECRET` | `POST /api/v1/pagos/crear` responde 503 nombrando `MP_ACCESS_TOKEN` (el 503 se evalúa después de 401/403/404 y de las precondiciones 409); también responde 503 si MercadoPago rechaza las credenciales. El webhook responde 503 sin `MP_WEBHOOK_SECRET` |
 | Imágenes (Cloudinary) | `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | subir una imagen responde 503; borrar es un no-op |
 
 `DATABASE_URL` es la **única** variable de BD que lee el backend y se usa tal cual (esquema `postgresql+psycopg://`).
@@ -296,8 +292,8 @@ DATABASE_URL=postgresql+psycopg://foodstore_user:una_clave@localhost:5433/foodst
 ### Migración desde un `.env` anterior
 
 - `CORS_ORIGINS` pasa de «separado por comas» a array JSON.
-- `NGROK_URL` se reemplaza por `BACKEND_PUBLIC_URL=<url pública>` y `MP_NOTIFICATION_URL=<url pública>/api/v1/pagos/webhook`.
-- `VITE_FRONTEND_URL` se reemplaza por `FRONTEND_URL`. `MP_WEBHOOK_URL` se retira.
+- `NGROK_URL` se retira. La URL pública del webhook (`<url pública>/api/v1/pagos/webhook`) se configura **solo en el panel de MercadoPago** (Webhooks, evento «Order (Mercado Pago)»); `MP_NOTIFICATION_URL` se retiró en C-12 (la Orders API no tiene `notification_url`): borrarla del `.env` local si sigue.
+- `VITE_FRONTEND_URL` y `MP_WEBHOOK_URL` se retiran. `BACKEND_PUBLIC_URL` y `FRONTEND_URL` (Checkout Pro) se retiraron en C-12: borrarlas del `.env` local.
 - `VITE_API_URL` deja de ser de `Settings` (es del frontend).
 - Nueva: `SQL_ECHO` (`true` imprime el SQL). Las que antes tenían default ahora son obligatorias.
 - Ya no se construye `DATABASE_URL` desde `POSTGRES_*`: definirla explícitamente.
@@ -319,5 +315,15 @@ docker compose up -d db
 # desde backend/
 pytest
 ```
+
+### Cobertura y flujo e2e
+
+```bash
+# desde backend/
+pytest --cov --cov-report=term   # informa el total y falla si es < 60% (backend/.coveragerc)
+pytest -m e2e                    # solo el flujo completo compra -> pago -> entrega
+```
+
+El umbral (`fail_under = 60`) y el alcance (`source = app`) viven en `backend/.coveragerc`; no está en `addopts` para que `pytest` a secas siga siendo rápido.
 
 Dentro del contenedor `backend` de compose, la `DATABASE_URL` se declara en `docker-compose.yml` (host `db:5432`) y pisa la de `backend/.env` (que apunta a `localhost:5433`, para uvicorn/pytest locales).

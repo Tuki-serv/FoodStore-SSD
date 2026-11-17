@@ -10,8 +10,8 @@ Define el contrato de configuración del backend por variables de entorno: qué 
 Cada valor de configuración que use el backend SHALL provenir de una variable de entorno propia, declarada en la configuración y documentada en `.env.example`. Ningún valor efectivo SHALL derivarse ni construirse a partir de otras variables, sin excepciones.
 
 #### Scenario: Una variable no altera a otra
-- **WHEN** se carga la configuración con `MP_NOTIFICATION_URL=https://a.example/api/v1/pagos/webhook` y `BACKEND_PUBLIC_URL=https://b.example`
-- **THEN** la URL de notificación es `https://a.example/api/v1/pagos/webhook` y la base pública es `https://b.example`
+- **WHEN** se carga la configuración con `MP_WEBHOOK_SECRET=secreto-de-prueba` y `MP_PUBLIC_KEY=TEST-clave-publica`
+- **THEN** la clave secreta del webhook es `secreto-de-prueba` y la clave pública es `TEST-clave-publica`
 
 ### Requirement: Sin valores por defecto ocultos
 La configuración no SHALL definir valores por defecto para ninguna variable: ni URLs locales ni constantes. Una variable obligatoria SHALL provenir únicamente del entorno o de `.env`. Una variable opcional ausente SHALL valer vacío (`None`), que significa «funcionalidad no configurada», nunca un valor sustituto.
@@ -56,10 +56,10 @@ Una variable es obligatoria cuando la app la necesita para funcionar. Si falta a
 - **THEN** la carga es exitosa y cada valor efectivo es exactamente el provisto
 
 ### Requirement: Integraciones opcionales no son necesarias para arrancar
-Las variables de integraciones opcionales SHALL ser opcionales. Son las de pagos con MercadoPago (`MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_NOTIFICATION_URL`, `MP_WEBHOOK_SECRET`, `BACKEND_PUBLIC_URL`, `FRONTEND_URL`) y las de imágenes con Cloudinary (`CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`). La configuración, la app y la suite de tests SHALL poder iniciarse sin ellas.
+Las variables de integraciones opcionales SHALL ser opcionales. Son las de pagos con MercadoPago (`MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_WEBHOOK_SECRET`) y las de imágenes con Cloudinary (`CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`). La configuración, la app y la suite de tests SHALL poder iniciarse sin ellas.
 
 #### Scenario: Arranque sin MercadoPago ni Cloudinary
-- **WHEN** se carga la configuración con todas las obligatorias y sin ninguna variable `MP_*`, `BACKEND_PUBLIC_URL`, `FRONTEND_URL` ni `CLOUDINARY_*`
+- **WHEN** se carga la configuración con todas las obligatorias y sin ninguna variable `MP_*` ni `CLOUDINARY_*`
 - **THEN** la carga es exitosa y todas esas variables valen vacío
 
 #### Scenario: Faltante obligatoria sigue fallando con integraciones presentes
@@ -108,45 +108,54 @@ Las variables de integraciones opcionales SHALL ser opcionales. Son las de pagos
 - **THEN** la carga falla con un error que menciona `CORS_ORIGINS`
 
 ### Requirement: Variables de MercadoPago con nombres de la spec
-La configuración SHALL leer `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_NOTIFICATION_URL` y `MP_WEBHOOK_SECRET` como opcionales. Si se definen, SHALL usarse exactamente el valor provisto. `MP_NOTIFICATION_URL` es la URL completa del webhook. `MP_WEBHOOK_SECRET` es la clave secreta con la que MercadoPago firma las notificaciones del webhook; es un secreto y solo SHALL vivir en el entorno, nunca en el repositorio.
+La configuración SHALL leer `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY` y `MP_WEBHOOK_SECRET` como opcionales. Si se definen, SHALL usarse exactamente el valor provisto.
 
-#### Scenario: MP_NOTIFICATION_URL provista
-- **WHEN** se carga la configuración con `MP_NOTIFICATION_URL=https://abc.ngrok-free.app/api/v1/pagos/webhook`
-- **THEN** la URL de notificación efectiva es exactamente ese valor
+#### Scenario: MP_ACCESS_TOKEN provista
+- **WHEN** se carga la configuración con `MP_ACCESS_TOKEN=TEST-token-de-prueba`
+- **THEN** el access token efectivo es exactamente ese valor
 
 #### Scenario: MP_WEBHOOK_SECRET provista
 - **WHEN** se carga la configuración con `MP_WEBHOOK_SECRET=secreto-de-prueba`
 - **THEN** la clave secreta efectiva del webhook es exactamente ese valor
 
+### Requirement: MP_WEBHOOK_SECRET es un secreto del entorno
+`MP_WEBHOOK_SECRET` es la clave secreta con la que MercadoPago firma las notificaciones del webhook (la genera el panel al configurar el Webhook con el evento de órdenes); es un secreto y solo SHALL vivir en el entorno, nunca en el repositorio.
+
 #### Scenario: MP_WEBHOOK_SECRET documentada sin valor real
 - **WHEN** se inspecciona `backend/.env.example`
 - **THEN** contiene la clave `MP_WEBHOOK_SECRET` con un placeholder evidentemente falso
 
-### Requirement: URLs explícitas del flujo de pago actual
-Mientras exista el flujo de redirect de Checkout Pro (deuda DT-01, se retira en C-12), la configuración SHALL leer dos variables opcionales del grupo de pagos. `BACKEND_PUBLIC_URL` es la base pública del backend para las `back_urls`. `FRONTEND_URL` es el destino del redirect post-pago.
+### Requirement: La URL del webhook no es una variable del backend
+La URL del webhook no SHALL ser una variable del backend: SHALL configurarse en el panel de MercadoPago, porque la Orders API no admite una URL de notificación por pedido.
 
-#### Scenario: Valores provistos
-- **WHEN** se carga la configuración con `BACKEND_PUBLIC_URL=https://abc.ngrok-free.app` y `FRONTEND_URL=https://tienda.example`
-- **THEN** la base pública del backend y la URL del frontend son exactamente esos valores
-
-#### Scenario: FRONTEND_URL independiente de CORS
-- **WHEN** se carga la configuración con `CORS_ORIGINS=["http://otro:3000"]` y sin `FRONTEND_URL`
-- **THEN** la URL del frontend vale vacío; no se toma de `CORS_ORIGINS`
+#### Scenario: MP_NOTIFICATION_URL provista
+- **WHEN** se carga la configuración con `MP_NOTIFICATION_URL=https://abc.ngrok-free.app/api/v1/pagos/webhook`
+- **THEN** la carga es exitosa y la configuración no expone `MP_NOTIFICATION_URL` (variable retirada)
 
 ### Requirement: Variables retiradas
-La configuración no SHALL leer `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL` ni las variables de rate limiting `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST`, `RATE_LIMIT_AUTH_PER_MINUTE` y `RATE_LIMIT_AUTH_BURST` (retiradas por C-03), y no SHALL requerir `VITE_API_URL`. Si alguna está presente en el entorno, no SHALL alterar ningún valor efectivo.
+La configuración no SHALL leer `MP_WEBHOOK_URL`, `NGROK_URL` ni `VITE_FRONTEND_URL`, y no SHALL requerir `VITE_API_URL`. Si alguna está presente en el entorno, no SHALL alterar ningún valor efectivo.
 
 #### Scenario: Arranque sin variables retiradas
-- **WHEN** se carga la configuración con todas las variables obligatorias y sin `VITE_API_URL`, `VITE_FRONTEND_URL`, `NGROK_URL` ni `MP_WEBHOOK_URL`
+- **WHEN** se carga la configuración con todas las variables obligatorias y sin `VITE_API_URL`, `VITE_FRONTEND_URL`, `NGROK_URL`, `MP_WEBHOOK_URL`, `BACKEND_PUBLIC_URL`, `FRONTEND_URL` ni `MP_NOTIFICATION_URL`
 - **THEN** la carga es exitosa
 
 #### Scenario: Variables retiradas presentes no afectan valores
-- **WHEN** se carga la configuración completa más `NGROK_URL=https://viejo.example` y `VITE_FRONTEND_URL=https://viejo-front.example`
-- **THEN** la URL de notificación, la base pública y la URL del frontend son exactamente las provistas en `MP_NOTIFICATION_URL`, `BACKEND_PUBLIC_URL` y `FRONTEND_URL`
+- **WHEN** se carga la configuración completa más `NGROK_URL=https://viejo.example`, `VITE_FRONTEND_URL=https://viejo-front.example`, `BACKEND_PUBLIC_URL=https://b.example`, `FRONTEND_URL=https://tienda.example` y `MP_NOTIFICATION_URL=https://a.example/api/v1/pagos/webhook`
+- **THEN** la carga es exitosa, la clave secreta del webhook es exactamente la provista en `MP_WEBHOOK_SECRET` y la configuración no expone `BACKEND_PUBLIC_URL`, `FRONTEND_URL` ni `MP_NOTIFICATION_URL`
 
 #### Scenario: Variables retiradas no rellenan opcionales ausentes
-- **WHEN** se carga la configuración con `NGROK_URL=https://viejo.example` y sin `BACKEND_PUBLIC_URL` ni `MP_NOTIFICATION_URL`
-- **THEN** `BACKEND_PUBLIC_URL` y `MP_NOTIFICATION_URL` valen vacío
+- **WHEN** se carga la configuración con `NGROK_URL=https://viejo.example` y `MP_NOTIFICATION_URL=https://a.example/api/v1/pagos/webhook`, sin `MP_ACCESS_TOKEN`
+- **THEN** `MP_ACCESS_TOKEN` vale vacío
+
+### Requirement: Variables retiradas por C-12
+La configuración no SHALL leer las variables del redirect de Checkout Pro `BACKEND_PUBLIC_URL` y `FRONTEND_URL` (retiradas por C-12) ni `MP_NOTIFICATION_URL` (retirada por C-12 al pasar a la Orders API, que no admite URL de notificación por pedido). Si alguna está presente en el entorno, no SHALL alterar ningún valor efectivo.
+
+#### Scenario: Variables de C-12 presentes no afectan
+- **WHEN** se carga la configuración completa más `BACKEND_PUBLIC_URL=https://b.example`, `FRONTEND_URL=https://tienda.example` y `MP_NOTIFICATION_URL=https://a.example/api/v1/pagos/webhook`
+- **THEN** la carga es exitosa y la configuración no expone `BACKEND_PUBLIC_URL`, `FRONTEND_URL` ni `MP_NOTIFICATION_URL`
+
+### Requirement: Variables de rate limiting retiradas
+La configuración no SHALL leer las variables de rate limiting `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST`, `RATE_LIMIT_AUTH_PER_MINUTE` y `RATE_LIMIT_AUTH_BURST` (retiradas por C-03). Si alguna está presente en el entorno, no SHALL alterar ningún valor efectivo.
 
 #### Scenario: Variables de rate limiting presentes no afectan
 - **WHEN** se carga la configuración completa más `RATE_LIMIT_AUTH_PER_MINUTE=1` y `RATE_LIMIT_DEFAULT_BURST=1`
@@ -180,7 +189,7 @@ El repo SHALL incluir un `.env.example` con todas las variables de la configurac
 
 #### Scenario: Sin variables retiradas en el ejemplo
 - **WHEN** se inspeccionan las claves de `.env.example`
-- **THEN** no aparece ninguna de `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL` ni ninguna `RATE_LIMIT_*`
+- **THEN** no aparece ninguna de `MP_WEBHOOK_URL`, `NGROK_URL`, `VITE_FRONTEND_URL`, `BACKEND_PUBLIC_URL`, `FRONTEND_URL`, `MP_NOTIFICATION_URL` ni ninguna `RATE_LIMIT_*`
 
 ### Requirement: Entorno de tests aislado
 Con `ENVIRONMENT=test`, `DATABASE_URL` SHALL apuntar a una base PostgreSQL dedicada a tests. El nombre de la base, tomado del path de la URL, SHALL terminar en `_test`. Toda base auxiliar que use la suite (por ejemplo, la de los tests de migraciones) SHALL cumplir la misma condición. La suite SHALL negarse a ejecutarse si la URL efectiva no cumple esa condición o si falta la configuración de tests, para proteger los datos de desarrollo.

@@ -14,9 +14,9 @@ from sqlmodel import Session
 
 from app.db.migrations import build_alembic_config, current_and_head, upgrade_to_head
 from app.db.models import import_all_models
-from app.modules.detalles_pedido.models import DetallePedido
-from app.modules.estados_pedido.models import EstadoPedido
-from app.modules.formas_pago.models import FormaPago
+from app.modules.pedidos.models import DetallePedido
+from app.modules.pedidos.models import EstadoPedido
+from app.modules.pagos.models import FormaPago
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from app.modules.unidades_medida.models import UnidadMedida
@@ -232,24 +232,6 @@ def test_check_de_stock_existe_y_la_fk_de_parent_id_es_on_delete_set_null(migrat
     assert confdeltype == "n"
 
 
-def test_pagos_external_reference_sigue_varchar_100_nullable_y_sin_unicidad(migrations_db: Engine) -> None:
-    _migrar(migrations_db)
-
-    with migrations_db.connect() as conn:
-        columna = conn.execute(
-            text(
-                "SELECT data_type, character_maximum_length, is_nullable FROM information_schema.columns "
-                "WHERE table_name = 'pagos' AND column_name = 'external_reference'"
-            )
-        ).one()
-        indices = conn.execute(
-            text("SELECT indexdef FROM pg_indexes WHERE tablename = 'pagos' AND indexdef LIKE '%external_reference%'")
-        ).all()
-
-    assert tuple(columna) == ("character varying", 100, "YES")
-    assert indices == []
-
-
 # ---------------------------------------------------------------------------
 # Reversibilidad y versión
 # ---------------------------------------------------------------------------
@@ -274,16 +256,16 @@ def test_ida_y_vuelta_termina_en_head_y_sin_diferencias_con_los_modelos(migratio
         assert _diferencias(conn) == []
 
 
-def test_current_and_head_tras_upgrade_devuelve_002_en_ambas_posiciones(migrations_db: Engine) -> None:
+def test_current_and_head_tras_upgrade_devuelve_004_en_ambas_posiciones(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == ("002", "002")
+        assert current_and_head(conn) == ("004", "004")
 
 
 def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_db: Engine) -> None:
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == (None, "002")
+        assert current_and_head(conn) == (None, "004")
 
 
 # ---------------------------------------------------------------------------
@@ -292,7 +274,7 @@ def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_
 def test_foodstore_test_queda_en_head_al_iniciar_la_sesion(session: Session) -> None:
     actual, head = current_and_head(session.connection())
 
-    assert actual == head == "002"
+    assert actual == head == "004"
 
 
 # ---------------------------------------------------------------------------
@@ -432,12 +414,13 @@ def test_upgrade_de_001_a_002_con_un_refresh_existente_termina_sin_errores_y_vac
             {"t": "c" * 64},
         )
 
-    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        command.upgrade(build_alembic_config(conn), "002")
 
     with migrations_db.connect() as conn:
         assert conn.execute(text("SELECT count(*) FROM refresh_token")).scalar() == 0
         assert conn.execute(text("SELECT count(*) FROM usuario WHERE email = 'v@x.com'")).scalar() == 1
-        assert current_and_head(conn) == ("002", "002")
+        assert current_and_head(conn)[0] == "002"
 
 
 def test_downgrade_de_002_a_001_deja_el_esquema_de_la_001(migrations_db: Engine) -> None:
@@ -451,3 +434,275 @@ def test_downgrade_de_002_a_001_deja_el_esquema_de_la_001(migrations_db: Engine)
         columnas = {c["name"] for c in inspect(conn).get_columns("refresh_token")}
         assert columnas == {"id", "usuario_id", "token_hash", "expires_at", "revoked_at", "created_at"}
         assert current_and_head(conn)[0] == "001"
+
+
+# ---------------------------------------------------------------------------
+# Migración 003: pagos con Checkout API (C-12)
+# ---------------------------------------------------------------------------
+_COLUMNAS_PAGOS = (
+    "SELECT data_type, character_maximum_length, is_nullable FROM information_schema.columns "
+    "WHERE table_schema = 'public' AND table_name = 'pagos' AND column_name = :c"
+)
+
+
+def _a_002(engine: Engine) -> None:
+    with engine.begin() as conn:
+        command.upgrade(build_alembic_config(conn), "002")
+
+
+def _a_003(engine: Engine) -> None:
+    with engine.begin() as conn:
+        command.upgrade(build_alembic_config(conn), "003")
+
+
+def _pedido_crudo(conn: Connection) -> int:
+    """Pedido mínimo por SQL (sin modelos: el esquema puede estar en la 002)."""
+    conn.execute(
+        text(
+            "INSERT INTO usuario (nombre, apellido, email, password_hash, created_at, updated_at) "
+            "VALUES ('N', 'A', 'p@x.com', :h, now(), now()) ON CONFLICT DO NOTHING"
+        ),
+        {"h": HASH},
+    )
+    conn.execute(
+        text(
+            "INSERT INTO estado_pedido (codigo, descripcion, orden, es_terminal) "
+            "VALUES ('PENDIENTE', 'Pendiente', 1, false) ON CONFLICT DO NOTHING"
+        )
+    )
+    conn.execute(
+        text(
+            "INSERT INTO forma_pago (codigo, descripcion, habilitado) "
+            "VALUES ('MERCADOPAGO', 'MP', true) ON CONFLICT DO NOTHING"
+        )
+    )
+    return conn.execute(
+        text(
+            "INSERT INTO pedidos (usuario_id, estado_codigo, forma_pago_codigo, subtotal, total, costo_envio, "
+            "descuento, created_at, updated_at) SELECT id, 'PENDIENTE', 'MERCADOPAGO', 10, 10, 0, 0, now(), now() "
+            "FROM usuario WHERE email = 'p@x.com' RETURNING id"
+        )
+    ).scalar_one()
+
+
+def test_tras_upgrade_head_external_reference_es_uuid_not_null_unico_y_sin_columnas_de_preferencia(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        columna = conn.execute(text(_COLUMNAS_PAGOS), {"c": "external_reference"}).one()
+        restriccion = conn.execute(
+            text("SELECT contype FROM pg_constraint WHERE conname = 'uq_pagos_external_reference'")
+        ).scalar()
+        nombres = {c["name"] for c in inspect(conn).get_columns("pagos")}
+        version = current_and_head(conn)
+
+    assert (columna[0], columna[2]) == ("uuid", "NO")
+    assert restriccion == "u"
+    assert not {"mp_preference_id", "mp_init_point"} & nombres
+    assert version == ("004", "004")
+
+
+def test_dos_pagos_con_la_misma_external_reference_son_rechazados_por_la_restriccion_unica(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+    ref = str(uuid4())
+    insertar = text(
+        "INSERT INTO pagos (pedido_id, estado, external_reference, idempotency_key, transaction_amount, "
+        "created_at, updated_at) VALUES (:p, 'pendiente', :r, :k, 10, now(), now())"
+    )
+
+    with migrations_db.connect() as conn:
+        pedido_id = _pedido_crudo(conn)
+        conn.execute(insertar, {"p": pedido_id, "r": ref, "k": "k-1"})
+        with pytest.raises(IntegrityError, match="uq_pagos_external_reference"):
+            conn.execute(insertar, {"p": pedido_id, "r": ref, "k": "k-2"})
+
+
+def test_pagos_sin_external_reference_son_rechazados_por_not_null(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        pedido_id = _pedido_crudo(conn)
+        with pytest.raises(IntegrityError, match="external_reference"):
+            conn.execute(
+                text(
+                    "INSERT INTO pagos (pedido_id, estado, idempotency_key, transaction_amount, created_at, "
+                    "updated_at) VALUES (:p, 'pendiente', 'k-n', 10, now(), now())"
+                ),
+                {"p": pedido_id},
+            )
+
+
+def test_upgrade_de_002_a_003_da_un_uuid_distinto_a_cada_pago_y_conserva_el_resto(migrations_db: Engine) -> None:
+    _a_002(migrations_db)
+    with migrations_db.begin() as conn:
+        pedido_id = _pedido_crudo(conn)
+        for clave, ref in (("k-a", "42"), ("k-b", None)):
+            conn.execute(
+                text(
+                    "INSERT INTO pagos (pedido_id, estado, external_reference, idempotency_key, transaction_amount, "
+                    "mp_preference_id, created_at, updated_at) VALUES (:p, 'pendiente', :r, :k, 10, 'pref', now(), now())"
+                ),
+                {"p": pedido_id, "r": ref, "k": clave},
+            )
+
+    _a_003(migrations_db)
+
+    with migrations_db.connect() as conn:
+        filas = conn.execute(
+            text("SELECT idempotency_key, external_reference::text, estado, transaction_amount FROM pagos ORDER BY id")
+        ).all()
+    assert [f[0] for f in filas] == ["k-a", "k-b"]
+    referencias = [f[1] for f in filas]
+    assert len(set(referencias)) == 2
+    assert all(len(r) == 36 and r != "42" for r in referencias)
+    assert all(f[2] == "pendiente" and f[3] == 10 for f in filas)
+
+
+def test_downgrade_de_003_a_002_restaura_varchar_nullable_sin_unica_y_las_columnas_de_preferencia(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        pedido_id = _pedido_crudo(conn)
+        conn.execute(
+            text(
+                "INSERT INTO pagos (pedido_id, estado, external_reference, idempotency_key, transaction_amount, "
+                "created_at, updated_at) VALUES (:p, 'pendiente', :r, 'k-d', 10, now(), now())"
+            ),
+            {"p": pedido_id, "r": str(uuid4())},
+        )
+
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "002")
+
+    with migrations_db.connect() as conn:
+        columna = conn.execute(text(_COLUMNAS_PAGOS), {"c": "external_reference"}).one()
+        existe = conn.execute(
+            text("SELECT count(*) FROM pg_constraint WHERE conname = 'uq_pagos_external_reference'")
+        ).scalar()
+        preferencias = conn.execute(text("SELECT mp_preference_id, mp_init_point FROM pagos")).one()
+        version = current_and_head(conn)[0]
+    assert tuple(columna) == ("character varying", 100, "YES")
+    assert existe == 0
+    assert tuple(preferencias) == (None, None)
+    assert version == "002"
+
+
+def test_ida_y_vuelta_003_002_003_no_deja_diferencias_con_los_modelos(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "002")
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        assert _diferencias(conn) == []
+
+
+# ---------------------------------------------------------------------------
+# Migración 004: pagos con Orders API (C-12, D21)
+# ---------------------------------------------------------------------------
+_INSERTAR_PAGO_003 = text(
+    "INSERT INTO pagos (pedido_id, estado, external_reference, idempotency_key, transaction_amount, "
+    "mp_payment_id, mp_merchant_order_id, created_at, updated_at) "
+    "VALUES (:p, 'pendiente', :r, :k, 10, :pay, :mer, now(), now())"
+)
+_INSERTAR_PAGO_004 = text(
+    "INSERT INTO pagos (pedido_id, estado, external_reference, idempotency_key, transaction_amount, "
+    "mp_order_id, mp_payment_id, created_at, updated_at) "
+    "VALUES (:p, 'pendiente', :r, :k, 10, :ord, :pay, now(), now())"
+)
+
+
+def test_tras_upgrade_head_pagos_tiene_mp_order_id_unico_mp_payment_id_texto_y_sin_merchant_order(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        orden = conn.execute(text(_COLUMNAS_PAGOS), {"c": "mp_order_id"}).one()
+        pago = conn.execute(text(_COLUMNAS_PAGOS), {"c": "mp_payment_id"}).one()
+        restriccion = conn.execute(
+            text("SELECT contype FROM pg_constraint WHERE conname = 'uq_pagos_mp_order_id'")
+        ).scalar()
+        nombres = {c["name"] for c in inspect(conn).get_columns("pagos")}
+        version = current_and_head(conn)[0]
+
+    assert tuple(orden) == ("character varying", 64, "YES")
+    assert tuple(pago) == ("character varying", 64, "YES")
+    assert restriccion == "u"
+    assert "mp_merchant_order_id" not in nombres
+    assert version == "004"
+
+
+def test_upgrade_de_003_a_004_convierte_mp_payment_id_a_texto_y_descarta_la_merchant_order(
+    migrations_db: Engine,
+) -> None:
+    _a_003(migrations_db)
+    with migrations_db.begin() as conn:
+        pedido_id = _pedido_crudo(conn)
+        conn.execute(
+            _INSERTAR_PAGO_003, {"p": pedido_id, "r": str(uuid4()), "k": "k-1", "pay": 123456, "mer": 999}
+        )
+
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        fila = conn.execute(
+            text("SELECT mp_payment_id, mp_order_id, idempotency_key, estado, transaction_amount FROM pagos")
+        ).one()
+    assert tuple(fila) == ("123456", None, "k-1", "pendiente", 10)
+
+
+def test_dos_pagos_con_el_mismo_mp_order_id_son_rechazados_y_dos_nulos_se_aceptan(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        pedido_id = _pedido_crudo(conn)
+        for clave in ("k-n1", "k-n2"):  # dos sin orden: permitido
+            conn.execute(
+                _INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": clave, "ord": None, "pay": None}
+            )
+        conn.execute(_INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-o1", "ord": "ORD01X", "pay": None})
+        with pytest.raises(IntegrityError, match="uq_pagos_mp_order_id"):
+            conn.execute(
+                _INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-o2", "ord": "ORD01X", "pay": None}
+            )
+
+
+def test_downgrade_de_004_a_003_conserva_ids_numericos_anula_los_de_texto_y_restaura_merchant_order(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        pedido_id = _pedido_crudo(conn)
+        conn.execute(_INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-t", "ord": "ORD01A", "pay": "PAY01ABC"})
+        conn.execute(_INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-n", "ord": "ORD01B", "pay": "123456"})
+
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "003")
+
+    with migrations_db.connect() as conn:
+        filas = conn.execute(
+            text("SELECT idempotency_key, mp_payment_id, mp_merchant_order_id FROM pagos ORDER BY id")
+        ).all()
+        columna = conn.execute(text(_COLUMNAS_PAGOS), {"c": "mp_payment_id"}).one()
+        nombres = {c["name"] for c in inspect(conn).get_columns("pagos")}
+        version = current_and_head(conn)[0]
+    assert [tuple(f) for f in filas] == [("k-t", None, None), ("k-n", 123456, None)]
+    assert columna[0] == "bigint"
+    assert "mp_order_id" not in nombres
+    assert version == "003"
+
+
+def test_ida_y_vuelta_004_003_004_no_deja_diferencias_con_los_modelos(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "003")
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        assert _diferencias(conn) == []

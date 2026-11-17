@@ -4,9 +4,8 @@ from datetime import timedelta
 from typing import Optional
 from uuid import UUID
 
-from fastapi import HTTPException, status
-
 from app.core.config import settings
+from app.core.errors import AppError
 from app.core.rate_limit import RegistroIntentos
 from app.core.security import DUMMY_PASSWORD_HASH, create_access_token, hash_refresh_token, new_refresh_token, verify_password
 from app.core.timestamps import utc_now
@@ -35,11 +34,11 @@ class _Rechazo:
     """Resultado interno: el refresh no sirve (se traduce en 401 fuera de la transacción)."""
 
 
-class RefreshRechazado(HTTPException):
+class RefreshRechazado(AppError):
     """401 de `/auth/refresh`: el router lo traduce en una respuesta que además borra la cookie."""
 
     def __init__(self) -> None:
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token inválido o expirado")
+        super().__init__(401, "HTTP_401", "Refresh token inválido o expirado")
 
 
 class AuthService:
@@ -68,9 +67,9 @@ class AuthService:
             password_ok = verify_password(password, hash_a_verificar)
             if not user or not password_ok or user.deleted_at:
                 self.intentos.registrar(clave_ip)
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Credenciales incorrectas",
+                raise AppError.http(
+                    401,
+                    "Credenciales incorrectas",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 

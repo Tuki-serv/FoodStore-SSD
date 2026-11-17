@@ -1,4 +1,4 @@
-"""Webhook de pagos y FSM del pedido: la confirmación automática la hace el Sistema (usuario_id nulo)."""
+"""Webhook de órdenes y FSM del pedido: la confirmación automática la hace el Sistema (usuario_id nulo)."""
 from uuid import uuid4
 
 import pytest
@@ -6,41 +6,48 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.core.config import settings
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
-from app.modules.detalles_pedido.models import DetallePedido
+from app.modules.pedidos.models import HistorialEstadoPedido
+from app.modules.pedidos.models import DetallePedido
 from app.modules.pagos.models import Pago
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
 from tests.support.mp_webhook import SECRETO, post_webhook
+from tests.support.pagos_factory import referencia_de
 
 
 class _PagoAprobadoSDK:
-    """Doble del borde externo (SDK de MercadoPago): `payment().get` devuelve un pago aprobado del pedido `ref`."""
+    """Doble del borde externo (SDK de MercadoPago): `order().get` devuelve una orden procesada del pedido `ref`."""
 
     referencia: str = ""
 
     def __init__(self, access_token: str) -> None:
         pass
 
-    def payment(self) -> "_PagoAprobadoSDK":
+    def order(self) -> "_PagoAprobadoSDK":
         return self
 
-    def get(self, payment_id: int) -> dict:
+    def get(self, order_id: str) -> dict:
         return {
             "status": 200,
-            "response": {"id": payment_id, "status": "approved", "external_reference": type(self).referencia},
+            "response": {
+                "id": order_id,
+                "status": "processed",
+                "status_detail": "accredited",
+                "external_reference": type(self).referencia,
+                "transactions": {"payments": [{"id": "PAY" + order_id[3:], "status": "processed", "status_detail": "accredited"}]},
+            },
         }
 
 
 @pytest.fixture(name="mp_aprobado")
-def mp_aprobado_fixture(monkeypatch: pytest.MonkeyPatch):
+def mp_aprobado_fixture(monkeypatch: pytest.MonkeyPatch, session: Session):
     monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", "TEST-token")
     monkeypatch.setattr(settings, "MP_WEBHOOK_SECRET", SECRETO)
-    monkeypatch.setattr("app.modules.pagos.service.mercadopago.SDK", _PagoAprobadoSDK)
+    monkeypatch.setattr("app.modules.pagos.pasarela_mp.mercadopago.SDK", _PagoAprobadoSDK)
 
     def _apuntar_a(pedido_id: int) -> None:
-        _PagoAprobadoSDK.referencia = str(pedido_id)
+        _PagoAprobadoSDK.referencia = referencia_de(session, pedido_id)  # la `external_reference` UUID del intento
 
     return _apuntar_a
 
@@ -72,8 +79,8 @@ def _historial(session: Session, pedido_id: int) -> list[HistorialEstadoPedido]:
     )
 
 
-def _webhook(client: TestClient, payment_id: str = "123"):
-    return post_webhook(client, payment_id)  # notificación firmada con HMAC real
+def _webhook(client: TestClient, order_id: str = "ORD123"):
+    return post_webhook(client, order_id)  # notificación firmada con HMAC real
 
 
 def _estado(session: Session, pedido_id: int) -> str:
@@ -198,7 +205,7 @@ def test_dos_pagos_aprobados_sobre_la_ultima_unidad_confirman_el_primero_y_cance
     mp_aprobado(primero.id)
     resp_1 = _webhook(client)
     mp_aprobado(segundo.id)
-    resp_2 = _webhook(client, "124")  # otro pago de MercadoPago: `mp_payment_id` es único
+    resp_2 = _webhook(client, "ORD124")  # otra orden de MercadoPago: `mp_order_id` es único
 
     assert resp_1.status_code == 200 and resp_2.status_code == 200
     assert _estado(session, primero.id) == "CONFIRMADO"
@@ -224,7 +231,7 @@ def _dos_pedidos_sobre_la_ultima_unidad(
     mp_aprobado(primero.id)
     _webhook(client)
     mp_aprobado(segundo.id)
-    _webhook(client, "124")
+    _webhook(client, "ORD124")
     return a, primero, segundo
 
 
@@ -245,7 +252,7 @@ def test_reenviar_la_notificacion_del_pago_a_devolver_no_cambia_nada(
     a, _, segundo = _dos_pedidos_sobre_la_ultima_unidad(client, session, normal_user["id"], mp_aprobado)
     filas_antes = len(_historial(session, segundo.id))
 
-    response = _webhook(client, "124")
+    response = _webhook(client, "ORD124")
 
     assert response.status_code == 200
     assert _estado(session, segundo.id) == "CANCELADO"

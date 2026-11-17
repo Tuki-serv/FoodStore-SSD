@@ -1,18 +1,16 @@
 from sqlmodel import Session
-from fastapi import Depends
-from app.core.database import get_session
-from app.core.unit_of_work import UnitOfWork
+from app.core.uow import UnitOfWork
 from app.modules.productos.repository import ProductoRepository
 from app.modules.ingredientes.repository import IngredienteRepository
 from app.modules.usuarios.repository import UsuarioRepository
-from app.modules.detalles_pedido.repository import DetallePedidoRepository
-from app.modules.estados_pedido.repository import EstadoPedidoRepository
-from app.modules.formas_pago.repository import FormaPagoRepository
-from app.modules.historiales_estado_pedido.repository import HistorialEstadoPedidoRepository
+from app.modules.pedidos.repository import DetallePedidoRepository
+from app.modules.pedidos.repository import EstadoPedidoRepository
+from app.modules.pagos.repository import FormaPagoRepository
+from app.modules.pedidos.repository import HistorialEstadoPedidoRepository
 from app.modules.pedidos.repository import PedidoRepository
 
 class PedidoUnitOfWork(UnitOfWork):
-    def __init__(self, session: Session = Depends(get_session)):
+    def __init__(self, session: Session):
         # Inicializa la session en el UnitOfWork base
         super().__init__(session)
         # Repositories que participan en crear/consultar pedidos

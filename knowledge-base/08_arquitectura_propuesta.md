@@ -7,7 +7,7 @@
 | Patrón | Capa | Dónde se usa | Por qué |
 |--------|------|--------------|---------|
 | Repository + `BaseRepository[T]` genérico | Backend | `core/repository.py` y `modules/*/repository.py` | Aísla acceso a BD; facilita mocks. Métodos spec: `get_by_id`, `list_all(skip,limit)`, `count`, `create`, `update`, `soft_delete`, `hard_delete`. El código actual usa `get_all_by_state`, `count_model`, `add`, `update`, `delete` (soft) |
-| Unit of Work | Backend | `core/unit_of_work.py` + UoW por módulo (`PedidoUnitOfWork`, `UsuarioUnitOfWork`, ...) | Transacción atómica: commit al salir sin excepción, rollback si falla. El Service nunca hace commit |
+| Unit of Work | Backend | `core/uow.py` + UoW por módulo (`PedidoUnitOfWork`, `UsuarioUnitOfWork`, ...) | Transacción atómica: commit al salir sin excepción, rollback si falla. El Service nunca hace commit |
 | Service Layer (stateless) | Backend | `service.py`; `base_service` genérico en `core/service.py` | Concentra lógica de negocio testeable sin HTTP |
 | Snapshot | Backend/BD | `DetallePedido.*_snapshot`, `Pedido` monetario | Integridad histórica de precios/nombres |
 | Soft Delete + índices únicos parciales | Backend/BD | `UniqueAuditableMixin` | Recuperación y unicidad solo entre activos |
@@ -44,27 +44,29 @@ Food-Store-Prueba/                # raíz = gestión + orquestación (docker-com
     │   ├── db/                      # models.py (import_all_models), migrations.py (helpers Alembic), seed.py (python -m app.db.seed), reset.py
     │   ├── core/
     │   │   ├── config.py            # Settings (pydantic-settings)
-    │   │   ├── database.py  deps.py  security.py  enums.py  logger.py
-    │   │   ├── repository.py  service.py  unit_of_work.py  schemas.py (PaginatedResponse)
+    │   │   ├── database.py  security.py  enums.py  errors.py  logger.py
+    │   │   ├── repository.py  service.py  uow.py  schemas.py (PaginatedResponse)
     │   │   ├── websocket.py         # ConnectionManager (rooms)
-    │   │   ├── cloudinary/          # router, schemas, service
+    │   │   ├── cloudinary/          # schemas, service (el router de imágenes vive en modules/admin)
     │   │   ├── mixins/auditable_mixin.py
     │   │   └── rate_limit/          # limiter (slowapi) + LimitadorPorClave + Protocol RegistroIntentos
     │   ├── modules/
     │   │   ├── auth/                # auth_router (register, login, refresh, logout, logout-all, me), AuthService, cookies, AuthUnitOfWork (C-02)
     │   │   ├── refreshtokens/       # models Sesion + RefreshToken, repositorios (sin router ni service) (C-02)
-    │   │   ├── usuarios/            # usuarios_router (perfil), admin_router, UsuarioService
-    │   │   ├── direcciones_entrega/ categorias/ productos/ ingredientes/ unidades_medida/
-    │   │   ├── pedidos/ detalles_pedido/ estados_pedido/ formas_pago/ historiales_estado_pedido/
-    │   │   ├── pagos/ estadisticas/ health/
-    │   │   └── (cada módulo: models, schemas, repository, service, router, unit_of_work)
+    │   │   ├── usuarios/            # usuarios_router (perfil), UsuarioService
+    │   │   ├── direcciones/ categorias/ productos/ ingredientes/ unidades_medida/
+    │   │   ├── pedidos/             # incluye EstadoPedido, DetallePedido, HistorialEstadoPedido, filtros.py, fsm.py
+    │   │   ├── pagos/               # incluye FormaPago
+    │   │   ├── admin/               # usuarios_admin_router, estadisticas_router (EstadisticasService), imagenes_router
+    │   │   ├── health/
+    │   │   └── (cada módulo: models, schemas, repository, service, router, unit_of_work, dependencies)
     │   └── utils/errores.py         # handlers {detail, code, field}
     └── tests/ (conftest.py, support/, integration/*, unit/*)
 ```
 
 **Estructura objetivo (norma)** según spec `[INT]` (`backend/app/main.py` y `backend/app/db/seed.py` ya cumplidos en C-01): `backend/app/main.py`, `backend/app/db/seed.py`, `backend/app/modules/{auth,refreshtokens,usuarios,direcciones,categorias,productos,pedidos,pagos,admin}/`, `backend/app/core/uow.py`. Comandos de backend: se corren desde `backend/`.
 
-Frontend objetivo (spec, FSD):
+Frontend objetivo (spec, FSD) — **`[INT]` literal** (norma de la spec; el mapeo a FSD v2.1 está debajo):
 
 ```
 frontend/src/
@@ -78,6 +80,40 @@ frontend/src/
 └── types/
 ```
 
+Frontend real tras C-13a (`frontend/`, FSD v2.1: `app` → `pages` → `shared`; `features`/`entities`/`widgets` a demanda). Detalle y reglas en `frontend/README.md`:
+
+```
+frontend/
+├── package.json, vite.config.ts, tailwind.config.ts, tsconfig.json, eslint.config.js, Dockerfile, .env.example
+├── tests/architecture/        # fronteras FSD (fsd-boundaries) y tokens de Tailwind (tailwind-tokens), con fixtures
+└── src/
+    ├── app/
+    │   ├── providers/         # AppProviders (RouterProvider; TanStack Query y sesión en C-13b)
+    │   ├── router/            # routes.tsx (árbol único), route-map.ts (ruta → título → change dueño)
+    │   ├── layouts/app-shell/ # AppShell, Sidebar, Topbar, NavSections, app-shell.css, model/navigation.ts
+    │   └── styles/index.css   # importa design-system/tokens.css y las directivas de Tailwind
+    ├── pages/                 # placeholder/ (PlaceholderPage), not-found/, error/ (una carpeta por slice)
+    ├── shared/
+    │   ├── config/            # env.ts (readConfig, VITE_API_URL), roles.ts, routes.ts (RUTAS), brand.ts
+    │   ├── model/             # ui-store.ts (uiStore)
+    │   ├── lib/media-query/   # useMediaQuery
+    │   └── ui/                # Icon (sprite del design system), estilos de botón
+    └── test/                  # setup de Vitest y matchMedia controlable (fuera de las capas)
+```
+
+| `[INT]` | FSD en este repo |
+|---------|------------------|
+| `app/` (providers, router, estilos) | `src/app/` (`providers/`, `router/`, `layouts/app-shell/`, `styles/`) |
+| `pages/` | `src/pages/<slice>/` (uno por ruta) |
+| `features/` | `src/features/<slice>/` (desde C-14) |
+| `components/` | `src/shared/ui/` |
+| `hooks/` | segmentos `api/` y `model/` de cada slice |
+| `store/` (4 stores) | `uiStore` en `src/shared/model/`; `authStore` en `shared/auth` o `entities/session` (C-13b); `cartStore` (C-18); `paymentStore` (C-20) |
+| `api/` | `src/shared/api/` (C-13b) |
+| `types/` | segmento `model/` del slice; contratos HTTP en `shared/api` |
+
+Comandos de frontend: se corren desde `frontend/` (`npm install`, `npm run dev`, `npm test`, `npm run typecheck`, `npm run lint`); requieren `frontend/.env` copiado de `frontend/.env.example` (`VITE_API_URL`).
+
 ## Estado del cliente (Zustand) — 4 stores
 
 | Store | Estado | Persistencia |
@@ -85,7 +121,9 @@ frontend/src/
 | `authStore` | accessToken, usuario, isAuthenticated | `persist` + `partialize`: solo `accessToken` `[INT]` (`[DESC]`: tokens+usuario). No leer el token a mano fuera del store |
 | `cartStore` | items, cantidades, personalizaciones; `totalItems/totalPrice/getItem` | `persist` (items completos, v1) |
 | `paymentStore` | estado del checkout/pago MP, `mpPaymentId`, errores | Ninguna (se resetea al recargar) |
-| `uiStore` | cartOpen, sidebarOpen, confirmModal, tema, toasts | Ninguna (tema opcionalmente persistido) |
+| `uiStore` | cartOpen, sidebarOpen (drawer mobile), sidebarCollapsed (desktop, solo íconos), confirmModal, tema, toasts | `persist` + `partialize`: solo `sidebarCollapsed` (y opcionalmente tema); el resto no se persiste. **Hoy (C-13a)** vive en `src/shared/model/ui-store.ts` (clave `foodstore.ui`, v1) con solo `sidebarCollapsed` y `sidebarOpen`; `cartOpen`, `confirmModal`, tema y toasts los agrega el change que los usa |
+
+**Navegación (DD-25)**: panel lateral izquierdo para toda la app, con secciones según rol. Desktop: colapsable a solo íconos (`sidebarCollapsed`, preferencia persistida). Mobile: oculto tras un botón ☰, entra como drawer (`sidebarOpen`, no persistido). Detalle de secciones por rol en [09](09_decisiones_y_supuestos.md) (DD-25).
 
 Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), nunca el store completo sin selector, `getState()` fuera de React (interceptores).
 
@@ -122,16 +160,15 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 | `MP_ACCESS_TOKEN` | Access token MP (backend) | `TEST-...` | N (opcional: pagos) |
 | `MP_PUBLIC_KEY` | Public key MP (frontend vía API) | `TEST-...` | N (opcional: pagos) |
 | `MP_WEBHOOK_SECRET` | Clave secreta de Webhooks (panel MP) para validar `x-signature`; sin ella el webhook responde 503 | `CHANGE_ME` | N (opcional: pagos; obligatoria para recibir webhooks) |
-| `MP_NOTIFICATION_URL` | URL pública completa del webhook IPN | `https://CHANGE_ME.ngrok-free.app/api/v1/pagos/webhook` | N (opcional: pagos) |
-| `BACKEND_PUBLIC_URL` | Base pública del backend para las `back_urls` (removible en C-12) | `https://CHANGE_ME.ngrok-free.app` | N (opcional: pagos) |
-| `FRONTEND_URL` | Destino del redirect post-pago (removible en C-12) | `http://localhost:5173` | N (opcional: pagos) |
 | `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cuenta Cloudinary | `CHANGE_ME` | N (opcional: imágenes; sin ellas subir = 503, borrar = no-op) |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | **Solo docker-compose** (crean usuario y base del contenedor). Mantener `DATABASE_URL` consistente a mano | `CHANGE_ME_USER` | solo compose |
 | `PGADMIN_EMAIL`, `PGADMIN_PASSWORD` | **Solo docker-compose** (login de pgAdmin) | `CHANGE_ME@example.com` | solo compose |
 | `VITE_API_URL`, `VITE_MP_PUBLIC_KEY` | **Solo frontend** (Vite); no las lee el backend | `http://localhost:8000` | solo frontend |
 
-**Retiradas (C-03):** `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST`, `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` (el límite de login es RN-AU-08, fijo en código). **Retiradas (C-01):** `NGROK_URL` (→ `BACKEND_PUBLIC_URL` + `MP_NOTIFICATION_URL`), `MP_WEBHOOK_URL` (→ `MP_NOTIFICATION_URL`), `VITE_FRONTEND_URL` (→ `FRONTEND_URL`), `POSTGRES_HOST`/`POSTGRES_PORT` y `TEST_DATABASE_URL` (tests: `DATABASE_URL` de `.env.test`, base `foodstore_test`). Con `extra="ignore"`, si siguen en el `.env` no afectan ningún valor.
+**Retiradas (C-12):** `BACKEND_PUBLIC_URL` y `FRONTEND_URL` (eran de Checkout Pro: `back_urls` y redirect post-pago). Crear un pago exige solo `MP_ACCESS_TOKEN` (si falta, 503 nombrándola; si MercadoPago rechaza las credenciales, 503 también). **Retirada (C-12, revisión Orders):** `MP_NOTIFICATION_URL` (la Orders API no tiene `notification_url`: la URL del webhook, `<url pública>/api/v1/pagos/webhook`, se configura solo en el panel de MercadoPago con el evento «Order (Mercado Pago)»). **Retiradas (C-03):** `RATE_LIMIT_DEFAULT_PER_MINUTE`, `RATE_LIMIT_DEFAULT_BURST`, `RATE_LIMIT_AUTH_PER_MINUTE`, `RATE_LIMIT_AUTH_BURST` (el límite de login es RN-AU-08, fijo en código). **Retiradas (C-01):** `NGROK_URL` y `MP_WEBHOOK_URL` (la URL del webhook se configura en el panel de MercadoPago; ver «Retirada (C-12)»), `VITE_FRONTEND_URL` (sin equivalente en el backend desde C-12), `POSTGRES_HOST`/`POSTGRES_PORT` y `TEST_DATABASE_URL` (tests: `DATABASE_URL` de `.env.test`, base `foodstore_test`). Con `extra="ignore"`, si siguen en el `.env` no afectan ningún valor.
 
 ## Testing
 
 pytest + httpx + pytest-asyncio + pytest-cov sobre **PostgreSQL 15 real** (base `foodstore_test`, creada por la suite si falta; `backend/tests/.env.test` copiado de `backend/tests/.env.test.example`). Guardia de seguridad: la suite aborta si `ENVIRONMENT != test`, si el nombre de la base no termina en `_test` o si falta la configuración. Aislamiento por test con transacción externa + savepoint (rollback al terminar); el esquema de `foodstore_test` se construye una vez por sesión con `alembic upgrade head` desde una base vacía; los tests de migraciones (upgrade/downgrade, «esquema == modelos») usan la base auxiliar `foodstore_migrations_test`, que también cumple la guardia `_test`. Una fixture autouse de `conftest.py` ejecuta `limiter.reset()` antes de cada test y desactiva el hilo de purga de `MemoryStorage` (lee el reloj real y borraría entradas creadas bajo `freezegun`); el tiempo de las ventanas se controla con `freezegun` y la IP de la conexión con `TestClient(app, client=(ip, puerto))`. Suites en `backend/tests/integration/` y `backend/tests/unit/` (config, engine, mixins, Cloudinary, plantillas `.env`, guardia de BD, `LimitadorPorClave`). Ningún test llama a las APIs reales de MercadoPago ni Cloudinary.
+
+**Cobertura (PA-16, C-25a):** el umbral vive en `backend/.coveragerc` (`[run] source = app`; `[report] fail_under = 60`, `show_missing = true`) y se mide con `pytest --cov --cov-report=term` desde `backend/` (no está en `addopts`, para no ralentizar la corrida diaria). Si el total baja de 60% el comando falla. Marker `e2e` (declarado en `pytest.ini`): flujos completos por HTTP (compra, pago, entrega; solo el SDK de MercadoPago se reemplaza), `pytest -m e2e`. **Tests de arquitectura y contrato:** `tests/unit/test_arquitectura_capas.py` (dependencia unidireccional, routers sin acceso a datos, `core` sin `modules`, capas inferiores sin FastAPI), `tests/unit/test_estructura_modulos.py` (estructura objetivo de módulos) y `tests/integration/test_contrato_rutas.py` (contrato de rutas: los renombres internos no cambian ninguna ruta pública).

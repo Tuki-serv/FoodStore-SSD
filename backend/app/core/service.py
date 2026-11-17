@@ -1,10 +1,9 @@
 from collections.abc import Mapping
 from typing import Any, Generic, TypeVar, Type
-from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlmodel import SQLModel, Session
 
-from app.core.unit_of_work import UnitOfWork
+from app.core.uow import UnitOfWork
 from app.core.errors import AppError, ErrorCode
 from app.core.pagination import PageParams
 from app.core.repository import BaseRepository
@@ -66,7 +65,7 @@ class base_service(Generic[ModelType, CreateSchemaType, UpdateSchemaType, UoWTyp
     def _get_or_404(self, item_id, allow_deleted: bool = False) -> ModelType:
         item = self.repo.get_by_id(item_id)
         if not item or (not allow_deleted and getattr(item, "deleted_at", None) is not None):
-            raise HTTPException(status_code=404, detail=f"{self.model.__name__} no encontrado/a")
+            raise AppError.http(404, f"{self.model.__name__} no encontrado/a")
         return item
 
 

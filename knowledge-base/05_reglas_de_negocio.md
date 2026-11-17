@@ -92,9 +92,9 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 
 ## Dominio: Pagos (RN-PA)
 
-- **RN-PA-01**: Los datos de tarjeta **nunca** pasan por el backend (PCI DSS SAQ-A): se tokenizan en el navegador con MercadoPago.js / `CardPayment` (objetivo, Checkout API). *Deuda DT-01:* el código actual delega en el sitio de MP (Checkout Pro).
-- **RN-PA-02**: Cada pago lleva un `idempotency_key` UUID único generado por el backend; es la clave de **creación** del pago (la que se enviará a MP en `X-Idempotency-Key`). Un mismo evento del webhook no se procesa dos veces: la dedupe es por `mp_payment_id` con bloqueo de fila (C-05, DT-20 resuelta).
-- **RN-PA-03**: El webhook **no confía** en el payload: consulta la API de MP (`payment.get`) para obtener el estado real y busca el pedido por `external_reference`; responde 200 solo si lo procesó o lo ignoró legítimamente; ante firma inválida (401), falla de MP (502), falta de configuración (503) o error inesperado (500) responde error para que MP reintente lo reintentable.
+- **RN-PA-01**: Los datos de tarjeta **nunca** pasan por el backend (PCI DSS SAQ-A): se tokenizan en el navegador con MercadoPago.js / `CardPayment` (objetivo, Checkout API). Implementado en C-12: `POST /pagos/crear` solo acepta el token (`extra="forbid"`).
+- **RN-PA-02**: Cada pago lleva un `idempotency_key` UUID único generado por el backend; es la clave de **creación** del pago (se envía a MP en `X-Idempotency-Key`; cada intento tiene además una `external_reference` UUID única). Un mismo evento del webhook no se procesa dos veces: la dedupe es por `mp_order_id` (id de la orden de la Orders API; era `mp_payment_id` antes de la revisión Orders de C-12) con bloqueo de fila (C-05, DT-20 resuelta).
+- **RN-PA-03**: El webhook **no confía** en el payload: consulta la API de MP (`order.get`, Orders API) para obtener el estado real y busca el pago local por `mp_order_id` y luego por `external_reference` (UUID del intento); responde 200 solo si lo procesó o lo ignoró legítimamente; ante firma inválida (401), falla de MP (502), falta de configuración o credenciales rechazadas por MP (503) o error inesperado (500) responde error para que MP reintente lo reintentable.
 - **RN-PA-04**: Mapeo de estados MP → acción:
 
 | `mp_status` | Estado local | Acción sobre el pedido |
@@ -105,7 +105,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 | `cancelled` / `refunded` / `charged_back` | `rechazado` | Sin cambios (spec: "se podría considerar" cancelar el pedido si no hay otros pagos) |
 
 - **RN-PA-05**: Un pedido admite múltiples intentos de pago (1:N); se consulta el último (`get_ultimo_by_pedido`).
-- **RN-PA-06**: Solo se procesan notificaciones `topic/type = payment`; el resto se ignora.
+- **RN-PA-06**: Solo se procesan notificaciones `topic/type = order` (evento «Order (Mercado Pago)»); el resto, incluido `payment`, se ignora.
 
 ## Dominio: API y Datos transversales (RN-GL)
 

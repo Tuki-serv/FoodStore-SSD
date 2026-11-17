@@ -6,56 +6,73 @@ Extra del dominio de pagos. Reglas relacionadas: RN-PA-01..06 en [05](05_reglas_
 
 ## Modalidades
 
-Objetivo = columna "Spec" (normativa). La columna "Código actual" es **deuda técnica** (DT-01, DT-05, DT-06, DT-20).
+Objetivo (spec `[INT]`) y código actual coinciden desde C-12 en lo que hace al cobro: **Checkout API** sobre la **Orders API** (`POST /v1/orders`, `sdk.order()`). La primera implementación usó el recurso Payments (`/v1/payments`); se migró a Orders el 2026-11-15 porque el sandbox rechazaba las credenciales de prueba en Payments (DD-26). DT-01, DT-05, DT-06 y DT-20 están resueltas.
 
-| Aspecto | Objetivo (spec `[INT]`) | Código actual (deuda) |
-|---------|------------------------|---------------------------|
-| Producto MP | Checkout API / Orders; medios: tarjeta crédito/débito, Rapipago, Pago Fácil, cuenta MP, sin redirigir fuera del sitio | **Checkout Pro**: preferencia + `init_point`, el cliente paga en el sitio de MP |
-| Tokenización | MercadoPago.js / `@mercadopago/sdk-react` (`CardPayment`) en el navegador; backend recibe el token | No aplica (el pago ocurre en MP); la `public_key` se devuelve igualmente |
-| Crear pago | `POST /pagos/crear` (con token de tarjeta) / `crear-preferencia` | `POST /pagos/crear {pedido_id}` → `{pago_id, preference_id, init_point, public_key}` |
-| Webhook | `POST /pagos/webhook` (o `/ipn`), validar firma | `POST /pagos/webhook` — **sin validación de firma** |
-| Idempotencia | `idempotency_key` UUID; ignorar duplicados | UUID generado en `crear_pago`; deduplicación real por `pago.estado != "pendiente"` |
-| Consultar | `GET /pagos/{pedido_id}` (propietario/ADMIN) | `GET /pagos/{pedido_id}` → `{estado, pedido_id}` **sin auth** |
-| Retorno | URL de retorno al frontend | `GET /pagos/redirect/{pedido_id}/{status}` redirige a `{VITE_FRONTEND_URL}/payment/feedback/{pedido_id}?status=...&<params de MP>` |
+| Aspecto | Estado actual (= objetivo) |
+|---------|----------------------------|
+| Producto MP | **Checkout API / Orders** con el brick `CardPayment` (tarjeta crédito/débito), sin redirigir fuera del sitio. Rapipago/Pago Fácil/cuenta MP y el challenge 3DS quedan fuera (no implementados). La aplicación se crea en el panel de MercadoPago como Checkout API con «API de Orders» (el panel rotula «API de Payments» como «Esta API será descontinuada pronto») |
+| Tokenización | MercadoPago.js / `@mercadopago/sdk-react` (`CardPayment`) en el navegador; el backend recibe solo el token (`extra="forbid"`: número, CVV o vencimiento → 422) |
+| Crear pago | `POST /pagos/crear {pedido_id, token, payment_method_id, payment_type_id, installments, issuer_id?, payer{email, identification?}}` (`payment_type_id` = `credit_card`\|`debit_card`, del `additionalData.paymentTypeId` del brick; `issuer_id` se acepta y no se reenvía a MP) → 201 `{pago_id, pedido_id, estado, mp_order_id, mp_payment_id, mp_status, mp_status_detail}` (propietario o ADMIN) |
+| Webhook | `POST /pagos/webhook` con firma `x-signature` validada (C-05); evento **«Order (Mercado Pago)»**, tópico `order`, `data.id` = id de la orden (`ORD…`). Los tópicos `payment` y `merchant_order` no se procesan (200 `ignored`) |
+| Idempotencia | `idempotency_key` UUID por intento, enviado como `X-Idempotency-Key`; `external_reference` UUID único por intento; el webhook deduplica por `mp_order_id` (id de la orden, texto) |
+| Consultar | `GET /pagos/{pedido_id}` → `{pedido_id, pago_id, estado, mp_status, mp_status_detail}` del último intento (propietario/ADMIN); `mp_status` es el estado de la **orden** y `mp_status_detail` el de la **transacción** |
+| Retorno | No existe: el resultado llega en la respuesta de crear y en `GET /pagos/{pedido_id}` (`/pagos/redirect/...` → 404; `BACKEND_PUBLIC_URL` y `FRONTEND_URL` retiradas, *solo mención histórica*) |
 
 PCI DSS **SAQ-A**: datos de tarjeta nunca pasan por el servidor de Food Store.
 
-## Flujo de cobro (código actual — deuda DT-01)
+## Flujo de cobro (Checkout API sobre Orders, C-12)
 
-El flujo objetivo es Checkout API/Orders: el frontend tokeniza la tarjeta con `CardPayment`, el backend crea el pago autenticado con `idempotency_key` y el webhook (con firma validada) avanza el pedido. Lo siguiente describe lo que hace hoy el código:
+`POST /pagos/crear` se ejecuta en dos transacciones cortas con la llamada a MercadoPago afuera (sin locks de base durante la red):
 
-1. `crear_pago(pedido_id)`: pedido debe existir (no se valida estado PENDIENTE ni propietario ni que ya exista un pago aprobado). Requiere `MP_ACCESS_TOKEN` (400 si falta).
-2. Construye preferencia: un solo ítem `{title: "Pedido #N - FoodStore", quantity: 1, unit_price: float(total), currency_id: "ARS"}`, `external_reference = str(pedido_id)`, `back_urls` (success/failure/pending → `NGROK_URL/api/v1/pagos/redirect/{id}/{status}`), `auto_return: "approved"`, `notification_url = NGROK_URL/api/v1/pagos/webhook`. Si `NGROK_URL` no está, usa `http://localhost:8000` (MP no puede notificar a localhost).
-3. Guarda `Pago(estado="pendiente", mp_preference_id, mp_init_point, idempotency_key=uuid4, transaction_amount=total)`.
-4. El webhook procesa el evento (Flujo 5 de [07](07_flujos_principales.md)).
+1. **T1**: 401 → 404 → 403 → precondiciones (409 `PAYMENT_NOT_ALLOWED`: el pedido debe ser `MERCADOPAGO`, `PENDIENTE`, sin pago `aprobado`/`a_devolver` ni en proceso con orden creada en MercadoPago) → 503 si falta `MP_ACCESS_TOKEN` (`MP_NOTIFICATION_URL` está retirada: Orders no tiene `notification_url`). El pedido se bloquea con `SELECT ... FOR UPDATE`: dos `crear` concurrentes se serializan. Se guarda el intento `pendiente` con `idempotency_key` y `external_reference` UUID nuevos (o se **reutiliza** el último intento si quedó sin `mp_order_id`).
+2. **MercadoPago** (`PasarelaMercadoPago`, único módulo que conoce el SDK): `order().create` con una orden `type: online`, `processing_mode: automatic` y una transacción de tarjeta; el monto del pedido va como **texto** con 2 decimales (`"1500.50"`), junto con `external_reference` y `X-Idempotency-Key` (sin `notification_url` ni `issuer_id`). Respuestas: 402 con la orden `failed` → resultado `rechazado` (no es error); 4xx de datos → 400 `HTTP_400` y el intento queda `rechazado`; **401/403 (credenciales rechazadas por MercadoPago) → 503 `HTTP_503`** y el intento queda reutilizable; 409 `idempotency_key_already_used` → se busca la orden por `external_reference` (si no aparece, 502); 423, red y 5xx → 502 `HTTP_502` y el intento queda reutilizable.
+3. **T2**: relee el intento con bloqueo y aplica el resultado por el **mismo camino que el webhook** (`_aplicar_resultado_mp`): orden `processed` → pago `aprobado` y pedido `CONFIRMADO` en la misma transacción (actor Sistema, stock, historial; sin stock → pedido `CANCELADO` y pago `a_devolver`); `failed` → `rechazado`; `processing`/`action_required` → `pendiente` con `mp_order_id`. Si el webhook ganó la carrera, la respuesta refleja el estado ya guardado.
+4. El webhook sigue siendo la confirmación (Flujo 5 de [07](07_flujos_principales.md)); consulta `GET /v1/orders/{id}` y encuentra el intento por `mp_order_id` → `external_reference` (UUID del intento, no «el último del pedido»). `mp_merchant_order_id` se retiró (migración `004`).
+
+Reintento: tras `rechazado` (de MercadoPago o por datos rechazados) se crea un intento nuevo con claves nuevas; tras un resultado desconocido (502, o 503 por credenciales rechazadas) se reutiliza el intento con su misma `X-Idempotency-Key` para que MercadoPago no cobre dos veces (si la clave ya se usó, 409 y reconciliación por `external_reference`).
 
 ## Estados y acciones
 
-| MP | Local | Acción |
+Se mapea el estado de la **orden** (Orders):
+
+| MP (orden) | Local | Acción |
 |----|-------|--------|
-| `approved` | `aprobado` | Pedido PENDIENTE→CONFIRMADO con descuento de stock (actor Sistema). Si el stock ya no alcanza: pedido CANCELADO («Sin stock») y el pago pasa al estado local `a_devolver` (devolución manual, PA-08) |
-| `pending`, `in_process`, `authorized` | `pendiente` | Sin cambios |
-| `rejected`, `cancelled`, `refunded`, `charged_back` | `rechazado` | Sin cambios; reintento posible (un nuevo pago aprobado con otro `mp_payment_id` se procesa) |
+| `processed` (`accredited`; también `partially_refunded`) | `aprobado` | Pedido PENDIENTE→CONFIRMADO con descuento de stock (actor Sistema). Si el stock ya no alcanza: pedido CANCELADO («Sin stock») y el pago pasa al estado local `a_devolver` (devolución manual, PA-08) |
+| `created`, `processing` (`in_process`), `action_required` (`waiting_payment`, `pending_challenge`, …) | `pendiente` | Sin cambios; lo resuelve el webhook |
+| `failed`, `canceled`, `refunded`, `charged_back` | `rechazado` | Sin cambios; reintento posible (una nueva orden aprobada con otro `mp_order_id` se procesa) |
 | otros | — | `ignored` |
 
-Estados locales del pago: `pendiente`, `aprobado`, `rechazado` y `a_devolver` (aprobado en MP pero sin pedido que lo respalde: sin stock, pedido `CANCELADO`, `EFECTIVO`/`TRANSFERENCIA` o ya confirmado; `mp_status` conserva `approved`). `aprobado` y `a_devolver` son terminales (`already_processed`); un cambio posterior en MP (p. ej. `approved` → `refunded`) no se refleja (PA-08).
+Estados locales del pago: `pendiente`, `aprobado`, `rechazado` y `a_devolver` (aprobado en MP pero sin pedido que lo respalde: sin stock, pedido `CANCELADO`, `EFECTIVO`/`TRANSFERENCIA` o ya confirmado; `mp_status` conserva `processed`). `aprobado` y `a_devolver` son terminales (`already_processed`); un cambio posterior en MP (p. ej. `processed` → `refunded`) no se refleja (PA-08).
 
 ## Sandbox
 
-Tarjetas de prueba de `[INT]` (vencimiento indicado `11/25`, hoy vencido; usar fecha futura): Visa aprobada `4509 9535 6623 3704` (CVV 123); American Express aprobada `3714 496353 98431` (CVV 1234); Visa rechazada `4000 0000 0000 0002` (CVV 123). Credenciales `TEST-...` para sandbox; `APP_USR-...` producción. Para recibir webhooks en local se usa **ngrok**. En el panel de MercadoPago configurar solo «Webhooks» (evento `payment`) y copiar la clave secreta a `MP_WEBHOOK_SECRET`.
+Tarjetas de prueba de Orders (el brick `CardPayment` genera el token; vencimiento futuro, p. ej. `11/30`; DNI `12345678`): Mastercard `5031 7557 3453 0604` o Visa `4509 9535 6623 3704` (CVV `123`). El **nombre del titular** decide el resultado: `APRO` aprobado, `FUND` fondos insuficientes, `OTHE` rechazo genérico, `CONT` pago en proceso. El email del pagador debe ser el de un comprador de prueba.
+
+**Configuración del panel de MercadoPago (modo Prueba):** aplicación creada como Checkout API con «API de Orders»; credenciales del vendedor de prueba (`APP_USR-…`, que sirven para Orders); en «Webhooks» configurar la URL pública (ngrok) `<url>/api/v1/pagos/webhook` con el evento **«Order (Mercado Pago)»** y copiar la clave secreta a `MP_WEBHOOK_SECRET`. La URL del webhook se configura **solo en el panel**: `MP_NOTIFICATION_URL` se retiró (Orders no admite `notification_url` por orden).
+
+**Hechos observados en sandbox (2026-11-16, parcial):**
+- Con las mismas credenciales, `POST /v1/payments` respondía 401 «Unauthorized use of live credentials» (causa `7`); `POST /v1/orders` las acepta.
+- Caso `APRO`: `POST /pagos/crear` → pago `aprobado`, orden `processed`/`accredited`, `mp_order_id` con prefijo `ORDTST…`, `mp_payment_id` con prefijo `PAY…`; pedido `CONFIRMADO` y stock descontado.
+- Unos 2–4 s después MercadoPago llama `POST /pagos/webhook?data.external_reference=<uuid>&data.id=ORDTST…&type=order` con `x-signature` y `x-request-id`, cuerpo `action: order.processed` con la orden en `data`; el backend responde 200 `already_processed` (la creación ya había confirmado el pedido).
+- **La firma validó con `data.id` en minúsculas** (con el id tal como llegó, no); se observó una sola notificación. El backend prueba ambas variantes; dejar solo la de minúsculas queda como decisión de seguimiento (OQ-13 de C-12).
+- Pendiente de verificar: `FUND`, `OTHE`, `CONT`, reintento tras rechazo y qué responde MercadoPago ante una clave de idempotencia repetida (OQ-14).
 
 ## Webhook: objetivo y estado actual (C-05)
 
 | Aspecto | Estado |
 |---------|--------|
-| Firma `x-signature` | Validada con `MP_WEBHOOK_SECRET` (validador del SDK `mercadopago>=3.6.0`); inválida → 401, sin secreto → 503 |
-| Idempotencia | Por `mp_payment_id` con `SELECT ... FOR UPDATE` sobre `pagos` (`decidir_transicion_pago`); `idempotency_key` es solo la clave de creación del pago |
+| Firma `x-signature` | Validada con `MP_WEBHOOK_SECRET`: manifest `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, con `data.id` en minúsculas y, si no firma, tal cual; inválida → 401, sin secreto → 503 |
+| Tópico y consulta | Solo `order`; el estado no se toma del cuerpo: se consulta `GET /v1/orders/{id}`. 401/403 de MercadoPago al consultar → 503; otra falla → 502 |
+| Idempotencia | Por `mp_order_id` (texto) con `SELECT ... FOR UPDATE` sobre `pagos` (`decidir_transicion_pago`); `idempotency_key` es la clave de creación de la orden (`X-Idempotency-Key`) |
 | Transacción | Una sola: pago + transición del pedido + stock + historial (UoW reentrante con savepoint) |
 | Códigos | 200 / 401 / 400 / 502 / 503 / 500 (ver Flujo 5 de [07](07_flujos_principales.md)) |
 
-## Riesgos conocidos (DT-06, DT-20 y DT-21 resueltas por C-05; DT-05 por C-04)
+## Riesgos conocidos (DT-06, DT-20 y DT-21 resueltas por C-05; DT-05 por C-04; DT-01 y DT-26 por C-12, ajustadas a Orders por DD-26)
 
-- Las notificaciones legacy IPN (`?id=&topic=`) no vienen firmadas y reciben 401: configurar en el panel de MercadoPago solo «Webhooks» (evento `payment`).
+- Las notificaciones legacy IPN (`?id=&topic=`) no vienen firmadas y reciben 401: configurar en el panel de MercadoPago solo «Webhooks» (evento «Order (Mercado Pago)»). Los tópicos `payment` y `merchant_order` no son compatibles con Orders.
 - Sin ventana de tolerancia sobre `ts`: una notificación auténtica capturada puede reenviarse, sin efecto porque el estado se toma de la API de MP y el procesamiento es idempotente.
-- `float(monto)` al enviar a MP: puede introducir errores de redondeo; usar Decimal→2 decimales.
+- Orders no tiene `notification_url`: `MP_NOTIFICATION_URL` se retiró (OQ-3 resuelta) y el webhook se configura solo en el panel.
+- Credenciales rechazadas por MercadoPago (401/403) responden 503, no 400: el intento queda reutilizable y no se marca `rechazado`.
+- Con `capture_mode` por defecto (`automatic_async`) la creación puede devolver `processing`: el pago queda `pendiente` hasta el webhook. El challenge 3DS (`action_required`/`pending_challenge`) no se implementa.
+- MercadoPago conserva las claves de idempotencia un tiempo acotado: un reintento muy tardío sobre un intento de resultado desconocido podría cobrar de nuevo; el webhook deja un segundo cobro aprobado del mismo pedido como `a_devolver`.
 - Sin reembolso/cancelación automática de pago al cancelar el pedido ni ante `refunded` posterior (PA-08); los pagos `a_devolver` requieren gestión manual.

@@ -1,4 +1,4 @@
-/* Food Store design tokens - Revision 1 (pending approval). Local only, no remote fonts. */
+/* Food Store design tokens - Revision 2 (approved 2026-11-14). Local only, no remote fonts. */
 :root {
   /* Color: brand */
   --color-primary: #B8400F;        /* tomato/terracotta; white text 5.9:1 */
@@ -48,6 +48,12 @@
   --ease-out: cubic-bezier(.22,1,.36,1);
   /* Layout */
   --tap-min: 44px;
+  /* App shell: left sidebar (DD-25). Breakpoint is 1024px (media queries cannot read variables). */
+  --sidebar-width: 264px;
+  --sidebar-width-collapsed: 72px;
+  --topbar-height: 56px;            /* mobile only */
+  --color-overlay: rgba(43,33,24,.48);
+  --z-topbar: 20; --z-scrim: 30; --z-drawer: 40;
 }
 @media (prefers-reduced-motion: reduce) {
   :root { --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms; }

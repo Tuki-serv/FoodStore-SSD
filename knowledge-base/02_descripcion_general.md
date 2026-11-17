@@ -36,7 +36,7 @@
  │ Zustand + TanStack Query │        WebSocket (pedido / cocina)          │ Middleware: CORS + RateLimit    │
  │ MercadoPago.js           │                                                    └──────────────┬──────────────────┘
  └───────────┬──────────────┘                                                                   │ SQLModel/psycopg
-             │ tokeniza tarjeta / redirect Checkout Pro                                         ▼
+             │ tokeniza tarjeta (CardPayment)                                         ▼
              ▼                                                                   ┌─────────────────────────┐
      ┌───────────────┐   POST /pagos/webhook (IPN)   ┌────────────────────┐     │ PostgreSQL 15           │
      │ MercadoPago   │ ────────────────────────────▶ │ módulo pagos       │     └─────────────────────────┘
@@ -49,13 +49,14 @@
 
 | Capa | Archivo | Responsabilidad |
 |------|---------|-----------------|
-| Router | `router.py` | HTTP puro: parsear/validar con Pydantic, delegar al Service, serializar con `response_model`. Sin lógica de negocio |
-| Service | `service.py` | Lógica de negocio, stateless; recibe el UoW; lanza `HTTPException`; **no** hace commit/rollback directo |
-| UoW | `core/unit_of_work.py` | Context manager: `commit()` al salir sin excepción, `rollback()` si hay error; expone repositorios |
+| Router | `router.py` | HTTP puro: parsear/validar con Pydantic, delegar al Service (inyectado con `XServiceDep`), serializar con `response_model`. Sin lógica de negocio ni acceso a datos |
+| Composición | `dependencies.py` | Raíz de composición del módulo: única que importa `SessionDep` y arma `UoW → Service`; expone `get_<x>_service` y `XServiceDep`. Sin lógica de negocio |
+| Service | `service.py` | Lógica de negocio, stateless; recibe el UoW; lanza `AppError` (`AppError.http(status, detalle)` para errores genéricos) sin importar FastAPI; **no** hace commit/rollback directo |
+| UoW | `core/uow.py` | Context manager: `commit()` al salir sin excepción, `rollback()` si hay error; expone repositorios |
 | Repository | `repository.py` | Acceso a BD sin lógica de negocio; hereda de `BaseRepository[T]` |
 | Model | `model.py` | Tablas SQLModel y relaciones |
 
-Organización **feature-first** (módulo por funcionalidad). Módulos `[INT]`: `auth`, `refreshtokens`, `usuarios`, `direcciones`, `categorias`, `productos`, `pedidos`, `pagos`, `admin`. Módulos reales del backend: `usuarios` (incluye auth/refresh/admin), `direcciones_entrega`, `categorias`, `productos`, `ingredientes`, `unidades_medida`, `pedidos`, `detalles_pedido`, `estados_pedido`, `formas_pago`, `historiales_estado_pedido`, `pagos`, `estadisticas`, más `core/` (config, deps, security, unit_of_work, repository, service, websocket, cloudinary, rate_limit, mixin de auditoría).
+Organización **feature-first** (módulo por funcionalidad). Módulos `[INT]`: `auth`, `refreshtokens`, `usuarios`, `direcciones`, `categorias`, `productos`, `pedidos`, `pagos`, `admin`. Módulos reales del backend (C-25a): `auth`, `refreshtokens`, `usuarios`, `direcciones`, `categorias`, `productos`, `ingredientes`, `unidades_medida`, `pedidos` (incluye `EstadoPedido`, `DetallePedido` e `HistorialEstadoPedido`), `pagos` (incluye `FormaPago`), `admin` (routers de usuarios-admin, estadísticas e imágenes) y `health`, más `core/` (config, database, security, uow, repository, service, errors, websocket, cloudinary, rate_limit, mixin de auditoría). Cada módulo con `dependencies.py` como raíz de composición.
 
 ### Frontend: Feature-Sliced Design
 
@@ -67,7 +68,7 @@ Capas (de mayor a menor abstracción) `[DESC]`: `app → pages → widgets → f
 
 | Servicio | Propósito | Tipo |
 |----------|-----------|------|
-| MercadoPago (objetivo: Checkout API/Orders; **deuda DT-01:** Checkout Pro en el código actual) | Crear pago/preferencia, cobrar | REST vía SDK Python + MercadoPago.js en navegador |
+| MercadoPago (Checkout API / Payments con `CardPayment`; DT-01 resuelta por C-12) | Crear pago/preferencia, cobrar | REST vía SDK Python + MercadoPago.js en navegador |
 | MercadoPago IPN | Notificación asíncrona del estado de pago | Webhook `POST /api/v1/pagos/webhook` |
 | Cloudinary | Almacenar imágenes de categorías, ingredientes y productos | SDK Python (subida `multipart/form-data`) |
 | ngrok | Exponer backend local para `back_urls`/webhook | Túnel HTTPS |
@@ -92,7 +93,7 @@ Resumen por recurso (rutas reales del backend salvo indicación; contraste con s
 | Unidades de medida | CRUD `/unidades-medida` | Escritura `ADMIN` |
 | Uploads | `POST /uploads/imagen`, `DELETE /uploads/imagen/{public_id}` | `ADMIN` |
 | Pedidos (C-11) | `POST /pedidos/`, `GET /pedidos/` (paginado; filtros `estado`, `desde`, `hasta` en UTC; CLIENT ve solo los propios, ADMIN/PEDIDOS todos), `GET /pedidos/{id}` y `GET /pedidos/{id}/historial` (dueño, ADMIN, PEDIDOS; otro cliente 403), `PATCH /pedidos/{id}/estado {nuevo_estado, motivo?}`, `DELETE /pedidos/{id}` (CLIENT cancela el propio; body **opcional** `{motivo}`, sin motivo se registra «Cancelado por el cliente»; responde 200 con el pedido), `GET /pedidos/cocina/pedidos` (paginado), WS | Ver 03 y 07. Axios: para enviar body en `DELETE` usar `axios.delete(url, { data: { motivo } })` (C-13b) |
-| Pagos | `POST /pagos/crear`, `POST /pagos/webhook`, `GET /pagos/{pedido_id}`, `GET /pagos/redirect/{pedido_id}/{status}` | **Sin autenticación en** |
+| Pagos | `POST /pagos/crear`, `POST /pagos/webhook`, `GET /pagos/{pedido_id}` (la ruta de redirect de Checkout Pro se retiró en C-12) | **Sin autenticación en** |
 | Estadísticas | `GET /estadisticas/ventas`, `/productos-top`, `/pedidos-por-estado`, `/ingresos`, `/resumen` | `ADMIN` |
 
 Convenciones transversales: soft delete (los GET filtran `deleted_at IS NULL`), esquemas separados Create/Update/Read (nunca exponer el modelo SQLModel), `response_model` siempre.
@@ -102,3 +103,5 @@ Convenciones transversales: soft delete (los GET filtran `deleted_at IS NULL`), 
 ## Entorno y arranque (código actual)
 
 Desde la raíz: `docker compose up -d db`; luego desde `backend/`: venv → `pip install -r requirements.txt` → `python -m app.db.seed` → `uvicorn app.main:app --reload` (API en `http://localhost:8000`). El entry point es `backend/app/main.py`. Ver [08](08_arquitectura_propuesta.md) para variables de entorno.
+
+Frontend (desde C-13a): desde `frontend/`, `cp .env.example .env` (define `VITE_API_URL`) → `npm install` → `npm run dev` (en `http://localhost:5173`). Tests: `npm test`; chequeos: `npm run typecheck` y `npm run lint`. Con Docker: `docker compose up -d frontend` desde la raíz (requiere `frontend/.env`). Detalle en `frontend/README.md`.

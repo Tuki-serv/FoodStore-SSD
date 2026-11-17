@@ -11,6 +11,7 @@ class ErrorCode(StrEnum):
     DUPLICATE_VALUE = "DUPLICATE_VALUE"
     CATEGORY_HAS_PRODUCTS = "CATEGORY_HAS_PRODUCTS"
     CATEGORY_HAS_CHILDREN = "CATEGORY_HAS_CHILDREN"
+    PAYMENT_NOT_ALLOWED = "PAYMENT_NOT_ALLOWED"
     RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
     INTERNAL_ERROR = "INTERNAL_ERROR"
     VALIDATION_ERROR = "VALIDATION_ERROR"
@@ -36,3 +37,8 @@ class AppError(Exception):
         self.detail = detail
         self.field = field
         self.headers = headers
+
+    @classmethod
+    def http(cls, status_code: int, detail: str, *, headers: Mapping[str, str] | None = None) -> "AppError":
+        """Error genérico con el código `HTTP_<status>` (el que antes producía `HTTPException`)."""
+        return cls(status_code, f"HTTP_{status_code}", detail, headers=headers)

@@ -1,0 +1,4 @@
+import { crearRouter } from '@/app/router';
+import { Otra } from '@/pages/otra';
+import { Z } from '../../otra/ui/z';
+export const Home = [crearRouter, Otra, Z];

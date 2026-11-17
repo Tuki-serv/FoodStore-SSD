@@ -13,10 +13,6 @@ class ProductoRepository(BaseRepository[Producto]):
     def __init__(self, session: Session) -> None:
         super().__init__(session, Producto)
 
-    def get_for_update(self, producto_id: int) -> Producto | None:
-        statement = select(Producto).where(Producto.id == producto_id).with_for_update()
-        return self.session.exec(statement).first()
-
     def get_by_name(self, name: str, include_deleted: bool = False) -> Producto | None:
         query = select(Producto).options(
             selectinload(Producto.links_categorias).joinedload(ProductoCategoria.categoria),

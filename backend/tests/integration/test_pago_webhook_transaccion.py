@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.main import app
-from app.modules.pagos.router import get_payment_service
+from app.modules.pagos.dependencies import get_payment_service
 from app.modules.pagos.service import PaymentService
 from app.modules.pedidos.service import PedidoService, descontar_stock_al_confirmar
 from app.modules.pedidos.unit_of_work import PedidoUnitOfWork
@@ -16,6 +16,7 @@ from tests.support.pagos_factory import (
     pedido_con_detalle,
     pedido_con_pago,
     producto,
+    referencia_de,
     stock_de,
 )
 
@@ -38,15 +39,15 @@ def test_falla_a_mitad_de_la_confirmacion_responde_500_y_no_deja_cambios_parcial
 ) -> None:
     prod = producto(session, "Transaccional", 5)
     pedido = pedido_con_detalle(session, normal_user["id"], prod, 2, "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder_consulta("ORD123", referencia_de(session, pedido.id))
     _inyectar_falla_en_la_confirmacion(session)
 
-    response = post_webhook(TestClient(app, raise_server_exceptions=False), "123")
+    response = post_webhook(TestClient(app, raise_server_exceptions=False), "ORD123")
 
     assert response.status_code == 500
     assert response.json()["code"] == "INTERNAL_ERROR"
     (pago,) = pagos_de(session, pedido.id)
-    assert (pago.estado, pago.mp_payment_id) == ("pendiente", None)
+    assert (pago.estado, pago.mp_order_id) == ("pendiente", None)
     assert estado_pedido(session, pedido.id) == "PENDIENTE"
     assert historial(session, pedido.id) == []
     assert stock_de(session, prod.id) == 5
@@ -57,16 +58,16 @@ def test_reenviar_la_notificacion_tras_la_falla_confirma_una_sola_vez_como_siste
 ) -> None:
     prod = producto(session, "Reintento", 5)
     pedido = pedido_con_detalle(session, normal_user["id"], prod, 2, "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder_consulta("ORD123", referencia_de(session, pedido.id))
     _inyectar_falla_en_la_confirmacion(session)
-    post_webhook(TestClient(app, raise_server_exceptions=False), "123")
+    post_webhook(TestClient(app, raise_server_exceptions=False), "ORD123")
     del app.dependency_overrides[get_payment_service]
 
-    response = post_webhook(client, "123")
+    response = post_webhook(client, "ORD123")
 
     assert (response.status_code, response.json()["status"]) == (200, "processed")
     (pago,) = pagos_de(session, pedido.id)
-    assert (pago.estado, pago.mp_payment_id) == ("aprobado", 123)
+    assert (pago.estado, pago.mp_order_id) == ("aprobado", "ORD123")
     assert estado_pedido(session, pedido.id) == "CONFIRMADO"
     assert stock_de(session, prod.id) == 3
     assert [(h.estado_hacia, h.usuario_id) for h in historial(session, pedido.id)] == [("CONFIRMADO", None)]
@@ -77,25 +78,25 @@ def test_pago_aprobado_de_un_pedido_cancelado_queda_a_devolver_y_el_pedido_no_ca
     client: TestClient, session: Session, normal_user: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "CANCELADO", "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder_consulta("ORD123", referencia_de(session, pedido.id))
 
-    response = post_webhook(client, "123")
+    response = post_webhook(client, "ORD123")
 
     assert response.status_code == 200
     assert "pedido_actualizado" not in response.json()
     assert estado_pedido(session, pedido.id) == "CANCELADO"
     assert historial(session, pedido.id) == []
     (pago,) = pagos_de(session, pedido.id)
-    assert (pago.estado, pago.mp_payment_id, pago.mp_status) == ("a_devolver", 123, "approved")
+    assert (pago.estado, pago.mp_order_id, pago.mp_status) == ("a_devolver", "ORD123", "processed")
 
 
 def test_pago_aprobado_de_un_pedido_efectivo_queda_a_devolver_y_el_dueno_lo_consulta(
     client: TestClient, session: Session, normal_user: dict, user_auth_headers: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "PENDIENTE", "EFECTIVO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder_consulta("ORD123", referencia_de(session, pedido.id))
 
-    response = post_webhook(client, "123")
+    response = post_webhook(client, "ORD123")
     consulta = client.get(f"/api/v1/pagos/{pedido.id}", headers=user_auth_headers)
 
     assert response.status_code == 200
@@ -108,15 +109,15 @@ def test_pago_aprobado_de_un_pedido_ya_confirmado_por_otra_via_queda_a_devolver(
     client: TestClient, session: Session, normal_user: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "CONFIRMADO", "MERCADOPAGO")
-    mp_sdk.responder(101, str(pedido.id))
+    mp_sdk.responder_consulta("ORD101", referencia_de(session, pedido.id))
 
-    response = post_webhook(client, "101")
+    response = post_webhook(client, "ORD101")
 
     assert response.status_code == 200
     assert estado_pedido(session, pedido.id) == "CONFIRMADO"
     assert historial(session, pedido.id) == []
     (pago,) = pagos_de(session, pedido.id)
-    assert (pago.estado, pago.mp_payment_id) == ("a_devolver", 101)
+    assert (pago.estado, pago.mp_order_id) == ("a_devolver", "ORD101")
 
 
 def test_pago_aprobado_sin_stock_cancela_el_pedido_y_deja_el_pago_a_devolver(
@@ -124,9 +125,9 @@ def test_pago_aprobado_sin_stock_cancela_el_pedido_y_deja_el_pago_a_devolver(
 ) -> None:
     prod = producto(session, "Agotado", 1)
     pedido = pedido_con_detalle(session, normal_user["id"], prod, 2, "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
+    mp_sdk.responder_consulta("ORD123", referencia_de(session, pedido.id))
 
-    response = post_webhook(client, "123")
+    response = post_webhook(client, "ORD123")
 
     assert response.status_code == 200
     assert estado_pedido(session, pedido.id) == "CANCELADO"
@@ -140,10 +141,10 @@ def test_reentrega_del_pago_a_devolver_no_cambia_nada(
     client: TestClient, session: Session, normal_user: dict, mp_sdk: MPFalso
 ) -> None:
     pedido = pedido_con_pago(session, normal_user["id"], "CANCELADO", "MERCADOPAGO")
-    mp_sdk.responder(123, str(pedido.id))
-    post_webhook(client, "123")
+    mp_sdk.responder_consulta("ORD123", referencia_de(session, pedido.id))
+    post_webhook(client, "ORD123")
 
-    response = post_webhook(client, "123")
+    response = post_webhook(client, "ORD123")
 
     assert response.json()["status"] == "already_processed"
     assert pagos_de(session, pedido.id)[0].estado == "a_devolver"
@@ -160,11 +161,11 @@ def test_el_router_solo_dispara_websocket_cuando_hay_pedido_actualizado(
     monkeypatch.setattr("app.modules.pagos.router.manager.send_to_room", send_to_room)
     cancelado = pedido_con_pago(session, normal_user["id"], "CANCELADO", "MERCADOPAGO")
     pendiente = pedido_con_pago(session, normal_user["id"], "PENDIENTE", "MERCADOPAGO")
-    mp_sdk.responder(1, str(cancelado.id))
-    mp_sdk.responder(2, str(pendiente.id))
+    mp_sdk.responder_consulta("ORD1", referencia_de(session, cancelado.id))
+    mp_sdk.responder_consulta("ORD2", referencia_de(session, pendiente.id))
 
-    post_webhook(client, "1")
+    post_webhook(client, "ORD1")
     assert enviados == []
 
-    post_webhook(client, "2")
+    post_webhook(client, "ORD2")
     assert enviados == [("role:KDS", "PEDIDO_CONFIRMADO"), (f"pedido:{pendiente.id}", "PEDIDO_CONFIRMADO")]

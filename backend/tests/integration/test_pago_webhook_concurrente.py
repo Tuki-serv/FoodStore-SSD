@@ -15,17 +15,17 @@ from sqlmodel import Session, select
 from app.core.database import get_session
 from app.db.seed import seed_catalogos
 from app.main import app
-from app.modules.detalles_pedido.models import DetallePedido
-from app.modules.estados_pedido.models import EstadoPedido
-from app.modules.formas_pago.models import FormaPago
-from app.modules.historiales_estado_pedido.models import HistorialEstadoPedido
+from app.modules.pedidos.models import DetallePedido
+from app.modules.pedidos.models import EstadoPedido
+from app.modules.pagos.models import FormaPago
+from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pagos.models import Pago
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
 from app.modules.usuarios.models import Rol, Usuario, UsuarioRol
 from tests.support.auth_helpers import crear_usuario_con_roles
 from tests.support.mp_webhook import MPFalso, post_webhook
-from tests.support.pagos_factory import estado_pedido, historial, pagos_de, stock_de
+from tests.support.pagos_factory import estado_pedido, historial, pagos_de, referencia_de, stock_de
 
 
 @pytest.fixture(name="escenario")
@@ -82,7 +82,9 @@ def test_dos_notificaciones_simultaneas_del_mismo_pago_aprobado_confirman_una_so
     escenario: dict, mp_sdk: MPFalso
 ) -> None:
     engine: Engine = escenario["engine"]
-    mp_sdk.responder(123, str(escenario["pedido_id"]))
+    with Session(engine) as db_ref:
+        referencia = referencia_de(db_ref, escenario["pedido_id"])
+    mp_sdk.responder_consulta("ORD123", referencia)
 
     def sesion_propia():
         with Session(engine) as db:
@@ -97,7 +99,7 @@ def test_dos_notificaciones_simultaneas_del_mismo_pago_aprobado_confirman_una_so
         try:
             with TestClient(app) as cliente:
                 barrera.wait(timeout=10)
-                respuesta = post_webhook(cliente, "123")
+                respuesta = post_webhook(cliente, "ORD123")
                 resultados.append((respuesta.status_code, respuesta.json()["status"]))
         except BaseException as exc:  # noqa: BLE001 - se reporta en el hilo principal
             errores.append(exc)
