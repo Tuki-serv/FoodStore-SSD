@@ -168,6 +168,14 @@
       "sessions": 1,
       "memories": 1,
       "prompts": 0
+    },
+    {
+      "id": "7976cecc",
+      "created_by": "jacop",
+      "created_at": "2026-11-17T03:12:18.6765514Z",
+      "sessions": 1,
+      "memories": 7,
+      "prompts": 0
     }
   ]
 }
