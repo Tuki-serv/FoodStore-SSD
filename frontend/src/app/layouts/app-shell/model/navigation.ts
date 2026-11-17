@@ -1,7 +1,5 @@
-import { RUTAS, esRol, type Rol, type Ruta } from '@/shared/config';
+import { ACCESO_RUTAS, RUTAS, esRol, puedeAcceder, type Ruta } from '@/shared/config';
 import type { IconName } from '@/shared/ui';
-
-type Visibilidad = 'anon' | 'todos' | readonly Rol[];
 
 export interface ItemNav {
   id: string;
@@ -17,65 +15,49 @@ export interface SeccionNav {
   items: ItemNav[];
 }
 
-interface ItemConfig extends ItemNav {
-  visibleFor: Visibilidad;
-}
-
 interface SeccionConfig {
   id: string;
   titulo?: string;
-  items: ItemConfig[];
+  items: ItemNav[];
 }
 
-const CON_SESION: readonly Rol[] = ['CLIENT', 'PEDIDOS', 'STOCK', 'ADMIN'];
-
-/** Navegación declarada una sola vez, en orden canónico. */
+/** Navegación declarada una sola vez, en orden canónico. Quién ve cada ítem lo decide `ACCESO_RUTAS`, no esta lista. */
 const NAVEGACION: SeccionConfig[] = [
   {
     id: 'principal',
     items: [
-      { id: 'catalogo', label: 'Catálogo', to: RUTAS.catalogo, icon: 'catalogo', visibleFor: 'todos' },
-      { id: 'carrito', label: 'Carrito', to: RUTAS.carrito, icon: 'carrito', visibleFor: CON_SESION },
-      { id: 'mis-pedidos', label: 'Mis pedidos', to: RUTAS.misPedidos, icon: 'pedidos', visibleFor: CON_SESION },
-      { id: 'direcciones', label: 'Direcciones', to: RUTAS.direcciones, icon: 'direcciones', visibleFor: CON_SESION },
-      { id: 'mi-cuenta', label: 'Mi cuenta', to: RUTAS.miCuenta, icon: 'cuenta', visibleFor: CON_SESION },
+      { id: 'catalogo', label: 'Catálogo', to: RUTAS.catalogo, icon: 'catalogo' },
+      { id: 'carrito', label: 'Carrito', to: RUTAS.carrito, icon: 'carrito' },
+      { id: 'mis-pedidos', label: 'Mis pedidos', to: RUTAS.misPedidos, icon: 'pedidos' },
+      { id: 'direcciones', label: 'Direcciones', to: RUTAS.direcciones, icon: 'direcciones' },
+      { id: 'mi-cuenta', label: 'Mi cuenta', to: RUTAS.miCuenta, icon: 'cuenta' },
     ],
   },
   {
     id: 'acceso',
     items: [
-      { id: 'ingresar', label: 'Ingresar', to: RUTAS.ingresar, icon: 'ingresar', visibleFor: 'anon' },
-      { id: 'registrarse', label: 'Registrarse', to: RUTAS.registrarse, icon: 'registrarse', visibleFor: 'anon' },
+      { id: 'ingresar', label: 'Ingresar', to: RUTAS.ingresar, icon: 'ingresar' },
+      { id: 'registrarse', label: 'Registrarse', to: RUTAS.registrarse, icon: 'registrarse' },
     ],
   },
   {
     id: 'operacion',
     items: [
-      { id: 'gestion-pedidos', label: 'Gestión de pedidos', to: RUTAS.gestionPedidos, icon: 'gestion', visibleFor: ['PEDIDOS', 'ADMIN'] },
+      { id: 'gestion-pedidos', label: 'Gestión de pedidos', to: RUTAS.gestionPedidos, icon: 'gestion' },
     ],
   },
   {
     id: 'administracion',
     titulo: 'Administración',
     items: [
-      { id: 'categorias', label: 'Categorías', to: RUTAS.adminCategorias, icon: 'categorias', visibleFor: ['ADMIN'] },
-      { id: 'ingredientes', label: 'Ingredientes', to: RUTAS.adminIngredientes, icon: 'ingredientes', visibleFor: ['ADMIN'] },
-      { id: 'productos', label: 'Productos y stock', to: RUTAS.adminProductos, icon: 'productos', visibleFor: ['ADMIN', 'STOCK'] },
-      { id: 'usuarios', label: 'Usuarios', to: RUTAS.adminUsuarios, icon: 'usuarios', visibleFor: ['ADMIN'] },
-      { id: 'dashboard', label: 'Dashboard', to: RUTAS.adminDashboard, icon: 'dashboard', visibleFor: ['ADMIN'] },
+      { id: 'categorias', label: 'Categorías', to: RUTAS.adminCategorias, icon: 'categorias' },
+      { id: 'ingredientes', label: 'Ingredientes', to: RUTAS.adminIngredientes, icon: 'ingredientes' },
+      { id: 'productos', label: 'Productos y stock', to: RUTAS.adminProductos, icon: 'productos' },
+      { id: 'usuarios', label: 'Usuarios', to: RUTAS.adminUsuarios, icon: 'usuarios' },
+      { id: 'dashboard', label: 'Dashboard', to: RUTAS.adminDashboard, icon: 'dashboard' },
     ],
   },
 ];
-
-function esVisible(visibleFor: Visibilidad, roles: readonly Rol[]): boolean {
-  if (visibleFor === 'todos') return true;
-  if (visibleFor === 'anon') return roles.length === 0;
-  return visibleFor.some((rol) => roles.includes(rol));
-}
-
-function sinVisibilidad({ id, label, to, icon }: ItemConfig): ItemNav {
-  return { id, label, to, icon };
-}
 
 /**
  * Secciones de navegación para los roles dados (unión, sin duplicados, orden canónico).
@@ -84,9 +66,10 @@ function sinVisibilidad({ id, label, to, icon }: ItemConfig): ItemNav {
  */
 export function seccionesParaRoles(roles: readonly string[]): SeccionNav[] {
   const conocidos = roles.filter(esRol);
+  const estado = conocidos.length > 0 ? 'autenticada' : 'anonima';
   const secciones: SeccionNav[] = [];
   for (const { id, titulo, items } of NAVEGACION) {
-    const visibles = items.filter((item) => esVisible(item.visibleFor, conocidos)).map(sinVisibilidad);
+    const visibles = items.filter((item) => puedeAcceder(ACCESO_RUTAS[item.to], estado, conocidos));
     if (visibles.length === 0) continue;
     secciones.push(titulo === undefined ? { id, items: visibles } : { id, titulo, items: visibles });
   }

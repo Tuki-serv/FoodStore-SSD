@@ -1,55 +1,76 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { almacenamientoSeguro } from '@/shared/lib';
 
-/** Estado de UI global (cliente). Los campos de otros changes (carrito, toasts, modales) los suma el change que los usa. */
+export type TipoToast = 'success' | 'error' | 'warning' | 'info';
+
+export interface Toast {
+  id: string;
+  tipo: TipoToast;
+  titulo: string;
+  mensaje?: string;
+}
+
+/** Diálogo de confirmación pendiente (C-13b deja el estado; lo dibuja el primer change que lo use). */
+export interface ConfirmModal {
+  titulo: string;
+  mensaje: string;
+  textoConfirmar?: string;
+  textoCancelar?: string;
+  onConfirmar: () => void;
+}
+
+/** Estado de UI global (cliente). Solo `sidebarCollapsed` se persiste; el resto vale para la página abierta. */
 export interface UiState {
   /** Panel lateral colapsado a solo íconos (desktop). Se persiste. */
   sidebarCollapsed: boolean;
   /** Drawer de navegación abierto (mobile). No se persiste. */
   sidebarOpen: boolean;
+  /** Panel del carrito abierto (lo dibuja C-18). */
+  cartOpen: boolean;
+  /** Cola de notificaciones. */
+  toasts: Toast[];
+  confirmModal: ConfirmModal | null;
   toggleSidebarCollapsed: () => void;
   openSidebar: () => void;
   closeSidebar: () => void;
+  abrirCarrito: () => void;
+  cerrarCarrito: () => void;
+  /** Encola una notificación y devuelve su identificador único. */
+  notificar: (toast: Omit<Toast, 'id'>) => string;
+  descartarToast: (id: string) => void;
+  pedirConfirmacion: (modal: ConfirmModal) => void;
+  cerrarConfirmacion: () => void;
   reset: () => void;
 }
 
 export const CLAVE_UI_STORAGE = 'foodstore.ui';
 
-const ESTADO_INICIAL = { sidebarCollapsed: false, sidebarOpen: false } as const;
+const ESTADO_INICIAL = { sidebarCollapsed: false, sidebarOpen: false, cartOpen: false, toasts: [], confirmModal: null } as const;
 
-/** El almacenamiento del navegador puede no existir o lanzar (modo privado, cuota): ante un fallo el store sigue vivo en memoria. */
-const almacenamientoSeguro: StateStorage = {
-  getItem: (nombre) => {
-    try {
-      return window.localStorage.getItem(nombre);
-    } catch {
-      return null;
-    }
-  },
-  setItem: (nombre, valor) => {
-    try {
-      window.localStorage.setItem(nombre, valor);
-    } catch {
-      // Sin persistencia: la preferencia vale solo para esta sesión.
-    }
-  },
-  removeItem: (nombre) => {
-    try {
-      window.localStorage.removeItem(nombre);
-    } catch {
-      // Nada que limpiar.
-    }
-  },
-};
+// Contador de módulo: los ids no se repiten ni después de un `reset()`.
+let ultimoIdToast = 0;
 
 export const useUiStore = create<UiState>()(
   persist(
     (set) => ({
       ...ESTADO_INICIAL,
+      toasts: [],
       toggleSidebarCollapsed: () => set((estado) => ({ sidebarCollapsed: !estado.sidebarCollapsed })),
       openSidebar: () => set({ sidebarOpen: true }),
       closeSidebar: () => set({ sidebarOpen: false }),
-      reset: () => set({ ...ESTADO_INICIAL }),
+      abrirCarrito: () => set({ cartOpen: true }),
+      cerrarCarrito: () => set({ cartOpen: false }),
+      notificar: (toast) => {
+        ultimoIdToast += 1;
+        const id = `toast-${ultimoIdToast}`;
+        set((estado) => ({ toasts: [...estado.toasts, { ...toast, id }] }));
+        return id;
+      },
+      descartarToast: (id) => set((estado) => ({ toasts: estado.toasts.filter((toast) => toast.id !== id) })),
+      pedirConfirmacion: (modal) => set({ confirmModal: modal }),
+      cerrarConfirmacion: () => set({ confirmModal: null }),
+      reset: () => set({ ...ESTADO_INICIAL, toasts: [] }),
     }),
     {
       name: CLAVE_UI_STORAGE,
@@ -67,3 +88,6 @@ export const useUiStore = create<UiState>()(
 
 export const selectSidebarCollapsed = (estado: UiState): boolean => estado.sidebarCollapsed;
 export const selectSidebarOpen = (estado: UiState): boolean => estado.sidebarOpen;
+export const selectCartOpen = (estado: UiState): boolean => estado.cartOpen;
+export const selectToasts = (estado: UiState): Toast[] => estado.toasts;
+export const selectConfirmModal = (estado: UiState): ConfirmModal | null => estado.confirmModal;

@@ -15,7 +15,7 @@ El flujo descrito es el **objetivo**; los pasos marcados *deuda* son comportamie
 2. Frontend `POST /api/v1/auth/login` (objetivo: JSON `{email,password}`; *deuda:* el código actual usa `application/x-www-form-urlencoded` con `username`=email). El **rate limiter** (middleware) corre antes.
 3. Service verifica hash bcrypt y `deleted_at`; genera access JWT (`sub`, `roles`, `type=access`, 30 min) y refresh token aleatorio (`secrets.token_urlsafe(32)`), guarda su SHA-256 en `refresh_token` (7 días).
 4. API responde `Token {access_token, refresh_token, token_type:"bearer", expires_in}` El objetivo es solo Bearer; *deuda DT-11:* el código actual agrega `Set-Cookie: access_token` (HttpOnly, SameSite=lax).
-5. Frontend guarda sesión en `authStore` (Zustand; spec: persistir solo `accessToken`; al recargar, `GET /auth/me` reconstruye el usuario).
+5. Frontend guarda la sesión en `authStore` (Zustand) **solo en memoria** (DD-27): el access no se persiste. Al recargar, `SesionGate` hace una sola vez `POST /auth/refresh` (la cookie HttpOnly viaja sola) y, si responde 200, `GET /auth/me` reconstruye el usuario; si responde 401 la sesión queda anónima. Ante un 401 en uso, el interceptor Axios renueva una sola vez para todos los pedidos concurrentes y repite el original.
 
 ```
 Cliente → Frontend → POST /auth/login → [RateLimit] → UsuarioService → UoW → Repo(usuario, refresh_token) → DB

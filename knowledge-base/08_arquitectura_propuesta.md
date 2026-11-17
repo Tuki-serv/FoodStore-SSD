@@ -80,7 +80,7 @@ frontend/src/
 └── types/
 ```
 
-Frontend real tras C-13a (`frontend/`, FSD v2.1: `app` → `pages` → `shared`; `features`/`entities`/`widgets` a demanda). Detalle y reglas en `frontend/README.md`:
+Frontend real tras C-13b (`frontend/`, FSD v2.1: `app` → `pages` → `entities` → `shared`; `features`/`widgets` a demanda). Detalle y reglas en `frontend/README.md`:
 
 ```
 frontend/
@@ -88,17 +88,23 @@ frontend/
 ├── tests/architecture/        # fronteras FSD (fsd-boundaries) y tokens de Tailwind (tailwind-tokens), con fixtures
 └── src/
     ├── app/
-    │   ├── providers/         # AppProviders (RouterProvider; TanStack Query y sesión en C-13b)
-    │   ├── router/            # routes.tsx (árbol único), route-map.ts (ruta → título → change dueño)
-    │   ├── layouts/app-shell/ # AppShell, Sidebar, Topbar, NavSections, app-shell.css, model/navigation.ts
+    │   ├── providers/         # AppProviders (QueryClientProvider + SesionGate + RouterProvider)
+    │   ├── router/            # routes.tsx (árbol único), route-map.ts, RequiereAcceso (guards), destino.ts, future.ts
+    │   ├── layouts/app-shell/ # AppShell, ShellConSesion, Sidebar, Topbar, NavSections, app-shell.css, model/navigation.ts
     │   └── styles/index.css   # importa design-system/tokens.css y las directivas de Tailwind
-    ├── pages/                 # placeholder/ (PlaceholderPage), not-found/, error/ (una carpeta por slice)
+    ├── pages/                 # placeholder/, not-found/, error/, forbidden/ (Sin permiso) (una carpeta por slice)
+    ├── entities/
+    │   ├── session/           # api/ (rehidratarSesion, abrirSesion, sesionQueries), model/ (useSesion, useCerrarSesion)
+    │   ├── cart/              # model/ (cartStore persistente)
+    │   └── payment/           # model/ (paymentStore, solo memoria)
     ├── shared/
-    │   ├── config/            # env.ts (readConfig, VITE_API_URL), roles.ts, routes.ts (RUTAS), brand.ts
+    │   ├── api/               # apiClient (Axios), renovación single-flight ante 401, ApiError, crearQueryClient, auth.ts, Paginado
+    │   ├── auth/              # authStore (access solo en memoria, usuario, estado de la sesión)
+    │   ├── config/            # env.ts (readConfig, VITE_API_URL), roles.ts, routes.ts (RUTAS, ACCESO_RUTAS), brand.ts
     │   ├── model/             # ui-store.ts (uiStore)
-    │   ├── lib/media-query/   # useMediaQuery
-    │   └── ui/                # Icon (sprite del design system), estilos de botón
-    └── test/                  # setup de Vitest y matchMedia controlable (fuera de las capas)
+    │   ├── lib/               # useMediaQuery, almacenamiento seguro de Zustand
+    │   └── ui/                # Icon (sprite del design system), PantallaCarga, estilos de botón
+    └── test/                  # setup de Vitest (MSW, stores), msw/, render-app, router (fuera de las capas)
 ```
 
 | `[INT]` | FSD en este repo |
@@ -108,8 +114,8 @@ frontend/
 | `features/` | `src/features/<slice>/` (desde C-14) |
 | `components/` | `src/shared/ui/` |
 | `hooks/` | segmentos `api/` y `model/` de cada slice |
-| `store/` (4 stores) | `uiStore` en `src/shared/model/`; `authStore` en `shared/auth` o `entities/session` (C-13b); `cartStore` (C-18); `paymentStore` (C-20) |
-| `api/` | `src/shared/api/` (C-13b) |
+| `store/` (4 stores) | `uiStore` en `src/shared/model/`; `authStore` en `src/shared/auth/`; `cartStore` en `src/entities/cart/`; `paymentStore` en `src/entities/payment/` (todos desde C-13b; C-18 y C-20 suman la UI) |
+| `api/` | `src/shared/api/` (C-13b, cumplida: cliente Axios, renovación ante 401, `ApiError`, fábrica del QueryClient) |
 | `types/` | segmento `model/` del slice; contratos HTTP en `shared/api` |
 
 Comandos de frontend: se corren desde `frontend/` (`npm install`, `npm run dev`, `npm test`, `npm run typecheck`, `npm run lint`); requieren `frontend/.env` copiado de `frontend/.env.example` (`VITE_API_URL`).
@@ -118,10 +124,12 @@ Comandos de frontend: se corren desde `frontend/` (`npm install`, `npm run dev`,
 
 | Store | Estado | Persistencia |
 |-------|--------|--------------|
-| `authStore` | accessToken, usuario, isAuthenticated | `persist` + `partialize`: solo `accessToken` `[INT]` (`[DESC]`: tokens+usuario). No leer el token a mano fuera del store |
-| `cartStore` | items, cantidades, personalizaciones; `totalItems/totalPrice/getItem` | `persist` (items completos, v1) |
+| `authStore` | accessToken, usuario, estado (`verificando`/`autenticada`/`anonima`), motivo | **Sin `persist`**: el access vive en memoria (DD-27); la cookie HttpOnly del refresh rehidrata la sesión al recargar. `[INT]` pedía `partialize` del `accessToken`: desvío decidido en DD-27. No leer el token a mano fuera del store |
+| `cartStore` | líneas (producto + personalización + cantidad); `selectTotalItems/selectTotalPrecio/selectLinea` | `persist` `foodstore.cart` (líneas completas, v1; datos corruptos → carrito vacío). Sobrevive al logout (CE-14) |
 | `paymentStore` | estado del checkout/pago MP, `mpPaymentId`, errores | Ninguna (se resetea al recargar) |
-| `uiStore` | cartOpen, sidebarOpen (drawer mobile), sidebarCollapsed (desktop, solo íconos), confirmModal, tema, toasts | `persist` + `partialize`: solo `sidebarCollapsed` (y opcionalmente tema); el resto no se persiste. **Hoy (C-13a)** vive en `src/shared/model/ui-store.ts` (clave `foodstore.ui`, v1) con solo `sidebarCollapsed` y `sidebarOpen`; `cartOpen`, `confirmModal`, tema y toasts los agrega el change que los usa |
+| `uiStore` | cartOpen, sidebarOpen (drawer mobile), sidebarCollapsed (desktop, solo íconos), confirmModal, toasts | `persist` + `partialize`: solo `sidebarCollapsed`; el resto no se persiste. Vive en `src/shared/model/ui-store.ts` (clave `foodstore.ui`, v1); desde C-13b incluye `cartOpen`, `toasts` y `confirmModal` (estado y acciones; los dibuja el change que los use). El tema no existe: el design system Revision 2 no define tema oscuro |
+
+**Ubicación de los stores (C-13b):** `authStore` en `src/shared/auth/` (el interceptor de `shared/api` lo lee con `getState()` y `shared` no puede importar `entities`), `cartStore` en `src/entities/cart/`, `paymentStore` en `src/entities/payment/` y `uiStore` en `src/shared/model/`. Las operaciones de sesión (`rehidratarSesion`, `abrirSesion`, `useCerrarSesion`) viven en `src/entities/session/`.
 
 **Navegación (DD-25)**: panel lateral izquierdo para toda la app, con secciones según rol. Desktop: colapsable a solo íconos (`sidebarCollapsed`, preferencia persistida). Mobile: oculto tras un botón ☰, entra como drawer (`sidebarOpen`, no persistido). Detalle de secciones por rol en [09](09_decisiones_y_supuestos.md) (DD-25).
 
@@ -129,7 +137,7 @@ Buenas prácticas: suscripción por slice (`useCartStore(s => s.itemCount())`), 
 
 ## Seguridad
 
-- **Autenticación (C-02)**: JWT HS256 (access 30 min, claims `sub`, `roles`, `sid`, `type`) enviado solo como `Authorization: Bearer` y guardado en memoria por el frontend (`authStore`). El refresh es un valor opaco (hash SHA-256 en BD) en la cookie HttpOnly `refresh_token` con `Path=/api/v1/auth`, `SameSite`/`Secure` configurables (`REFRESH_COOKIE_SAMESITE`, `REFRESH_COOKIE_SECURE`). Cada login abre una **sesión** de 7 días fijos; el refresh rota en cada renovación con historial (`revoked_at` = rotado), con período de gracia (`REFRESH_REUSE_GRACE_SECONDS`) y detección de reuso que cierra todas las sesiones del usuario. Logout y logout-all marcan la sesión (nunca borran). CORS con credenciales: `CORS_ORIGINS` no admite `*`.
+- **Autenticación (C-02)**: JWT HS256 (access 30 min, claims `sub`, `roles`, `sid`, `type`) enviado solo como `Authorization: Bearer` y guardado en memoria por el frontend (`authStore`, DD-27). El refresh es un valor opaco (hash SHA-256 en BD) en la cookie HttpOnly `refresh_token` con `Path=/api/v1/auth`, `SameSite`/`Secure` configurables (`REFRESH_COOKIE_SAMESITE`, `REFRESH_COOKIE_SECURE`). Cada login abre una **sesión** de 7 días fijos; el refresh rota en cada renovación con historial (`revoked_at` = rotado), con período de gracia (`REFRESH_REUSE_GRACE_SECONDS`) y detección de reuso que cierra todas las sesiones del usuario. Logout y logout-all marcan la sesión (nunca borran). CORS con credenciales: `CORS_ORIGINS` no admite `*`.
 - **Autorización**: RBAC con `require_role([...])`; propiedad de recursos verificada en Service (403).
 - **Validación de input**: Pydantic v2 (Create/Update/Read separados); CHECK constraints en BD; 422 uniforme `VALIDATION_ERROR`.
 - **Passwords**: bcrypt (passlib), cost >= 12, `CHAR(60)`.

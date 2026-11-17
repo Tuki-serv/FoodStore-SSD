@@ -41,7 +41,7 @@ C-01 ✓ baseline-backend
  │     └── C-05 ✓ pagos-webhook-firma-idempotencia ──┐
  └── C-06 ✓ datos-migraciones-alembic              │
        ├── C-02 ✓ auth-sesion-tokens-bearer-refresh┼─┬── C-08 ✓ rbac-multirol-permisos-stock
-       │                                           │ └── C-13b fe-foundation-auth-data (también C-13a, C-11)
+       │                                           │ └── C-13b ✓ fe-foundation-auth-data (también C-13a, C-11)
        └── C-07 ✓ datos-seed-y-catalogos           │
              └── C-09 ✓ pedidos-fsm-en-camino  (+C-08)
                    ├── C-10 ✓ pedidos-stock-descuento
@@ -50,7 +50,7 @@ C-01 ✓ baseline-backend
 
 FASE 1 (frontend sobre base corregida)
 C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
- └── C-13b fe-foundation-auth-data (C-13a, C-02, C-11)
+ └── C-13b ✓ fe-foundation-auth-data (C-13a, C-02, C-11)
        ├── C-14 fe-auth-cuenta
        ├── C-15 fe-direcciones
        ├── C-16 fe-catalogo-publico
@@ -96,7 +96,7 @@ GATE 3: C-09 ✓                                          ← FORK
   → C-12 ✓ pagos-checkout-api-cardpayment     [Agente B — si C-05 ✓]
 
 GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
-  → C-13b fe-foundation-auth-data             [Agente C]
+  → C-13b ✓ fe-foundation-auth-data           [Agente C]
   → C-25a ✓ backend-capas-y-renombres        [Agente A — si C-01..C-12 ✓; independiente del frontend]
 
 GATE 5: C-13b ✓                                         ← FORK
@@ -391,13 +391,13 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `design-system/README.md`
 
 ### [C-13b] `fe-foundation-auth-data`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-17). Verify: PASS WITH FINDINGS; los 4 menores (race de renovación tras logout, test sin rastro en storage, casos de open-redirect, nota de logout con backend caído) se corrigieron en el mismo change. Verify visual: passed con el backend real (capturas en el change archivado, `mockups/verify/`).
 - **Scope**:
   - Cliente Axios con interceptor: `Authorization: Bearer`, ante 401 llama `POST /auth/refresh` con `withCredentials` (la cookie HttpOnly `refresh_token` viaja sola hacia `/api/v1/auth`), actualiza `authStore` y reintenta la petición original (US-003). El refresh nunca se lee ni se guarda desde JS.
   - 4 stores Zustand (`authStore`, `cartStore`, etc.); provider de TanStack Query; guards de rutas por rol; manejo de errores `{detail, code, field}`.
   - Rehidratación de sesión con `GET /auth/me` (contrato de sesión de C-02).
   - Tests: interceptor (refresh + reintento, un solo refresh concurrente), guards de ruta.
-  - **Decisión a tomar en el propose**: la spec `[INT]` pide que `authStore` persista solo `accessToken`, mientras que C-02 (D3/PA-04) dejó escrito que el access vive solo en memoria. Hay que elegir y, si cambia, actualizar la KB (`knowledge-base/05` RN-AU-10, `08` §Seguridad, `10` IN-07).
+  - **Decisión tomada (2026-11-17, DD-27)**: el access vive solo en memoria (OQ-1 = A); ver `knowledge-base/09` DD-27. Texto original de la decisión pendiente: la spec `[INT]` pide que `authStore` persista solo `accessToken`, mientras que C-02 (D3/PA-04) dejó escrito que el access vive solo en memoria. Hay que elegir y, si cambia, actualizar la KB (`knowledge-base/05` RN-AU-10, `08` §Seguridad, `10` IN-07).
   - Punto de partida (C-08): los roles para la UI se toman de `GET /auth/me` (el claim `roles` del access es informativo y no autoriza); las lecturas públicas (`GET /productos`, `/categorias`, `/ingredientes`, `/unidades-medida`) con un access inválido responden 401, así que el interceptor renueva y reintenta.
   - Punto de partida (C-11): contrato de pedidos: `GET /pedidos` (scoped), `GET /pedidos/{id}`, `PATCH /pedidos/{id}/estado` con `{nuevo_estado, motivo}`, `DELETE /pedidos/{id}` con body OPCIONAL `{motivo}` (por defecto «Cancelado por el cliente»); paginación `{items,total,page,size,pages}`; errores `{detail, code, field}` con códigos de negocio.
   - **Heredado de C-13a** (verify 2026-11-15): pasar los roles de `GET /auth/me` y el usuario a `AppShell` (props `roles`, `usuario`, `onCerrarSesion`; hoy muestra siempre la variante sin sesión) y verificar visualmente la variante ADMIN contra `mockups/shell-admin.html` del change archivado; `error-page.test.tsx` usa `vi.unstubAllGlobals()` y borra el stub de `Request` de `src/test/setup.ts` (frágil: restaurar solo lo propio); activar los future flags de React Router o silenciar su aviso en los tests; quitar `RUTAS.raiz` si sigue sin uso y exportar `UsuarioShell` desde la API pública del shell; agregar a `uiStore` los campos que falten junto con los otros tres stores.
@@ -418,6 +418,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Páginas `Login`, `Register`, `Perfil`; validación con TanStack Form.
   - Punto de partida (C-02): login por `POST /auth/login` (form OAuth2) que devuelve el access en el body y setea la cookie del refresh (requiere `withCredentials`); logout por `POST /auth/logout` y «cerrar todas las sesiones» por `POST /auth/logout-all` (Bearer, sin body, 204); usuario por `GET /auth/me`.
   - Tests: formularios y flujos de error.
+  - Punto de partida (C-13b): tras `POST /auth/login` llamar `abrirSesion(access_token)` de `@/entities/session`: guarda el access, pide `GET /auth/me` y deja la sesión `autenticada`; `RequiereAcceso` redirige solo al destino recordado (o a `/catalogo`), no hay que programar la vuelta. El login usa `apiClient` de `@/shared/api` (credenciales ya incluidas) y un 401 de `/auth/login` no dispara renovación. Los errores llegan como `ApiError` (`code`, `field`, `retryAfter` en 429 para el aviso de bloqueo). El logout ya existe (`useCerrarSesion`, botón en el pie del panel); «Cerrar todas las sesiones» usa `cerrarTodasLasSesionesRemota` de `@/shared/api` y el botón es de este change.
 - **Dependencias**: `C-13b`
 - **Governance**: CRITICO
 - **UI**: `[UI-MOCKUP]` login, registro, perfil.
@@ -446,6 +447,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - US-007 explorar catálogo: filtros (categoría, nombre con debounce, precio, disponibilidad), paginación `page/size`, detalle con ingredientes/alérgenos y stock; skeleton y estados vacíos.
   - US-008 árbol de categorías (`GET /categorias/arbol`).
   - Tests: filtros, estados vacíos.
+  - Punto de partida (C-13b): usar `apiClient` de `@/shared/api` con consultas TanStack Query (`queryOptions` con claves jerárquicas `['productos','lista',filtros]`, dominio primero; las claves públicas están en `CLAVES_PUBLICAS` y sobreviven al cierre de sesión); los listados paginados se tipan con `Paginado<T>` y los precios llegan como string decimal (usar `cartStore.agregar` con ese string). Un 401 en una lectura pública se renueva solo.
 - **Dependencias**: `C-13b`
 - **Governance**: BAJO
 - **UI**: `[UI-MOCKUP]` catálogo, detalle de producto, navegación por categorías.
@@ -494,6 +496,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - US-016 personalizar producto: excluir ingredientes removibles (`personalizacion` = IDs).
   - Tests: persistencia, personalización, totales.
   - **Heredado de C-13a**: contador de ítems del carrito en el panel lateral y en la barra superior mobile (clase `.count` del design system; C-13a no lo portó porque no hay `cartStore`).
+  - Punto de partida (C-13b): `cartStore` ya existe y persiste (`@/entities/cart`: `agregar`, `fijarCantidad`, `quitar`, `vaciar`, `selectTotalItems`, `selectTotalPrecio`, `selectLinea`; clave `foodstore.cart`, sobrevive al logout); `uiStore` ya tiene `cartOpen`/`abrirCarrito`/`cerrarCarrito`, `toasts` y `confirmModal` (solo estado: este change dibuja lo que use). Falta la UI del carrito, la personalización visual y el contador del panel.
 - **Dependencias**: `C-16`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` drawer/página de carrito y selector de personalización.
@@ -526,6 +529,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Pantallas de éxito/pendiente/rechazo; incluir el caso «pago aprobado pero pedido cancelado por falta de stock» (DD-20).
   - Tests: aprobado, rechazado, reintento (MP mockeado).
   - **Heredado de C-12** (2026-11-17): el backend cobra por la Orders API (DD-26). El pedido a `POST /api/v1/pagos/crear` exige `payment_type_id` (`credit_card`/`debit_card`), que el brick entrega en `additionalData.paymentTypeId`; `issuer_id` se acepta pero no se envía a MercadoPago; los estados de MercadoPago son los de la orden (`processed`, `failed`, `processing`, `action_required`) y `mp_payment_id` es texto. La página `sandbox/pago-prueba.html` del change archivado sirve de referencia del contrato. Para probar: aplicación creada como Checkout API con «API de Orders», credenciales `APP_USR-` de la cuenta vendedora de prueba, email de una cuenta compradora de prueba y webhook del panel con el evento «Order (Mercado Pago)».
+  - Punto de partida (C-13b): `paymentStore` ya existe en memoria (`@/entities/payment`: `iniciar(pedidoId)`, `registrarResultado`, `registrarError`, `reset`, estados `inactivo|procesando|aprobado|rechazado|pendiente|error`); falta el flujo del brick y la pantalla de resultado.
 - **Dependencias**: `C-19, C-12`
 - **Governance**: CRITICO
 - **UI**: `[UI-MOCKUP]` pantalla de pago y resultados.
@@ -686,7 +690,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 14** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-25a). **Pendientes obligatorios: 14** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 15** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-25a). **Pendientes obligatorios: 13** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

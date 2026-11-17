@@ -1,0 +1,3 @@
+import { crearCliente } from '@/shared/api';
+
+export const usar = crearCliente;

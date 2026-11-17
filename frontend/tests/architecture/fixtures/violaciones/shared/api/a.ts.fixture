@@ -1,0 +1,3 @@
+import { abrirSesion } from '@/entities/session';
+
+export const usar = abrirSesion;

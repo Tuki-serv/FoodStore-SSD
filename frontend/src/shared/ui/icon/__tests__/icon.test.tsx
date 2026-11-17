@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { ICON_NAMES, Icon } from '../icon';
 
 describe('Icon', () => {
-  it('incluye los 17 íconos del design system y los 3 de los mockups de C-13a', () => {
+  it('incluye los 17 íconos del design system, los 3 de los mockups de C-13a y el candado de C-13b', () => {
     expect([...ICON_NAMES].sort()).toEqual(
       [
         'catalogo', 'carrito', 'pedidos', 'direcciones', 'cuenta', 'gestion', 'categorias', 'ingredientes',
         'productos', 'usuarios', 'dashboard', 'ingresar', 'registrarse', 'salir', 'menu', 'cerrar', 'panel',
-        'obra', 'brujula', 'alerta',
+        'obra', 'brujula', 'alerta', 'candado',
       ].sort(),
     );
   });

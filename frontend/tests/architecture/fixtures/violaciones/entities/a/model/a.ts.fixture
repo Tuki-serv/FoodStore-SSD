@@ -1,0 +1,3 @@
+import { otra } from '@/entities/b';
+
+export const usar = otra;
