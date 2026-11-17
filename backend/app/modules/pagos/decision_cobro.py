@@ -12,7 +12,7 @@ class PagoDelPedido(Protocol):
     """Lo único que la decisión lee de un pago."""
 
     estado: str
-    mp_payment_id: int | None
+    mp_order_id: str | None
 
 
 class Intento(StrEnum):
@@ -31,6 +31,6 @@ def decidir_intento(forma_pago: str, estado_pedido: str, pagos: Sequence[PagoDel
         return Intento.CREAR
     ultimo = pagos[0]
     if ultimo.estado == "pendiente":
-        # Con id de MercadoPago el pago está en proceso allá; sin id no se sabe si se creó: se reintenta con su clave.
-        return Intento.NO_PERMITIDO if ultimo.mp_payment_id is not None else Intento.REUTILIZAR
+        # Con orden en MercadoPago el pago está en proceso allá; sin orden no se sabe si se creó: se reintenta con su clave.
+        return Intento.NO_PERMITIDO if ultimo.mp_order_id is not None else Intento.REUTILIZAR
     return Intento.CREAR

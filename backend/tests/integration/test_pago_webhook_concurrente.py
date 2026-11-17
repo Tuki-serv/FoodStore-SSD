@@ -84,7 +84,7 @@ def test_dos_notificaciones_simultaneas_del_mismo_pago_aprobado_confirman_una_so
     engine: Engine = escenario["engine"]
     with Session(engine) as db_ref:
         referencia = referencia_de(db_ref, escenario["pedido_id"])
-    mp_sdk.responder(123, referencia)
+    mp_sdk.responder_consulta("ORD123", referencia)
 
     def sesion_propia():
         with Session(engine) as db:
@@ -99,7 +99,7 @@ def test_dos_notificaciones_simultaneas_del_mismo_pago_aprobado_confirman_una_so
         try:
             with TestClient(app) as cliente:
                 barrera.wait(timeout=10)
-                respuesta = post_webhook(cliente, "123")
+                respuesta = post_webhook(cliente, "ORD123")
                 resultados.append((respuesta.status_code, respuesta.json()["status"]))
         except BaseException as exc:  # noqa: BLE001 - se reporta en el hilo principal
             errores.append(exc)

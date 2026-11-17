@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from sqlmodel import SQLModel
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -26,8 +26,9 @@ class CrearPagoRequest(BaseModel):
     pedido_id: int
     token: str = Field(min_length=1)
     payment_method_id: str = Field(min_length=1)
+    payment_type_id: Literal["credit_card", "debit_card"]  # `additionalData.paymentTypeId` del brick
     installments: int = Field(ge=1)
-    issuer_id: Optional[int] = None
+    issuer_id: Optional[int] = None  # el brick lo entrega; Orders no lo admite, así que se acepta y no se reenvía
     payer: PagadorRequest
 
 
@@ -35,7 +36,8 @@ class PagoCrearResponse(BaseModel):
     pago_id: int
     pedido_id: int
     estado: str
-    mp_payment_id: Optional[int] = None
+    mp_order_id: Optional[str] = None
+    mp_payment_id: Optional[str] = None
     mp_status: Optional[str] = None
     mp_status_detail: Optional[str] = None
 

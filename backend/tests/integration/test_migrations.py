@@ -256,16 +256,16 @@ def test_ida_y_vuelta_termina_en_head_y_sin_diferencias_con_los_modelos(migratio
         assert _diferencias(conn) == []
 
 
-def test_current_and_head_tras_upgrade_devuelve_003_en_ambas_posiciones(migrations_db: Engine) -> None:
+def test_current_and_head_tras_upgrade_devuelve_004_en_ambas_posiciones(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == ("003", "003")
+        assert current_and_head(conn) == ("004", "004")
 
 
 def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_db: Engine) -> None:
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == (None, "003")
+        assert current_and_head(conn) == (None, "004")
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +274,7 @@ def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_
 def test_foodstore_test_queda_en_head_al_iniciar_la_sesion(session: Session) -> None:
     actual, head = current_and_head(session.connection())
 
-    assert actual == head == "003"
+    assert actual == head == "004"
 
 
 # ---------------------------------------------------------------------------
@@ -501,7 +501,7 @@ def test_tras_upgrade_head_external_reference_es_uuid_not_null_unico_y_sin_colum
     assert (columna[0], columna[2]) == ("uuid", "NO")
     assert restriccion == "u"
     assert not {"mp_preference_id", "mp_init_point"} & nombres
-    assert version == ("003", "003")
+    assert version == ("004", "004")
 
 
 def test_dos_pagos_con_la_misma_external_reference_son_rechazados_por_la_restriccion_unica(
@@ -596,6 +596,112 @@ def test_ida_y_vuelta_003_002_003_no_deja_diferencias_con_los_modelos(migrations
     _migrar(migrations_db)
     with migrations_db.begin() as conn:
         command.downgrade(build_alembic_config(conn), "002")
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        assert _diferencias(conn) == []
+
+
+# ---------------------------------------------------------------------------
+# Migración 004: pagos con Orders API (C-12, D21)
+# ---------------------------------------------------------------------------
+_INSERTAR_PAGO_003 = text(
+    "INSERT INTO pagos (pedido_id, estado, external_reference, idempotency_key, transaction_amount, "
+    "mp_payment_id, mp_merchant_order_id, created_at, updated_at) "
+    "VALUES (:p, 'pendiente', :r, :k, 10, :pay, :mer, now(), now())"
+)
+_INSERTAR_PAGO_004 = text(
+    "INSERT INTO pagos (pedido_id, estado, external_reference, idempotency_key, transaction_amount, "
+    "mp_order_id, mp_payment_id, created_at, updated_at) "
+    "VALUES (:p, 'pendiente', :r, :k, 10, :ord, :pay, now(), now())"
+)
+
+
+def test_tras_upgrade_head_pagos_tiene_mp_order_id_unico_mp_payment_id_texto_y_sin_merchant_order(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        orden = conn.execute(text(_COLUMNAS_PAGOS), {"c": "mp_order_id"}).one()
+        pago = conn.execute(text(_COLUMNAS_PAGOS), {"c": "mp_payment_id"}).one()
+        restriccion = conn.execute(
+            text("SELECT contype FROM pg_constraint WHERE conname = 'uq_pagos_mp_order_id'")
+        ).scalar()
+        nombres = {c["name"] for c in inspect(conn).get_columns("pagos")}
+        version = current_and_head(conn)[0]
+
+    assert tuple(orden) == ("character varying", 64, "YES")
+    assert tuple(pago) == ("character varying", 64, "YES")
+    assert restriccion == "u"
+    assert "mp_merchant_order_id" not in nombres
+    assert version == "004"
+
+
+def test_upgrade_de_003_a_004_convierte_mp_payment_id_a_texto_y_descarta_la_merchant_order(
+    migrations_db: Engine,
+) -> None:
+    _a_003(migrations_db)
+    with migrations_db.begin() as conn:
+        pedido_id = _pedido_crudo(conn)
+        conn.execute(
+            _INSERTAR_PAGO_003, {"p": pedido_id, "r": str(uuid4()), "k": "k-1", "pay": 123456, "mer": 999}
+        )
+
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        fila = conn.execute(
+            text("SELECT mp_payment_id, mp_order_id, idempotency_key, estado, transaction_amount FROM pagos")
+        ).one()
+    assert tuple(fila) == ("123456", None, "k-1", "pendiente", 10)
+
+
+def test_dos_pagos_con_el_mismo_mp_order_id_son_rechazados_y_dos_nulos_se_aceptan(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        pedido_id = _pedido_crudo(conn)
+        for clave in ("k-n1", "k-n2"):  # dos sin orden: permitido
+            conn.execute(
+                _INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": clave, "ord": None, "pay": None}
+            )
+        conn.execute(_INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-o1", "ord": "ORD01X", "pay": None})
+        with pytest.raises(IntegrityError, match="uq_pagos_mp_order_id"):
+            conn.execute(
+                _INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-o2", "ord": "ORD01X", "pay": None}
+            )
+
+
+def test_downgrade_de_004_a_003_conserva_ids_numericos_anula_los_de_texto_y_restaura_merchant_order(
+    migrations_db: Engine,
+) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        pedido_id = _pedido_crudo(conn)
+        conn.execute(_INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-t", "ord": "ORD01A", "pay": "PAY01ABC"})
+        conn.execute(_INSERTAR_PAGO_004, {"p": pedido_id, "r": str(uuid4()), "k": "k-n", "ord": "ORD01B", "pay": "123456"})
+
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "003")
+
+    with migrations_db.connect() as conn:
+        filas = conn.execute(
+            text("SELECT idempotency_key, mp_payment_id, mp_merchant_order_id FROM pagos ORDER BY id")
+        ).all()
+        columna = conn.execute(text(_COLUMNAS_PAGOS), {"c": "mp_payment_id"}).one()
+        nombres = {c["name"] for c in inspect(conn).get_columns("pagos")}
+        version = current_and_head(conn)[0]
+    assert [tuple(f) for f in filas] == [("k-t", None, None), ("k-n", 123456, None)]
+    assert columna[0] == "bigint"
+    assert "mp_order_id" not in nombres
+    assert version == "003"
+
+
+def test_ida_y_vuelta_004_003_004_no_deja_diferencias_con_los_modelos(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "003")
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:

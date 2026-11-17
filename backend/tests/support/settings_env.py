@@ -19,7 +19,6 @@ OPTIONAL_ENV: dict[str, str] = {
     "MP_ACCESS_TOKEN": "mp-token-falso",
     "MP_PUBLIC_KEY": "mp-public-falsa",
     "MP_WEBHOOK_SECRET": "mp-webhook-secret-falso",
-    "MP_NOTIFICATION_URL": "https://abc.ngrok-free.app/api/v1/pagos/webhook",
     "CLOUDINARY_NAME": "nube-falsa",
     "CLOUDINARY_API_KEY": "key-falsa",
     "CLOUDINARY_API_SECRET": "secret-falso",
@@ -33,5 +32,6 @@ RETIRED_VARS = (
     "VITE_API_URL",
     "BACKEND_PUBLIC_URL",
     "FRONTEND_URL",
+    "MP_NOTIFICATION_URL",
 )
 POSTGRES_VARS = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "POSTGRES_HOST", "POSTGRES_PORT")

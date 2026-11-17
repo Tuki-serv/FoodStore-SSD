@@ -8,10 +8,10 @@ from app.modules.pagos.decision_cobro import Intento, decidir_intento
 
 @dataclass
 class PagoFalso:
-    """Lo único que la decisión lee de un pago: estado local e id de MercadoPago."""
+    """Lo único que la decisión lee de un pago: estado local e id de la orden de MercadoPago."""
 
     estado: str
-    mp_payment_id: int | None = None
+    mp_order_id: str | None = None
 
 
 def _decidir(pagos: list[PagoFalso], forma: str = "MERCADOPAGO", estado: str = "PENDIENTE") -> Intento:
@@ -37,21 +37,21 @@ def test_pedido_que_no_esta_pendiente_no_permite_pagar(estado: str) -> None:
 
 
 def test_ultimo_pago_rechazado_crea_un_intento_nuevo() -> None:
-    assert _decidir([PagoFalso("rechazado", 600)]) is Intento.CREAR
+    assert _decidir([PagoFalso("rechazado", "ORD600")]) is Intento.CREAR
 
 
 def test_un_pago_aprobado_impide_pagar_aunque_el_ultimo_sea_rechazado() -> None:
-    pagos = [PagoFalso("rechazado", 601), PagoFalso("aprobado", 600)]
+    pagos = [PagoFalso("rechazado", "ORD601"), PagoFalso("aprobado", "ORD600")]
 
     assert _decidir(pagos) is Intento.NO_PERMITIDO
 
 
 def test_un_pago_a_devolver_impide_pagar() -> None:
-    assert _decidir([PagoFalso("a_devolver", 600)]) is Intento.NO_PERMITIDO
+    assert _decidir([PagoFalso("a_devolver", "ORD600")]) is Intento.NO_PERMITIDO
 
 
 def test_ultimo_pago_pendiente_con_id_de_mercadopago_esta_en_proceso_y_no_permite_pagar() -> None:
-    assert _decidir([PagoFalso("pendiente", 555)]) is Intento.NO_PERMITIDO
+    assert _decidir([PagoFalso("pendiente", "ORD555")]) is Intento.NO_PERMITIDO
 
 
 def test_ultimo_pago_pendiente_sin_id_de_mercadopago_se_reutiliza() -> None:
@@ -59,6 +59,12 @@ def test_ultimo_pago_pendiente_sin_id_de_mercadopago_se_reutiliza() -> None:
 
 
 def test_pendiente_sin_id_tras_un_rechazo_antiguo_se_reutiliza() -> None:
-    pagos = [PagoFalso("pendiente", None), PagoFalso("rechazado", 600)]
+    pagos = [PagoFalso("pendiente", None), PagoFalso("rechazado", "ORD600")]
 
     assert _decidir(pagos) is Intento.REUTILIZAR
+
+
+def test_pendiente_con_orden_en_proceso_bloquea_aunque_haya_un_rechazo_antiguo_sin_orden() -> None:
+    pagos = [PagoFalso("pendiente", "ORD700"), PagoFalso("rechazado", None)]
+
+    assert _decidir(pagos) is Intento.NO_PERMITIDO

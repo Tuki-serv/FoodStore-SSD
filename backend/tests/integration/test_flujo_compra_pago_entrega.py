@@ -12,7 +12,8 @@ pytestmark = pytest.mark.e2e
 
 STOCK_INICIAL = 5
 CANTIDAD = 2
-PAYMENT_ID = 7001
+ORDEN_ID = "ORD7001"
+PAGO_ID = "PAY7001"
 
 
 def _crear_catalogo(client: TestClient, admin: dict) -> int:
@@ -72,14 +73,17 @@ def _cliente_con_pedido(client: TestClient, producto_id: int) -> tuple[dict, int
 
 
 def _pagar(client: TestClient, headers: dict, pedido_id: int, mp_sdk: MPFalso, estado: str):
-    detalle = "accredited" if estado == "approved" else "cc_rejected_other_reason"
-    mp_sdk.responder_creacion(201, estado, detalle, payment_id=PAYMENT_ID)
+    if estado == "approved":
+        mp_sdk.responder_orden(order_id=ORDEN_ID, payment_id=PAGO_ID)
+    else:
+        mp_sdk.responder_orden(402, "failed", "failed", "other_reason", order_id=ORDEN_ID, payment_id=PAGO_ID)
     return client.post(
         "/api/v1/pagos/crear",
         json={
             "pedido_id": pedido_id,
             "token": "tok-e2e",
             "payment_method_id": "visa",
+            "payment_type_id": "credit_card",
             "installments": 1,
             "issuer_id": 310,
             "payer": {"email": "e2e@example.com"},
@@ -101,9 +105,9 @@ def test_pedido_pagado_con_mercadopago_llega_a_entregado_y_descuenta_el_stock_un
     assert _stock(client, admin_auth_headers, producto_id) == STOCK_INICIAL - CANTIDAD
 
     referencia = mp_sdk.creaciones[0].cuerpo["external_reference"]
-    mp_sdk.responder(PAYMENT_ID, referencia, estado="approved")
-    primera = post_webhook(client, str(PAYMENT_ID))
-    repetida = post_webhook(client, str(PAYMENT_ID))
+    mp_sdk.responder_consulta(ORDEN_ID, referencia, "processed")
+    primera = post_webhook(client, ORDEN_ID)
+    repetida = post_webhook(client, ORDEN_ID)
     assert (primera.status_code, repetida.status_code) == (200, 200)
     assert repetida.json()["status"] == "already_processed"
     assert _stock(client, admin_auth_headers, producto_id) == STOCK_INICIAL - CANTIDAD

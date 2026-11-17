@@ -271,7 +271,7 @@ Copiar `backend/.env.example` a `backend/.env` y reemplazar los `CHANGE_ME_*`. C
 
 | Integración | Variables que habilita | Sin ellas |
 |---|---|---|
-| Pagos (MercadoPago) | `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_NOTIFICATION_URL` | `POST /api/v1/pagos/crear` responde 503 nombrando `MP_ACCESS_TOKEN` y/o `MP_NOTIFICATION_URL` (el 503 se evalúa después de 401/403/404 y de las precondiciones 409) |
+| Pagos (MercadoPago, Orders API) | `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_WEBHOOK_SECRET` | `POST /api/v1/pagos/crear` responde 503 nombrando `MP_ACCESS_TOKEN` (el 503 se evalúa después de 401/403/404 y de las precondiciones 409); también responde 503 si MercadoPago rechaza las credenciales. El webhook responde 503 sin `MP_WEBHOOK_SECRET` |
 | Imágenes (Cloudinary) | `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | subir una imagen responde 503; borrar es un no-op |
 
 `DATABASE_URL` es la **única** variable de BD que lee el backend y se usa tal cual (esquema `postgresql+psycopg://`).
@@ -292,7 +292,7 @@ DATABASE_URL=postgresql+psycopg://foodstore_user:una_clave@localhost:5433/foodst
 ### Migración desde un `.env` anterior
 
 - `CORS_ORIGINS` pasa de «separado por comas» a array JSON.
-- `NGROK_URL` se reemplaza por `MP_NOTIFICATION_URL=<url pública>/api/v1/pagos/webhook`.
+- `NGROK_URL` se retira. La URL pública del webhook (`<url pública>/api/v1/pagos/webhook`) se configura **solo en el panel de MercadoPago** (Webhooks, evento «Order (Mercado Pago)»); `MP_NOTIFICATION_URL` se retiró en C-12 (la Orders API no tiene `notification_url`): borrarla del `.env` local si sigue.
 - `VITE_FRONTEND_URL` y `MP_WEBHOOK_URL` se retiran. `BACKEND_PUBLIC_URL` y `FRONTEND_URL` (Checkout Pro) se retiraron en C-12: borrarlas del `.env` local.
 - `VITE_API_URL` deja de ser de `Settings` (es del frontend).
 - Nueva: `SQL_ECHO` (`true` imprime el SQL). Las que antes tenían default ahora son obligatorias.

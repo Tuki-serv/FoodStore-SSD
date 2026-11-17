@@ -15,6 +15,7 @@ from app.modules.pagos.decision_webhook import Accion, decidir_transicion_pago
 from app.modules.pagos.firma_webhook import verificar_firma_webhook
 from app.modules.pagos.models import Pago
 from app.modules.pagos.pasarela_mp import (
+    CredencialesMPRechazadas,
     DatosCobroMP,
     MercadoPagoNoDisponible,
     PagoRechazadoPorMP,
@@ -70,14 +71,9 @@ class PaymentService:
         return pedido
 
     def _exigir_configuracion_mp(self) -> None:
-        """503 (formato uniforme) si falta alguna variable necesaria para crear un pago; nombra las faltantes."""
-        requeridas = (
-            ("MP_ACCESS_TOKEN", self._get_mp_access_token()),
-            ("MP_NOTIFICATION_URL", settings.MP_NOTIFICATION_URL),
-        )
-        faltantes = [nombre for nombre, valor in requeridas if not valor]
-        if faltantes:
-            raise AppError(503, "HTTP_503", f"MercadoPago no configurado: faltan {', '.join(faltantes)}")
+        """503 (formato uniforme) si falta la variable necesaria para crear un pago (solo `MP_ACCESS_TOKEN`)."""
+        if not self._get_mp_access_token():
+            raise AppError(503, "HTTP_503", "MercadoPago no configurado: faltan MP_ACCESS_TOKEN")
 
     # ─── Crear pago (Checkout API): T1 guarda el intento → llamada a MercadoPago sin locks → T2 aplica el resultado ───
     def crear_pago(self, datos: CrearPagoRequest, usuario_id: int, roles: AbstractSet[str]) -> ResultadoCrearPago:
@@ -112,18 +108,19 @@ class PaymentService:
                 monto=pedido.total,
                 token=datos.token,
                 payment_method_id=datos.payment_method_id,
+                payment_type_id=datos.payment_type_id,
                 installments=datos.installments,
-                issuer_id=datos.issuer_id,
                 payer_email=str(datos.payer.email),
                 payer_identification=datos.payer.identification.model_dump() if datos.payer.identification else None,
                 descripcion=f"Pedido #{pedido.id} - FoodStore",
                 external_reference=referencia,
-                notification_url=settings.MP_NOTIFICATION_URL,
             )
 
         pasarela = self._pasarela(self._get_mp_access_token())
         try:
             resultado = pasarela.crear_pago(cobro, clave)
+        except CredencialesMPRechazadas as exc:  # MercadoPago no creó nada: el intento queda `pendiente` y reutilizable
+            raise AppError(503, "HTTP_503", str(exc)) from exc
         except MercadoPagoNoDisponible as exc:  # resultado desconocido: el intento queda `pendiente` y reutilizable
             raise AppError(502, "HTTP_502", "No se pudo crear el pago en MercadoPago") from exc
         except PagoRechazadoPorMP as exc:
@@ -136,7 +133,7 @@ class PaymentService:
         """MercadoPago no creó ningún pago: el intento queda `rechazado` (sin id de MercadoPago) y se reintenta con otro token."""
         with PagoUnitOfWork(self._session) as uow:
             pago = uow.pagos.get_for_update(pago_id)
-            if pago is not None and pago.estado == ESTADO_PAGO_PENDIENTE and pago.mp_payment_id is None:
+            if pago is not None and pago.estado == ESTADO_PAGO_PENDIENTE and pago.mp_order_id is None:
                 pago.estado = ESTADO_PAGO_RECHAZADO
                 pago.mp_status_detail = causa[:_MAX_DETALLE_MP]
                 pago.updated_at = datetime.now(timezone.utc)
@@ -153,54 +150,49 @@ class PaymentService:
                 pago_id=pago.id,
                 pedido_id=pago.pedido_id,
                 estado=pago.estado,
+                mp_order_id=pago.mp_order_id,
                 mp_payment_id=pago.mp_payment_id,
                 mp_status=pago.mp_status,
                 mp_status_detail=pago.mp_status_detail,
             )
             return ResultadoCrearPago(respuesta, aplicado.get("pedido_actualizado"))
 
-    # ─── Webhook de MercadoPago (D4–D7): firma → tópico/id → consulta a MP → transacción única ────────────────
+    # ─── Webhook de MercadoPago (D23): firma → tópico/id → consulta de la orden → transacción única ────────────
     @staticmethod
-    def _resolver_tipo_e_id(notificacion: NotificacionWebhook) -> tuple[str | None, int | None]:
-        """Tópico (`type`/`topic`) e id del pago: `data.id` de la query manda; si falta, el del cuerpo; si difieren, 400."""
+    def _resolver_tipo_e_id(notificacion: NotificacionWebhook) -> tuple[str | None, str | None]:
+        """Tópico (`type`/`topic`) e id de la orden: `data.id` de la query manda; si falta, el del cuerpo; si difieren, 400."""
         query, body = notificacion.query, notificacion.body
         topic = query.get("type") or query.get("topic") or body.get("type") or body.get("topic")
         data_body = body.get("data")
         id_cuerpo = data_body.get("id") if isinstance(data_body, dict) else None
         id_query = query.get("data.id")
         if id_query and id_cuerpo and str(id_query) != str(id_cuerpo):
-            raise AppError(400, "HTTP_400", "El id del pago de la query y del cuerpo no coinciden")
+            raise AppError(400, "HTTP_400", "El id de la orden de la query y del cuerpo no coinciden")
         crudo = id_query or id_cuerpo
-        if not crudo:
-            return topic, None
-        try:
-            return topic, int(crudo)
-        except (TypeError, ValueError):
-            raise AppError(400, "HTTP_400", "Id de pago inválido") from None
+        return topic, str(crudo) if crudo else None
 
     @staticmethod
-    def _estado_local_para(estado_mp: str | None) -> str | None:
-        if estado_mp == "approved":
+    def _estado_local_para(estado_orden: str | None) -> str | None:
+        """Estado local según el `status` de la ORDEN (D20); `None` si no tiene mapeo."""
+        if estado_orden in ("processed", "partially_refunded"):
             return "aprobado"
-        if estado_mp in ("rejected", "cancelled", "refunded", "charged_back"):
+        if estado_orden in ("failed", "canceled", "refunded", "charged_back"):
             return ESTADO_PAGO_RECHAZADO
-        if estado_mp in ("pending", "in_process", "authorized"):
+        if estado_orden in ("created", "processing", "action_required"):
             return ESTADO_PAGO_PENDIENTE
         return None
 
     @staticmethod
-    def _resolver_pago_bloqueado(uow: PagoUnitOfWork, mp_payment_id: int, resultado: ResultadoMP) -> Pago | None:
-        """Pago local (con la fila bloqueada): por `mp_payment_id`, luego `external_reference` (UUID del intento), luego `merchant_order_id`."""
-        pago = uow.pagos.get_by_mp_payment_id_for_update(mp_payment_id)
+    def _resolver_pago_bloqueado(uow: PagoUnitOfWork, mp_order_id: str, resultado: ResultadoMP) -> Pago | None:
+        """Pago local (con la fila bloqueada): por `mp_order_id`, luego por `external_reference` (UUID del intento)."""
+        pago = uow.pagos.get_by_mp_order_id_for_update(mp_order_id)
         if pago is None and resultado.external_reference:
             try:
                 referencia = UUID(str(resultado.external_reference))
-            except ValueError:  # referencia heredada (id de pedido de Checkout Pro) u ajena: no es un intento local
+            except ValueError:  # referencia ajena (p. ej. un id de pedido): no es un intento local
                 referencia = None
             if referencia is not None:
                 pago = uow.pagos.get_by_external_reference_for_update(referencia)
-        if pago is None and resultado.mp_merchant_order_id:
-            pago = uow.pagos.get_by_mp_merchant_order_id_for_update(int(resultado.mp_merchant_order_id))
         return pago
 
     async def procesar_webhook(self, notificacion: NotificacionWebhook) -> dict:
@@ -211,26 +203,28 @@ class PaymentService:
             notificacion.x_signature, notificacion.x_request_id, notificacion.query.get("data.id"), secreto
         )
 
-        topic, mp_payment_id = self._resolver_tipo_e_id(notificacion)
-        if topic != "payment" or mp_payment_id is None:
+        topic, mp_order_id = self._resolver_tipo_e_id(notificacion)
+        if topic != "order" or mp_order_id is None:
             return {"status": "ignored"}
         access_token = self._get_mp_access_token()
         if not access_token:
             raise AppError(503, "HTTP_503", "MercadoPago no configurado: falta MP_ACCESS_TOKEN")
 
         try:
-            resultado = self._pasarela(access_token).consultar_pago(mp_payment_id)
+            resultado = self._pasarela(access_token).consultar_orden(mp_order_id)
+        except CredencialesMPRechazadas as exc:  # configuración inutilizable: 503 (MercadoPago reintenta)
+            raise AppError(503, "HTTP_503", str(exc)) from exc
         except MercadoPagoNoDisponible as exc:  # fallo del proveedor: 502 (MercadoPago reintenta)
-            raise AppError(502, "HTTP_502", "No se pudo consultar el pago en MercadoPago") from exc
+            raise AppError(502, "HTTP_502", "No se pudo consultar la orden en MercadoPago") from exc
         nuevo_estado = self._estado_local_para(resultado.mp_status)
         if nuevo_estado is None:
             return {"status": "ignored"}
 
         with PagoUnitOfWork(self._session) as uow:
-            pago = self._resolver_pago_bloqueado(uow, mp_payment_id, resultado)
+            pago = self._resolver_pago_bloqueado(uow, mp_order_id, resultado)
             if pago is None:
                 return {"status": "ignored", "reason": "Pago not found"}
-            return self._aplicar_resultado_mp(uow, pago, resultado, nuevo_estado, mp_payment_id)
+            return self._aplicar_resultado_mp(uow, pago, resultado, nuevo_estado)
 
     def _aplicar_resultado_mp(
         self,
@@ -238,20 +232,18 @@ class PaymentService:
         pago: Pago,
         resultado: ResultadoMP,
         nuevo_estado: str,
-        mp_payment_id: int | None = None,
     ) -> dict:
         """Único camino que aplica el resultado de MercadoPago a un pago bloqueado (creación y webhook): idempotente."""
-        mp_payment_id = mp_payment_id if mp_payment_id is not None else resultado.mp_payment_id
         if (
-            decidir_transicion_pago(pago.estado, pago.mp_payment_id, mp_payment_id, nuevo_estado)
+            decidir_transicion_pago(pago.estado, pago.mp_order_id, resultado.mp_order_id, nuevo_estado)
             == Accion.YA_PROCESADO
         ):
             return {"status": "already_processed"}
 
-        pago.mp_payment_id = mp_payment_id
+        pago.mp_order_id = resultado.mp_order_id
+        pago.mp_payment_id = resultado.mp_payment_id
         pago.mp_status = resultado.mp_status
         pago.mp_status_detail = resultado.mp_status_detail
-        pago.mp_merchant_order_id = resultado.mp_merchant_order_id
         pago.estado = nuevo_estado
         pago.updated_at = datetime.now(timezone.utc)
         uow.pagos.update(pago)

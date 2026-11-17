@@ -4,13 +4,16 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, Numeric, BigInteger, UniqueConstraint, Uuid
+from sqlalchemy import Column, Numeric, UniqueConstraint, Uuid
 
 from app.core.timestamps import aware_datetime_field
 
 class Pago(SQLModel, table=True):
     __tablename__ = "pagos"
-    __table_args__ = (UniqueConstraint("external_reference", name="uq_pagos_external_reference"),)
+    __table_args__ = (
+        UniqueConstraint("external_reference", name="uq_pagos_external_reference"),
+        UniqueConstraint("mp_order_id", name="uq_pagos_mp_order_id"),
+    )
 
 #============== PK ================
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -21,9 +24,10 @@ class Pago(SQLModel, table=True):
 #============== Local State ================
     estado: str = Field(default="pendiente", max_length=20)
 
-#============== MercadoPago Payment API ===============
-    mp_payment_id: Optional[int] = Field(default=None, unique=True, sa_type=BigInteger)
-    mp_merchant_order_id: Optional[int] = Field(default=None, sa_type=BigInteger)
+#============== MercadoPago Orders API ===============
+    # `ORD…`: identidad de la orden (la que firma y notifica el webhook). `PAY…`: id de la transacción de pago.
+    mp_order_id: Optional[str] = Field(default=None, max_length=64)
+    mp_payment_id: Optional[str] = Field(default=None, unique=True, max_length=64)
 
     mp_status: Optional[str] = Field(default=None, max_length=30)
     mp_status_detail: Optional[str] = Field(default=None, max_length=100)

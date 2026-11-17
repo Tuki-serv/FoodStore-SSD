@@ -87,7 +87,7 @@ def test_dos_crear_simultaneos_dejan_un_solo_pago_y_ambas_llamadas_a_mp_llevan_l
     escenario: dict, mp_sdk: MPFalso
 ) -> None:
     engine: Engine = escenario["engine"]
-    mp_sdk.responder_creacion(201, "approved", "accredited", payment_id=990)
+    mp_sdk.responder_orden(order_id="ORD990", payment_id="PAY990")
 
     # La primera llamada a MercadoPago espera a que la segunda solicitud llegue a MercadoPago: así se prueba que la
     # segunda reutilizó el intento (misma clave) en vez de crear otro, sin depender de los tiempos de los hilos.
@@ -125,6 +125,7 @@ def test_dos_crear_simultaneos_dejan_un_solo_pago_y_ambas_llamadas_a_mp_llevan_l
                         "pedido_id": escenario["pedido_id"],
                         "token": token,
                         "payment_method_id": "visa",
+                        "payment_type_id": "credit_card",
                         "installments": 1,
                         "payer": {"email": "a@test.com"},
                     },

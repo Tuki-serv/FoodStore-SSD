@@ -27,6 +27,7 @@ def cuerpo(pedido_id: int) -> dict:
         "pedido_id": pedido_id,
         "token": "tok-1",
         "payment_method_id": "visa",
+        "payment_type_id": "credit_card",
         "installments": 1,
         "payer": {"email": "a@test.com"},
     }
@@ -40,7 +41,7 @@ def pedido_mp(session: Session, normal_user: dict):
 
 @pytest.fixture
 def mp_sin_configurar(monkeypatch: pytest.MonkeyPatch) -> None:
-    for nombre in ("MP_ACCESS_TOKEN", "MP_PUBLIC_KEY", "MP_NOTIFICATION_URL"):
+    for nombre in ("MP_ACCESS_TOKEN", "MP_PUBLIC_KEY"):
         monkeypatch.setattr(settings, nombre, None)
 
 
@@ -175,13 +176,18 @@ def test_propietario_consulta_su_pedido_con_pago_pendiente_responde_200_con_esta
 def test_propietario_crea_pago_de_su_pedido_responde_201_aprobado_sin_campos_de_checkout_pro(
     client: TestClient, session: Session, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso
 ) -> None:
-    mp_sdk.responder_creacion(201, "approved", "accredited", payment_id=777)
+    mp_sdk.responder_orden(order_id="ORD777", payment_id="PAY777")
 
     response = client.post(CREAR, json=cuerpo(pedido_mp.id), headers=user_auth_headers)
 
     body = response.json()
     assert response.status_code == 201
-    assert (body["estado"], body["mp_status"], body["mp_payment_id"]) == ("aprobado", "approved", 777)
+    assert (body["estado"], body["mp_status"], body["mp_order_id"], body["mp_payment_id"]) == (
+        "aprobado",
+        "processed",
+        "ORD777",
+        "PAY777",
+    )
     assert not {"preference_id", "init_point", "public_key"} & set(body)
     pagos = pagos_de(session, pedido_mp.id)
     assert [p.estado for p in pagos] == ["aprobado"]
@@ -205,7 +211,7 @@ def test_admin_consulta_pago_de_pedido_ajeno_responde_200(
 def test_admin_crea_pago_de_pedido_ajeno_responde_201_y_el_pago_queda_en_ese_pedido(
     client: TestClient, session: Session, pedido_mp, admin_auth_headers: dict, mp_sdk: MPFalso
 ) -> None:
-    mp_sdk.responder_creacion(201, "approved", "accredited", payment_id=778)
+    mp_sdk.responder_orden(order_id="ORD778", payment_id="PAY778")
 
     response = client.post(CREAR, json=cuerpo(pedido_mp.id), headers=admin_auth_headers)
 

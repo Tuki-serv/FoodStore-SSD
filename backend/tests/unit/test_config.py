@@ -277,8 +277,20 @@ def test_settings_samesite_lax_con_secure_expone_ambos_valores(
 def test_settings_una_variable_de_pago_no_altera_a_otra(full_env: dict[str, str]) -> None:
     cfg = _load()
 
-    assert cfg.MP_NOTIFICATION_URL == "https://abc.ngrok-free.app/api/v1/pagos/webhook"
+    assert cfg.MP_WEBHOOK_SECRET == "mp-webhook-secret-falso"
     assert cfg.MP_PUBLIC_KEY == "mp-public-falsa"
+    assert cfg.MP_ACCESS_TOKEN == "mp-token-falso"
+
+
+def test_settings_mp_notification_url_provista_carga_y_no_se_expone(
+    monkeypatch: pytest.MonkeyPatch, full_env: dict[str, str]
+) -> None:
+    monkeypatch.setenv("MP_NOTIFICATION_URL", "https://abc.ngrok-free.app/api/v1/pagos/webhook")
+
+    cfg = _load()
+
+    assert not hasattr(cfg, "MP_NOTIFICATION_URL")
+    assert cfg.MP_WEBHOOK_SECRET == "mp-webhook-secret-falso"
 
 
 def test_settings_no_expone_las_urls_del_redirect_de_checkout_pro(full_env: dict[str, str]) -> None:
@@ -304,12 +316,14 @@ def test_settings_variables_retiradas_presentes_no_alteran_valores_efectivos(
     monkeypatch.setenv("MP_WEBHOOK_URL", "https://viejo-hook.example")
     monkeypatch.setenv("BACKEND_PUBLIC_URL", "https://b.example")
     monkeypatch.setenv("FRONTEND_URL", "https://tienda.example")
+    monkeypatch.setenv("MP_NOTIFICATION_URL", "https://a.example/api/v1/pagos/webhook")
 
     cfg = _load()
 
-    assert cfg.MP_NOTIFICATION_URL == "https://abc.ngrok-free.app/api/v1/pagos/webhook"
+    assert cfg.MP_WEBHOOK_SECRET == "mp-webhook-secret-falso"
     assert not hasattr(cfg, "BACKEND_PUBLIC_URL")
     assert not hasattr(cfg, "FRONTEND_URL")
+    assert not hasattr(cfg, "MP_NOTIFICATION_URL")
 
 
 def test_settings_variables_retiradas_no_rellenan_opcionales_ausentes(
@@ -317,10 +331,11 @@ def test_settings_variables_retiradas_no_rellenan_opcionales_ausentes(
 ) -> None:
     monkeypatch.setenv("NGROK_URL", "https://viejo.example")
     monkeypatch.setenv("BACKEND_PUBLIC_URL", "https://b.example")
+    monkeypatch.setenv("MP_NOTIFICATION_URL", "https://a.example/api/v1/pagos/webhook")
 
     cfg = _load()
 
-    assert cfg.MP_NOTIFICATION_URL is None
+    assert cfg.MP_ACCESS_TOKEN is None
 
 
 RATE_LIMIT_VARS = (

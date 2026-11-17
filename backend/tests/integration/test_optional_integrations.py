@@ -15,7 +15,7 @@ from app.modules.productos.models import Producto
 from tests.support.mp_webhook import MPFalso
 from tests.support.pagos_factory import pagos_de, pedido_a_pagar, producto
 
-MP_SETTINGS = ("MP_ACCESS_TOKEN", "MP_PUBLIC_KEY", "MP_NOTIFICATION_URL")
+MP_SETTINGS = ("MP_ACCESS_TOKEN", "MP_PUBLIC_KEY")
 CLOUDINARY_SETTINGS = ("CLOUDINARY_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")
 
 
@@ -46,6 +46,7 @@ def cuerpo(pedido_id: int) -> dict:
         "pedido_id": pedido_id,
         "token": "tok-1",
         "payment_method_id": "visa",
+        "payment_type_id": "credit_card",
         "installments": 1,
         "payer": {"email": "a@test.com"},
     }
@@ -111,49 +112,35 @@ def test_crear_pago_sin_access_token_responde_503_nombrando_la_variable_y_no_cre
     assert body["field"] is None
     assert "MercadoPago no configurado" in body["detail"]
     assert "MP_ACCESS_TOKEN" in body["detail"]
-    assert "MP_NOTIFICATION_URL" not in body["detail"]
     assert pagos_de(session, pedido_mp.id) == []
     assert mp_sdk.creaciones == []
 
 
-def test_crear_pago_con_token_pero_sin_notification_url_responde_503_nombrando_la_faltante(
-    client: TestClient, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", None)
-
-    response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
-
-    assert response.status_code == 503
-    assert "MP_NOTIFICATION_URL" in response.json()["detail"]
-    assert "MP_ACCESS_TOKEN" not in response.json()["detail"]
-    assert mp_sdk.creaciones == []
-
-
-def test_crear_pago_sin_ninguna_variable_de_pagos_nombra_las_dos(
-    client: TestClient, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", None)
-    monkeypatch.setattr(settings, "MP_NOTIFICATION_URL", None)
-
-    response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
-
-    assert response.status_code == 503
-    assert "MP_ACCESS_TOKEN" in response.json()["detail"]
-    assert "MP_NOTIFICATION_URL" in response.json()["detail"]
-
-
-def test_crear_pago_ya_no_exige_backend_public_url_y_usa_la_notification_url_configurada(
+def test_crear_pago_con_solo_el_access_token_no_responde_503_y_contacta_a_mercadopago_sin_notification_url(
     client: TestClient, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso
 ) -> None:
-    mp_sdk.responder_creacion(201, "in_process", "pending_contingency", payment_id=950)
+    mp_sdk.responder_orden(201, "processing", "in_process", "in_process", order_id="ORD950", payment_id="PAY950")
 
     response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
 
     assert response.status_code == 201
     assert mp_sdk.tokens == ["TEST-token"]
     (creacion,) = mp_sdk.creaciones
-    assert creacion.cuerpo["notification_url"] == "https://a.example/api/v1/pagos/webhook"
+    assert "notification_url" not in creacion.cuerpo
     assert "back_urls" not in creacion.cuerpo
+
+
+def test_crear_pago_con_mp_notification_url_en_el_entorno_pero_sin_access_token_responde_503_solo_por_el_token(
+    client: TestClient, pedido_mp, user_auth_headers: dict, mp_sdk: MPFalso, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MP_NOTIFICATION_URL", "https://a.example/api/v1/pagos/webhook")
+    monkeypatch.setattr(settings, "MP_ACCESS_TOKEN", None)
+
+    response = client.post("/api/v1/pagos/crear", json=cuerpo(pedido_mp.id), headers=user_auth_headers)
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "MercadoPago no configurado: faltan MP_ACCESS_TOKEN"
+    assert mp_sdk.creaciones == []
 
 
 @pytest.mark.parametrize("status", ["success", "failure", "pending"])

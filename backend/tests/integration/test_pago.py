@@ -14,6 +14,7 @@ class TestPago:
                 "pedido_id": 999999,
                 "token": "tok-1",
                 "payment_method_id": "visa",
+                "payment_type_id": "credit_card",
                 "installments": 1,
                 "payer": {"email": "a@test.com"},
             },
