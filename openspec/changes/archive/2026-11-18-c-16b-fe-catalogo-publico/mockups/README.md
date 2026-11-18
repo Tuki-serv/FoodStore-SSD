@@ -3,8 +3,10 @@
 > Creados en `openspec/changes/c-16-fe-catalogo-publico/mockups/` y movidos intactos aquí cuando C-16 se partió en C-16a (backend) y C-16b (este change, frontend) el 2026-11-18. Los títulos y franjas de los HTML (y las capturas) dicen «Mockup C-16»: se refieren a C-16b.
 
 - Design system revision: 2 (`design-system/README.md`, aprobada 2026-11-14)
-- Approval: pending
+- Approval: approved (2026-11-18, by user)
 - Preview: rendered (2026-11-18, headless Microsoft Edge desde `file://`, 1440x900 y 390x844, con «reducir movimiento»)
+
+> **Cambio de comportamiento OQ-5 (2026-11-18, por el usuario)**: los mockups no cambian (el botón «Agregar» se ve igual). Con sesión suma al carrito y muestra el toast; **sin sesión** el botón lleva a «Ingresar» y, tras iniciar sesión, vuelve al mismo lugar (catálogo con sus filtros/página, o el detalle). El toast «Agregado al carrito» y la usuaria «Lucía Pérez» corresponden al caso con sesión. Ver `design.md` D10b.
 
 ## Brief
 

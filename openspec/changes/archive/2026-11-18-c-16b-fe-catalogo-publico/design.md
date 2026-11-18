@@ -143,9 +143,21 @@ Botones «Anterior»/«Siguiente» con `Paginacion` compartida, `placeholderData
 
 ### D10 — Agregar al carrito
 
-- `BotonAgregarAlCarrito({ producto, cantidad = 1, variante })`: `useCartStore((s) => s.agregar)` + `notificar({ tipo: 'success', titulo: 'Agregado al carrito', mensaje: '{cantidad} × {nombre}' })`. Deshabilitado si `stock_cantidad === 0`. Nombre accesible «Agregar {nombre} al carrito» (texto visible «Agregar» en la tarjeta, «Agregar al carrito» en el detalle).
+- `BotonAgregarAlCarrito({ producto, cantidad = 1, variante })`: con sesión, `useCartStore((s) => s.agregar)` + `notificar({ tipo: 'success', titulo: 'Agregado al carrito', mensaje: '{cantidad} × {nombre}' })`. Deshabilitado si `stock_cantidad === 0`. Nombre accesible «Agregar {nombre} al carrito» (texto visible «Agregar» en la tarjeta, «Agregar al carrito» en el detalle).
 - No valida contra lo que ya hay en el carrito (stock vs. cantidad acumulada): lo resuelve C-18/C-19 con la respuesta del backend (`INSUFFICIENT_STOCK`).
 - El contador del carrito en el panel ya lee `selectTotalItems` (C-13b), así que se actualiza solo.
+
+### D10b — Agregar sin sesión: ir a Ingresar y volver al mismo lugar (OQ-5, decisión del usuario 2026-11-18)
+
+- **Regla**: navegar el catálogo y el detalle es público; pero si `selectEstado` es `'anonima'`, pulsar «Agregar» / «Agregar al carrito» **no** toca el carrito: navega a `RUTAS.ingresar` con `state: { desde: rutaRecordada(location) }` (path + query + hash actuales: `/catalogo?categoria=2&page=2` o `/catalogo/7`). Tras iniciar sesión la persona queda en el mismo lugar y no tiene que buscar el producto. La cantidad elegida en el detalle no se conserva.
+- **Mecanismo existente (C-13b), reutilizado**: `frontend/src/app/router/destino.ts` define `RutaRecordada {pathname, search, hash}`, `rutaRecordada(location)` y `destinoTrasIngresar(state, roles)`; `frontend/src/app/router/requiere-acceso.tsx` ya manda al anónimo a `/ingresar` con `state: { desde }` y, cuando la sesión pasa a `autenticada` estando en `/ingresar` (acceso `anonima`), hace `<Navigate to={destinoTrasIngresar(location.state, roles)} replace />`. Especificado en `openspec/specs/frontend-route-guards` («Ruta con sesión sin sesión», «Vuelta al destino tras iniciar sesión»). La vuelta la hace el guard, no la pantalla de login. Conserva `search` y `hash`.
+- **Lo que falta y se agrega** (mínimo):
+  1. `destinoTrasIngresar` solo acepta pathnames exactos de `ACCESO_RUTAS` (`esRutaConocida`), así que `/catalogo/7` caería a `/catalogo`. Se extiende para aceptar también `/catalogo/<id>` (`/^\/catalogo\/[1-9]\d*$/`), con el acceso de `RUTAS.catalogo` (pública). Sigue rechazando `//host`, URLs externas y ids inválidos.
+  2. `rutaRecordada`/`RutaRecordada` viven en `app/router`, capa que `features/` no puede importar (FSD). Se mueven a `shared/lib/ruta-recordada.ts`; `destino.ts` los importa de ahí (sin cambio de comportamiento: los tests de guards actuales siguen verdes).
+  3. `BotonAgregarAlCarrito` (features) lee `selectEstado` de `@/shared/auth`, `useLocation` y `useNavigate` (push, no replace: «Atrás» vuelve al catálogo).
+- **Dependencia con C-14 (`fe-auth-cuenta`, pendiente)**: hoy `/ingresar` es la página provisoria (dueño C-14 en `route-map.ts`). El redirect y la vuelta se implementan y prueban ya (los tests simulan el login actualizando `useAuthStore`; el guard hace la vuelta). La pantalla de login real es de C-14; su contrato: al iniciar sesión solo actualiza el store y **no** navega por su cuenta (o usa `destinoTrasIngresar(location.state, roles)`). Hasta que C-14 cierre, una persona real no puede completar el flujo (el botón lleva a la pantalla provisoria). No bloquea el apply de C-16b; C-14 debe heredar este contrato.
+- **Considerado y descartado**: agregar el producto automáticamente tras el login (recordar la intención junto con la ruta). No fue pedido; queda como mejora futura. También descartado el defecto anterior (agregar al carrito local sin sesión).
+- Al volver al detalle tras el login se pierde `state.volverA` («Volver al catálogo» lleva a `/catalogo` sin filtros); aceptado.
 
 ### D11 — Backend: movido a C-16a
 
@@ -175,21 +187,26 @@ Sin migración de datos ni de esquema. Apply: requiere C-16a cerrado (backend co
 
 ## Open Questions
 
-> Governance BAJO: se aplican los valores por defecto salvo que el usuario diga otra cosa. Las specs ya están escritas con los valores por defecto.
+> Governance BAJO. **Resueltas por el usuario el 2026-11-18**: OQ-4 y OQ-6 con su valor por defecto; OQ-5 con un valor distinto del defecto. Las specs reflejan estas decisiones.
 >
 > OQ-1..OQ-3 del C-16 original (precio en el backend, «Solo con stock», categoría con subcategorías sin duplicados) **ya no son preguntas**: el usuario las resolvió el 2026-11-18 con su valor por defecto; ver D0 y `openspec/changes/c-16a-backend-catalogo-filtros/design.md` DU-1..DU-3.
 
-- **OQ-4 — Umbral de «pocas unidades».** Por defecto: **5** («Quedan N» de 1 a 5). Alternativa: otro número o no mostrar el aviso.
-- **OQ-5 — Agregar al carrito sin sesión.** Por defecto: **sí** (el carrito es estado de cliente persistente, CE-14; el login se pide al ir al carrito, que tiene acceso `sesion`). Alternativa: el botón lleva a «Ingresar» si no hay sesión.
-- **OQ-6 — Tamaño de página.** Por defecto: **12** (grilla de 2/3/4 columnas sin huecos). Alternativa: 20 (defecto del backend).
+- **OQ-4 — Umbral de «pocas unidades».** RESUELTA (2026-11-18, por el usuario): **5** («Quedan N» de 1 a 5).
+- **OQ-5 — Agregar al carrito sin sesión.** RESUELTA (2026-11-18, por el usuario), **distinta del defecto**: sin sesión, «Agregar» lleva a la pantalla de login y, tras ingresar, la página queda en el mismo lugar (filtros/página o detalle). Ver D10b.
+- **OQ-6 — Tamaño de página.** RESUELTA (2026-11-18, por el usuario): **12**.
 
 ## UI Mockups
 
 - Design system revision: 2 (`design-system/README.md`, `Mode: system-and-mockups`, aprobada 2026-11-14)
 - Decision: yes (2026-11-18)
 - Mockups: `mockups/` (`catalogo.html`, `catalogo-carga.html`, `catalogo-vacio.html`, `catalogo-filtros.html`, `producto-detalle.html`, `mockup.css`, `mockup.js`, `catalogo.js`, `README.md`, `previews/`)
-- Approval: pending
+- Approval: approved (2026-11-18, by user)
 - Preview: rendered (2026-11-18, headless Microsoft Edge desde `file://` con «reducir movimiento», 1440x900 y 390x844 —390 px dentro de un iframe—; capturas en `mockups/previews/`: `catalogo`, `catalogo-filtrado`, `carga`, `vacio`, `sin-productos`, `error`, `filtros`, `detalle`, `detalle-agotado`, `no-disponible`, cada una `-desktop.png` y `-mobile.png`, más `catalogo-completo-desktop.png` (1440x2080, página entera); inspeccionadas y corregidas: ancho del esqueleto, título de sección en la hoja, marca «Agotado» sin escala de grises)
+- Visual verify: passed (2026-11-18, backend real + Vite, browser pane, visitante anónimo; capturas inspeccionadas en la sesión, no guardadas en `mockups/verify/` porque el browser pane no exporta archivos). Recorrido:
+  - a 1440: catálogo con árbol, 6 productos del seed; «Hamburguesas» → `categoria_ids=1&4&5`, 4 resultados sin duplicar «Burger Vegana»; máximo 1800 + «Solo con stock» → `precio_max=1800&con_stock=true`, chips activos y «Limpiar filtros»; «Agregar» sin sesión → `/ingresar` con `state.desde = /catalogo?categoria=1&max=1800&stock=1` (el login real es C-14, hoy placeholder); detalle `/catalogo/1` en dos columnas como el mockup.
+  - a 390: sin scroll horizontal de página (los chips desbordan dentro de su carril, como el mockup); hoja «Filtros» abre como en el mockup; detalle con barra de compra fija y un solo botón «Agregar al carrito».
+  - V-1 (blocker, corregido): el detalle se veía sin estilos porque `@import "../../pages/producto/ui/producto.css"` estaba al final de `src/app/styles/index.css`, después de reglas, y el navegador ignora un `@import` tardío (postcss-import en los tests lo inlineaba igual). Se movió junto a los demás imports; nuevo test en `tests/architecture/styles-compile.test.ts` exige que todos los `@import` precedan a cualquier regla y que `.pd` tenga su grilla (RED → GREEN). Suite: 572/572, lint limpio.
+  - Diferencias menores aceptadas: en mobile «Agregar al carrito» ocupa dos líneas (mockup: una, con el total); el botón de la hoja dice «Ver resultados (6)» (mockup: «Ver 1 producto»); el seed usa imágenes placeholder grises en lugar del ícono de plato.
 - Origen: creados en el change `c-16-fe-catalogo-publico` (antes del split del 2026-11-18) y movidos intactos a este change, capturas incluidas; los títulos y franjas de anotación de los HTML (y por lo tanto las capturas) dicen «Mockup C-16»: se refieren a este change (C-16b). La aprobación sigue pendiente y es la de esta misma revisión.
 
 Estados visibles y cobertura:

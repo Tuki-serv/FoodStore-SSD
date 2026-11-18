@@ -1,6 +1,6 @@
 ## Purpose
 
-Define cómo cualquier visitante, con o sin sesión, explora el catálogo público en el frontend (US-007, US-008, RN-PR-03, RN-PR-04): listado filtrable y paginado, navegación por el árbol de categorías, detalle de producto con ingredientes, alérgenos y stock, y agregado al carrito.
+Define cómo cualquier visitante, con o sin sesión, explora el catálogo público en el frontend (US-007, US-008, RN-PR-03, RN-PR-04): listado filtrable y paginado, navegación por el árbol de categorías, detalle de producto con ingredientes, alérgenos y stock, y agregado al carrito (con sesión; sin sesión lleva a «Ingresar» y vuelve al mismo lugar).
 
 ## ADDED Requirements
 
@@ -182,15 +182,34 @@ Si el detalle responde 404, o el id de la URL no es un entero positivo, SHALL ve
 - **THEN** ve «Este producto no está disponible» y no se pide ningún producto
 
 ### Requirement: Agregar al carrito
-«Agregar» en la tarjeta (1 unidad) y «Agregar al carrito» en el detalle (con la cantidad elegida, de 1 al stock) SHALL sumar el producto al carrito con su precio decimal sin personalización y SHALL mostrar la notificación «Agregado al carrito» con el nombre y la cantidad. Funciona con o sin sesión.
+Con sesión, «Agregar» en la tarjeta (1 unidad) y «Agregar al carrito» en el detalle (con la cantidad elegida, de 1 al stock) SHALL sumar el producto al carrito con su precio decimal sin personalización y SHALL mostrar la notificación «Agregado al carrito» con el nombre y la cantidad.
 
-#### Scenario: Agregar desde la tarjeta
-- **WHEN** un visitante pulsa «Agregar Hamburguesa Clásica al carrito»
+#### Scenario: Agregar desde la tarjeta con sesión
+- **WHEN** un `CLIENT` con sesión pulsa «Agregar Hamburguesa Clásica al carrito»
 - **THEN** el carrito tiene una línea de «Hamburguesa Clásica» con cantidad 1 y precio `"1500.00"`, y se ve «Agregado al carrito»
 
-#### Scenario: Agregar varias unidades desde el detalle
-- **WHEN** en el detalle de un producto con stock 3 el visitante sube la cantidad a 3 y pulsa «Agregar al carrito»
+#### Scenario: Agregar varias unidades desde el detalle con sesión
+- **WHEN** en el detalle de un producto con stock 3 un `CLIENT` sube la cantidad a 3 y pulsa «Agregar al carrito»
 - **THEN** el carrito suma 3 unidades y el botón «Sumar una unidad» quedó deshabilitado al llegar a 3
+
+### Requirement: Agregar al carrito sin sesión
+Sin sesión, «Agregar» y «Agregar al carrito» SHALL llevar a `/ingresar` recordando la ruta actual (path, query y hash) y NO SHALL modificar el carrito. Al iniciar sesión, la persona SHALL volver exactamente a esa ruta (el catálogo con sus filtros y página, o el detalle del producto) y el producto NO SHALL agregarse automáticamente.
+
+#### Scenario: Visitante anónimo agrega desde el catálogo
+- **WHEN** un visitante sin sesión que está en `/catalogo?categoria=2&page=2` pulsa «Agregar Hamburguesa Clásica al carrito»
+- **THEN** la URL pasa a `/ingresar` con `/catalogo?categoria=2&page=2` como ruta recordada, el carrito sigue vacío y no se ve «Agregado al carrito»
+
+#### Scenario: Vuelta al mismo catálogo tras iniciar sesión
+- **WHEN** ese visitante inicia sesión como `CLIENT`
+- **THEN** la URL pasa a `/catalogo?categoria=2&page=2`, se ven los mismos filtros y página, y el carrito sigue vacío
+
+#### Scenario: Visitante anónimo agrega desde el detalle
+- **WHEN** un visitante sin sesión en `/catalogo/7` pulsa «Agregar al carrito» e inicia sesión como `CLIENT`
+- **THEN** pasa por `/ingresar` con `/catalogo/7` recordada, vuelve a `/catalogo/7` y el carrito sigue vacío
+
+#### Scenario: Ruta recordada inválida
+- **WHEN** la ruta recordada de `/ingresar` es `//otro-sitio.com` o `/catalogo/abc`
+- **THEN** tras iniciar sesión la URL pasa a `/catalogo`
 
 #### Scenario: Agotado en el detalle
 - **WHEN** el producto tiene stock 0
