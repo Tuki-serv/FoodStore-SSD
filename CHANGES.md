@@ -503,6 +503,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Imágenes y unidades de medida (US-013, US-014) quedan en C-28.
   - Tests: permisos por rol en UI, CRUD de productos, actualización de stock/disponibilidad.
   - Punto de partida (C-08): contratos de inventario: `PATCH /productos/{id}/disponibilidad` con body `{"disponible": bool}` (idempotente) y `PATCH /productos/{id}/stock` con `{"stock_cantidad": int>=0}` (absoluto), ambos ADMIN/STOCK; STOCK ve productos no disponibles pero no eliminados.
+  - Punto de partida (C-17a): `src/entities/ingrediente/` (`ingredienteQueries.lista`, `useCrearIngrediente`/`useEditarIngrediente`/`useEliminarIngrediente`, `resumenUso`) y `src/entities/unidad-medida/` (`unidadMedidaQueries.todas`, `etiquetaUnidad`) ya existen; las mutaciones de categorías e ingredientes invalidan `['categorias']`/`['ingredientes']` y `['productos']`. Componentes compartidos: `shared/ui/estados`, `shared/ui/dialogo-baja`, `shared/ui/lista-admin` (CSS). El backend aún no devuelve `unidad_medida_id` en `GET /ingredientes/`.
   - Bug conocido (C-11): `POST /productos/` con `ingredientes` inline responde 500 (`ProductoService.create` no copia `cantidad` ni `unidad_medida_id` a `ProductoIngrediente`); `POST /productos/{id}/ingredientes` sí funciona.
 - **Dependencias**: `C-17a, C-08`
 - **Governance**: MEDIO

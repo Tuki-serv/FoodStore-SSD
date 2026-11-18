@@ -52,7 +52,7 @@ Para correr un archivo: `npm test -- fsd` (filtra por nombre).
 ```text
 src/
   app/        providers/ (AppProviders, SesionGate), router/ (rutas, mapa con dueño, guards), layouts/app-shell/ (panel lateral), styles/
-  pages/      un slice por pantalla: placeholder/, not-found/, error/, forbidden/, direcciones/ (C-15), catalogo/ y producto/ (C-16b; las demás de negocio llegan en C-14 y siguientes)
+  pages/      un slice por pantalla: placeholder/, not-found/, error/, forbidden/, direcciones/ (C-15), catalogo/ y producto/ (C-16b), admin-categorias/ y admin-ingredientes/ (C-17a; las demás de negocio llegan en C-14 y siguientes)
   entities/   session/ (operaciones y hooks de sesión), cart/ (cartStore), payment/ (paymentStore), direccion/ (C-15: contrato, consultas, mutaciones, TarjetaDireccion y SelectorDireccion)
   shared/     api/ (cliente HTTP, ApiError, QueryClient), auth/ (authStore), config/ (env, roles, rutas y acceso, marca),
               model/ (uiStore), lib/ (useMediaQuery, almacenamiento seguro), ui/ (Icon, PantallaCarga, botones, Campo, Dialogo)
@@ -125,3 +125,10 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - Las páginas provisorias (todas menos `/direcciones`, `/catalogo` y `/catalogo/:productoId`) no piden ni muestran datos del backend.
 - Cada ruta declara en `src/app/router/route-map.ts` el change que implementa su pantalla (`owner`).
 - `/direcciones` ya es una pantalla real (C-15), y `/catalogo` y `/catalogo/:productoId` (C-16b): el resto de las rutas sigue con la página provisoria.
+
+## Administración de categorías e ingredientes (C-17a)
+
+- **Slices nuevos**: `src/entities/ingrediente/` (contrato, `ingredienteQueries.lista`, mutaciones, `resumenUso`), `src/entities/unidad-medida/` (`unidadMedidaQueries.todas`, `etiquetaUnidad`), mutaciones y `padresPosibles`/`contarDescendientes` en `src/entities/categoria/`, `src/pages/admin-categorias/` y `src/pages/admin-ingredientes/` (rutas `/admin/categorias` y `/admin/ingredientes`, solo ADMIN), y los componentes compartidos `shared/ui/estados/` (esqueleto, vacío, error, aviso de datos desactualizados), `shared/ui/dialogo-baja/` y `shared/ui/lista-admin/` (solo CSS), más `shared/lib/texto-formulario.ts` y `shared/model/avisos.ts` (`avisarExito`, `avisarError`).
+- **Invalidaciones**: toda mutación de categorías invalida `['categorias']` y `['productos']`; toda mutación de ingredientes invalida `['ingredientes']` y `['productos']` (el detalle público muestra la marca de alérgeno).
+- **Ingredientes en la URL**: `alergeno` (`si`/`no`) y `page` (20 por página); cambiar el filtro vuelve a la página 1.
+- **Brecha del backend**: `GET /ingredientes/` no informa `unidad_medida_id` y `PATCH /ingredientes/{id}` no lo acepta, así que la fila no muestra la unidad y el selector de edición arranca en «Sin cambios».

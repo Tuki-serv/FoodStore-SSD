@@ -56,6 +56,7 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 
 ### US-009 — Gestión de categorías (ADMIN)
 - [ ] Crear/editar/eliminar con validación de nombre único, anti-ciclos y re-asignación de hijas
+- [x] Frontend (C-17a): `/admin/categorias` (ADMIN) con árbol editable, alta de categoría y subcategoría, edición con padres sin ciclos y baja validada (bloqueo con subcategorías o productos activos)
 **Reglas**: RN-CA-01..05
 
 ### US-010 — Gestión de productos (ADMIN)
@@ -64,6 +65,7 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 
 ### US-011 — Gestión de ingredientes y alérgenos
 - [ ] CRUD de ingredientes con `es_alergeno` y unidad de medida; asociar a productos con `es_removible`, cantidad y unidad
+- [x] Frontend (C-17a): `/admin/ingredientes` (ADMIN) con listado paginado, filtro de alérgenos en la URL, alta, edición y baja con aviso de los productos que lo usan (la asociación a productos llega en C-17b)
 
 ### US-012 — Gestión de stock (STOCK)
 - [ ] Actualizar `stock_cantidad` con `PATCH /productos/{id}/stock` (`{"stock_cantidad": n}`, seteo absoluto, `n >= 0`) y `disponible` con `PATCH /productos/{id}/disponibilidad` (`{"disponible": bool}`); ambos idempotentes, ADMIN y STOCK

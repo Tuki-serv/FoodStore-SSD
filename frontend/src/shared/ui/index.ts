@@ -9,3 +9,7 @@ export { Campo } from './campo';
 export type { CampoProps, PropsControlCampo } from './campo';
 export { Paginacion } from './paginacion';
 export type { PaginacionProps } from './paginacion';
+export { AvisoDesactualizado, EsqueletoFilas, EstadoError, EstadoVacio } from './estados';
+export type { EsqueletoFilasProps, EstadoErrorProps, EstadoVacioProps } from './estados';
+export { DialogoBaja } from './dialogo-baja';
+export type { AvisoBaja, DialogoBajaProps } from './dialogo-baja';

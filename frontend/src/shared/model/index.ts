@@ -8,3 +8,4 @@ export {
   useUiStore,
 } from './ui-store';
 export type { ConfirmModal, TipoToast, Toast, UiState } from './ui-store';
+export { avisarError, avisarExito } from './avisos';
