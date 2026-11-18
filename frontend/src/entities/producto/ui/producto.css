@@ -1,0 +1,39 @@
+/* Tarjeta de producto, imagen, marcas y precio: reglas aprobadas en los mockups de C-16b (design-system Revision 2). Solo tokens. */
+@layer components {
+  .card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column}
+  .card .img{aspect-ratio:3/2;background:var(--color-surface-alt);display:grid;place-items:center;color:var(--color-text-muted);font-size:var(--text-sm);position:relative;overflow:hidden}
+  .card .body{padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);flex:1}
+  .price{font-weight:800;font-size:var(--text-lg);font-family:var(--font-display);font-variant-numeric:tabular-nums}
+  .tag{position:absolute;top:var(--space-2);left:var(--space-2)}
+  .b-pendiente{color:var(--state-pendiente-fg);background:var(--state-pendiente-bg)}
+  .b-cancelado{color:var(--state-cancelado-fg);background:var(--state-cancelado-bg)}
+  .ph-img{width:100%;height:100%;object-fit:cover;display:block}
+  .ph{width:100%;height:100%;display:grid;place-items:center;color:var(--color-primary);background:radial-gradient(circle at 30% 25%,var(--color-surface) 0,transparent 55%),var(--color-primary-soft)}
+  .ph .ico{width:56px;height:56px;stroke-width:1.4;opacity:.85}
+  .ph.none{background:var(--color-surface-alt);color:var(--color-text-muted)}
+  .ph.none .ico{width:40px;height:40px}
+
+  .prod{position:relative;width:100%;transition:box-shadow var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out)}
+  .prod:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+  .prod .cat{font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)}
+  .prod h3{font-size:var(--text-lg)}
+  .prod h3 a{text-decoration:none;color:inherit}
+  .prod h3 a::after{content:"";position:absolute;inset:0;border-radius:var(--radius-lg)}
+  .prod h3 a:focus-visible{outline:none}
+  .prod h3 a:focus-visible::after{box-shadow:var(--focus-ring)}
+  .prod .desc{color:var(--color-text-muted);font-size:var(--text-sm);margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .prod .foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-top:auto;padding-top:var(--space-2)}
+  .prod .foot > button{position:relative;z-index:1}
+  .prod.unavailable .price{color:var(--color-text-muted)}
+  .card.unavailable .img .ph,.card.unavailable .img .ph-img{filter:grayscale(1);opacity:.6}
+  @media (prefers-reduced-motion:reduce){.prod{transition:none}.prod:hover{transform:none}}
+  @media (max-width:719.98px){
+    .prod .body{padding:var(--space-3);gap:var(--space-1)}
+    .prod h3{font-size:var(--text-base)}
+    .prod .desc{display:none}
+    .prod .foot{flex-direction:column;align-items:stretch;gap:var(--space-2)}
+    .price{font-size:var(--text-base)}
+    .ph .ico{width:40px;height:40px}
+    .tag{top:6px;left:6px}
+  }
+}

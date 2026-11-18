@@ -3,12 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { direccionQueries, nombreDireccion, useEliminarDireccion, useMarcarPrincipal, type Direccion } from '@/entities/direccion';
 import { useUiStore } from '@/shared/model';
-import { claseBoton, Icon } from '@/shared/ui';
+import { claseBoton, Icon, Paginacion } from '@/shared/ui';
 import { CargandoDirecciones, ErrorDirecciones, ListadoDesactualizado, VacioDirecciones } from './estados-direcciones';
 import { FormularioDireccion } from './formulario-direccion';
 import { ListaDirecciones } from './lista-direcciones';
 import { avisarResultado } from '../model';
-import { PaginacionDirecciones } from './paginacion-direcciones';
+
 
 /** Direcciones por página (el backend admite hasta 100). */
 export const TAMANO_PAGINA = 20;
@@ -142,7 +142,7 @@ export function DireccionesPage() {
             onMarcarPrincipal={marcarPrincipal}
             onEliminar={(direccion) => pedirEliminar(direccion, data.total > 1)}
           />
-          <PaginacionDirecciones page={data.page} pages={data.pages} onCambiar={irAPagina} />
+          <Paginacion etiqueta="Paginación de direcciones" page={data.page} pages={data.pages} onCambiar={irAPagina} />
         </>
       )}
     </div>

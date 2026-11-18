@@ -1,0 +1,3 @@
+import { aProductoParaCarrito } from '@/entities/producto';
+import { useCartStore } from '@/entities/cart';
+export const agregar = [aProductoParaCarrito, useCartStore];

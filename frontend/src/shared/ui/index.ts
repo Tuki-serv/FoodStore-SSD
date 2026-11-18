@@ -7,3 +7,5 @@ export { Dialogo } from './dialogo';
 export type { DialogoProps } from './dialogo';
 export { Campo } from './campo';
 export type { CampoProps, PropsControlCampo } from './campo';
+export { Paginacion } from './paginacion';
+export type { PaginacionProps } from './paginacion';

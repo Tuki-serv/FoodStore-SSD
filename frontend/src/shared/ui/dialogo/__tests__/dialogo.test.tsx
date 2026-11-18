@@ -102,3 +102,40 @@ describe('Dialogo', () => {
     await esperarSinViolacionesA11y(container);
   });
 });
+
+describe('Dialogo desplazable (hoja con pie fijo)', () => {
+  const montarHoja = (onCerrar = vi.fn()) => {
+    const vista = render(
+      <Dialogo titulo="Filtros" desplazable pie={<button type="button">Ver resultados</button>} onCerrar={onCerrar}>
+        <p>Contenido largo</p>
+      </Dialogo>,
+    );
+    return { onCerrar, ...vista };
+  };
+
+  it('el cuerpo desplaza (clase de scroll) y el pie queda fuera de él', () => {
+    montarHoja();
+
+    const cuerpo = screen.getByText('Contenido largo').parentElement;
+    expect(cuerpo).toHaveClass('sheet-body');
+    expect(cuerpo).not.toContainElement(screen.getByRole('button', { name: 'Ver resultados' }));
+    expect(screen.getByRole('button', { name: 'Ver resultados' }).parentElement).toHaveClass('sheet-foot');
+    expect(screen.getByRole('dialog', { name: 'Filtros' })).toHaveClass('sheet');
+  });
+
+  it('ofrece un botón para cerrar con el nombre del diálogo', async () => {
+    const { onCerrar } = montarHoja();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Cerrar filtros' }));
+
+    expect(onCerrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('sin la prop mantiene el diálogo de siempre: sin cuerpo de scroll ni botón de cerrar', () => {
+    montar();
+
+    expect(screen.getByRole('dialog')).not.toHaveClass('sheet');
+    expect(document.querySelector('.sheet-body')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Cerrar/ })).not.toBeInTheDocument();
+  });
+});

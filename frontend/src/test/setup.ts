@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { instalarMatchMedia, restablecerViewport } from './viewport';
+import { crearEstadoCatalogo, handlersCatalogo } from './msw/catalogo';
 import { server } from './msw/server';
 
 // Los tests de arquitectura corren en entorno `node` (sin DOM): no hay nada que preparar.
@@ -33,7 +34,11 @@ beforeEach(async () => {
   if (!hayDom) return;
   // En cada test: un `vi.unstubAllGlobals()` de otro test no debe dejar al router sin el stub.
   instalarRequestSinSenal();
+  // El catálogo es público y lo pide cualquier test que abra `/catalogo` (el destino de `/`): hay un catálogo base; cada test lo pisa con `server.use`.
+  server.use(...handlersCatalogo(crearEstadoCatalogo()));
   instalarMatchMedia();
+  // jsdom no implementa el desplazamiento de la ventana: las pantallas lo piden al cambiar de página.
+  window.scrollTo = () => undefined;
   restablecerViewport();
   const { useUiStore } = await import('@/shared/model');
   useUiStore.getState().reset();

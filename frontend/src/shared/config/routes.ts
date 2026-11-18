@@ -17,6 +17,11 @@ export const RUTAS = {
   adminDashboard: '/admin/dashboard',
 } as const;
 
+/** Detalle de producto: sub-ruta pública del catálogo. No es una sección de navegación, así que no entra en `RUTAS` ni en `ACCESO_RUTAS`. */
+export const RUTA_PRODUCTO = '/catalogo/:productoId';
+
+export const rutaProducto = (id: number): string => `${RUTAS.catalogo}/${id}`;
+
 export type Ruta = (typeof RUTAS)[keyof typeof RUTAS];
 
 /** Quién puede abrir una ruta: todos, solo visitantes sin sesión, cualquier usuario con sesión o ciertos roles. */

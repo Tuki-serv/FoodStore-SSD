@@ -133,6 +133,29 @@ const TRAZOS = {
       <path d="M10 20v-5h4v5" />
     </>
   ),
+  buscar: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
+    </>
+  ),
+  filtros: (
+    <>
+      <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+      <circle cx="15" cy="6" r="2" />
+      <circle cx="9" cy="12" r="2" />
+      <circle cx="17" cy="18" r="2" />
+    </>
+  ),
+  menos: <path d="M5 12h14" />,
+  volver: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  plato: (
+    <>
+      <circle cx="12" cy="13" r="6" />
+      <circle cx="12" cy="13" r="3" />
+      <path d="M2.5 4v4a1.5 1.5 0 0 0 3 0V4M4 8v12M21.5 4c-1.5 0-2.5 2-2.5 5s1 4 2.5 4v7" />
+    </>
+  ),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof TRAZOS;

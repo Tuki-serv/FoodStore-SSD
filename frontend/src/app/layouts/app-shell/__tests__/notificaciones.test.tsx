@@ -23,7 +23,8 @@ describe('notificaciones del shell', () => {
       ui().notificar({ tipo: 'success', titulo: 'Dirección guardada' });
     });
 
-    expect(screen.getByRole('status')).toHaveTextContent('Dirección guardada');
+    // El catálogo también tiene regiones de estado (el total de resultados): se busca la del aviso por su texto.
+    expect(screen.getByText('Dirección guardada').closest('[role="status"]')).toHaveTextContent('Dirección guardada');
   });
 
   it('una de error se anuncia con rol alert y muestra su mensaje', async () => {

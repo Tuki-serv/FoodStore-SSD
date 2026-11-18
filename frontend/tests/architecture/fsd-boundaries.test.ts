@@ -13,6 +13,7 @@ describe('violacionesFsd con fixtures que violan cada regla', () => {
       "app/router/rutas.ts: '@/pages/otra/ui/y' -> import profundo (usar '@/pages/otra')",
       "entities/a/model/a.ts: '@/entities/b' -> cross-import entre slices de entities",
       "entities/direccion/ui/a.tsx: '@/pages/direcciones' -> capa superior (entities no puede importar pages)",
+      "entities/producto/ui/a.tsx: '@/entities/cart' -> cross-import entre slices de entities",
       "pages/a/ui/a.tsx: '@/pages/direcciones' -> cross-import entre slices de pages",
       "pages/home/ui/home.ts: '../../otra/ui/z' -> relativo fuera del slice",
       "pages/home/ui/home.ts: '@/app/router' -> capa superior (pages no puede importar app)",
@@ -24,12 +25,13 @@ describe('violacionesFsd con fixtures que violan cada regla', () => {
 });
 
 describe('violacionesFsd con código válido', () => {
-  it('acepta app -> pages/shared por API pública, pages -> entities/shared (p. ej. el selector de direcciones) y relativos dentro del slice', () => {
+  it('acepta app -> pages/shared por API pública, features -> entities (producto y cart, la combinación de agregar al carrito), pages -> entities/shared (p. ej. el selector de direcciones) y relativos dentro del slice', () => {
     const archivos = leerArbol(new URL('validos/', FIXTURES), '.fixture');
 
     expect(archivos.map((archivo) => archivo.ruta).sort()).toEqual([
       'app/router/rutas.ts',
       'entities/x/model/a.ts',
+      'features/agregar-al-carrito/ui/a.tsx',
       'pages/x/ui/a.tsx',
       'pages/x/ui/pagina.ts',
       'shared/ui/boton.ts',

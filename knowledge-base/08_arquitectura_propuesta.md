@@ -92,12 +92,16 @@ frontend/
     │   ├── router/            # routes.tsx (árbol único), route-map.ts, RequiereAcceso (guards), destino.ts, future.ts
     │   ├── layouts/app-shell/ # AppShell, ShellConSesion, Sidebar, Topbar, NavSections, app-shell.css, model/navigation.ts
     │   └── styles/index.css   # importa design-system/tokens.css y las directivas de Tailwind
-    ├── pages/                 # placeholder/, not-found/, error/, forbidden/ (Sin permiso), direcciones/ (C-15) (una carpeta por slice)
+    ├── pages/                 # placeholder/, not-found/, error/, forbidden/ (Sin permiso), direcciones/ (C-15), catalogo/ y producto/ (C-16b) (una carpeta por slice)
+    ├── features/
+    │   └── agregar-al-carrito/ # ui/ (BotonAgregarAlCarrito) — C-16b
     ├── entities/
     │   ├── session/           # api/ (rehidratarSesion, abrirSesion, sesionQueries), model/ (useSesion, useCerrarSesion)
     │   ├── cart/              # model/ (cartStore persistente)
     │   ├── payment/           # model/ (paymentStore, solo memoria)
-    │   └── direccion/         # api/ (direccionQueries, mutaciones), model/ (tipos, direccionPorDefecto), ui/ (TarjetaDireccion, SelectorDireccion) — C-15
+    │   ├── direccion/         # api/ (direccionQueries, mutaciones), model/ (tipos, direccionPorDefecto), ui/ (TarjetaDireccion, SelectorDireccion) — C-15
+    │   ├── producto/          # api/ (productoQueries, listarProductos), model/ (Producto, formatearPrecio, estadoStock), ui/ (TarjetaProducto, Precio, MarcaStock) — C-16b
+    │   └── categoria/         # api/ (categoriaQueries.arbol), model/ (idsDelSubarbol), ui/ (ArbolCategorias) — C-16b
     ├── shared/
     │   ├── api/               # apiClient (Axios), renovación single-flight ante 401, ApiError, crearQueryClient, auth.ts, Paginado
     │   ├── auth/              # authStore (access solo en memoria, usuario, estado de la sesión)
