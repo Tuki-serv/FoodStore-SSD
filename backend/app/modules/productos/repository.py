@@ -1,4 +1,6 @@
+from decimal import Decimal
 from typing import Any, Optional, cast
+from sqlalchemy import exists
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload, joinedload
 
@@ -24,6 +26,53 @@ class ProductoRepository(BaseRepository[Producto]):
         return self.session.exec(query).first()
 
 
+    def _aplicar_filtros(
+        self,
+        statement: Any,
+        *,
+        state: EstadoFiltro,
+        disponible: Optional[bool] = None,
+        categoria_ids: Optional[list[int]] = None,
+        ingrediente_ids: Optional[list[int]] = None,
+        q: Optional[str] = None,
+        precio_min: Optional[Decimal] = None,
+        precio_max: Optional[Decimal] = None,
+        con_stock: Optional[bool] = None,
+    ) -> Any:
+        """Agrega todos los filtros del catálogo a un `select` (listado y conteo comparten este único punto).
+
+        Categorías e ingredientes usan `EXISTS` (no `JOIN`) para que un producto que coincide con
+        varios ids aparezca y se cuente una sola vez.
+        """
+        statement = self._filter_state(statement, state)
+
+        if disponible is not None:
+            statement = statement.where(Producto.disponible == disponible)
+        if q:
+            statement = statement.where(Producto.nombre.ilike(f"%{q}%"))
+        if precio_min is not None:
+            statement = statement.where(Producto.precio_base >= precio_min)
+        if precio_max is not None:
+            statement = statement.where(Producto.precio_base <= precio_max)
+        if con_stock:
+            statement = statement.where(Producto.stock_cantidad > 0)
+        if categoria_ids:
+            statement = statement.where(
+                exists().where(
+                    ProductoCategoria.producto_id == Producto.id,
+                    cast(Any, ProductoCategoria.categoria_id).in_(categoria_ids),
+                )
+            )
+        if ingrediente_ids:
+            statement = statement.where(
+                exists().where(
+                    ProductoIngrediente.producto_id == Producto.id,
+                    cast(Any, ProductoIngrediente.ingrediente_id).in_(ingrediente_ids),
+                )
+            )
+        return statement
+
+
     def get_all_filtered(
         self,
         state: EstadoFiltro = EstadoFiltro.ACTIVO,
@@ -32,25 +81,19 @@ class ProductoRepository(BaseRepository[Producto]):
         ingrediente_ids: Optional[list[int]] = None,
         q: Optional[str] = None,
         offset: int = 0,
-        limit: int = 20
+        limit: int = 20,
+        precio_min: Optional[Decimal] = None,
+        precio_max: Optional[Decimal] = None,
+        con_stock: Optional[bool] = None,
     ) -> list[Producto]:
         statement = select(Producto).options(
             selectinload(Producto.links_categorias).joinedload(ProductoCategoria.categoria),
             selectinload(Producto.links_ingredientes).joinedload(ProductoIngrediente.ingrediente)
         )
-        statement = self._filter_state(statement, state)
-
-        if disponible is not None:
-            statement = statement.where(Producto.disponible == disponible)
-
-        if q:
-            statement = statement.where(Producto.nombre.ilike(f"%{q}%"))
-
-        if categoria_ids:
-            statement = statement.join(ProductoCategoria).where(ProductoCategoria.categoria_id.in_(categoria_ids))
-        if ingrediente_ids:
-            statement = statement.join(ProductoIngrediente).where(ProductoIngrediente.ingrediente_id.in_(ingrediente_ids))
-
+        statement = self._aplicar_filtros(
+            statement, state=state, disponible=disponible, categoria_ids=categoria_ids,
+            ingrediente_ids=ingrediente_ids, q=q, precio_min=precio_min, precio_max=precio_max, con_stock=con_stock,
+        )
         statement = statement.order_by(Producto.id.asc())
         return list(self.session.exec(statement.offset(offset).limit(limit)).all())
 
@@ -61,22 +104,16 @@ class ProductoRepository(BaseRepository[Producto]):
         disponible: Optional[bool] = None,
         categoria_ids: Optional[list[int]] = None,
         ingrediente_ids: Optional[list[int]] = None,
-        q: Optional[str] = None
+        q: Optional[str] = None,
+        precio_min: Optional[Decimal] = None,
+        precio_max: Optional[Decimal] = None,
+        con_stock: Optional[bool] = None,
     ) -> int:
-        statement = select(func.count()).select_from(Producto)
-        statement = self._filter_state(statement, state)
-
-        if disponible is not None:
-            statement = statement.where(Producto.disponible == disponible)
-
-        if q:
-            statement = statement.where(Producto.nombre.ilike(f"%{q}%"))
-
-        if categoria_ids:
-            statement = statement.join(ProductoCategoria).where(ProductoCategoria.categoria_id.in_(categoria_ids))
-        if ingrediente_ids:
-            statement = statement.join(ProductoIngrediente).where(ProductoIngrediente.ingrediente_id.in_(ingrediente_ids))
-
+        statement = self._aplicar_filtros(
+            select(func.count()).select_from(Producto), state=state, disponible=disponible,
+            categoria_ids=categoria_ids, ingrediente_ids=ingrediente_ids, q=q,
+            precio_min=precio_min, precio_max=precio_max, con_stock=con_stock,
+        )
         return self.session.exec(statement).one()
 
 

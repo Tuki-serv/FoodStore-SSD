@@ -46,6 +46,7 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 ### US-007 — Explorar catálogo
 **Como** cliente/visitante **Quiero** ver productos con filtros **Para** encontrar qué comprar.
 - [ ] Filtros: categoría, nombre (búsqueda parcial), rango de precio, disponibilidad; paginación; detalle con categorías, ingredientes (con alérgenos) y stock
+- [x] Backend (C-16a): `GET /productos/` filtra por `precio_min`/`precio_max` (extremos incluidos; `min > max` → 422) y `con_stock=true` (solo con stock); al filtrar por varias categorías o ingredientes cada producto aparece y se cuenta una sola vez
 - [ ] UI: debounce, skeleton, estados vacíos `[Pendiente-FE]`
 **Reglas**: RN-PR-03, RN-PR-04
 

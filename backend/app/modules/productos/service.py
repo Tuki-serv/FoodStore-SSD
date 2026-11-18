@@ -1,4 +1,5 @@
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
+from decimal import Decimal
 from typing import Optional, cast
 from pydantic import BaseModel
 from sqlmodel import Session
@@ -132,10 +133,18 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         categoria_ids: Optional[list[int]] = None,
         ingrediente_ids: Optional[list[int]] = None,
         q: Optional[str] = None,
+        precio_min: Optional[Decimal] = None,
+        precio_max: Optional[Decimal] = None,
+        con_stock: Optional[bool] = None,
         *,
         ver_no_disponibles: bool,
         ver_eliminados: bool,
     ):
+        if precio_min is not None and precio_max is not None and precio_min > precio_max:
+            raise AppError(
+                422, ErrorCode.VALIDATION_ERROR, "El precio mínimo no puede superar al máximo", field="precio_max"
+            )
+
         # Visibilidad: el público solo ve disponibles y no eliminados; los filtros intersectan, nunca amplían.
         estado_efectivo = restringir_estado(estado, solo_publicos=not ver_eliminados)
         if estado_efectivo is None or (not ver_no_disponibles and disponible is False):
@@ -149,11 +158,13 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
             productos = self.repo.get_all_filtered(
                 state=estado, disponible=disponible,
                 categoria_ids=categoria_ids, ingrediente_ids=ingrediente_ids,
-                q=q, offset=params.offset, limit=params.size
+                q=q, offset=params.offset, limit=params.size,
+                precio_min=precio_min, precio_max=precio_max, con_stock=con_stock,
             )
             total = self.repo.count_filtered(
                 state=estado, disponible=disponible,
-                categoria_ids=categoria_ids, ingrediente_ids=ingrediente_ids, q=q
+                categoria_ids=categoria_ids, ingrediente_ids=ingrediente_ids, q=q,
+                precio_min=precio_min, precio_max=precio_max, con_stock=con_stock,
             )
 
             # 2. Formato exacto de PaginatedResponse
