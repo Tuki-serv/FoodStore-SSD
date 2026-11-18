@@ -18,7 +18,7 @@ describe('MAPA_RUTAS', () => {
 
   it('declara el dueño y el título de cada ruta', () => {
     expect(MAPA_RUTAS).toEqual([
-      { path: '/catalogo', title: 'Catálogo', owner: 'C-16' },
+      { path: '/catalogo', title: 'Catálogo', owner: 'C-16b' },
       { path: '/ingresar', title: 'Ingresar', owner: 'C-14' },
       { path: '/registrarse', title: 'Registrarse', owner: 'C-14' },
       { path: '/carrito', title: 'Carrito', owner: 'C-18' },

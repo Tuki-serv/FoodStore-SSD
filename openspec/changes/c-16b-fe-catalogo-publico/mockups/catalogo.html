@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-16 - Catálogo (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="catalogo">
+<div class="shell" id="shell">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <img class="sidebar-logo" src="../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">
+    <button class="icon-btn btn-collapse" id="btn-collapse" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Colapsar panel"><svg class="ico" aria-hidden="true"><use href="#i-panel"/></svg></button>
+    <button class="icon-btn btn-close" id="btn-close" type="button" aria-label="Cerrar menú"><svg class="ico" aria-hidden="true"><use href="#i-cerrar"/></svg></button>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav" aria-label="Principal"></nav>
+  <div class="sidebar-foot">
+    <span class="avatar" aria-hidden="true">LP</span>
+    <div class="user-meta"><strong>Lucía Pérez</strong><small>CLIENT</small></div>
+    <button class="icon-btn btn-logout" type="button" aria-label="Cerrar sesión"><svg class="ico" aria-hidden="true"><use href="#i-salir"/></svg></button>
+  </div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<div class="shell-main">
+  <div class="banner" id="banner">Mockup C-16 · Catálogo con datos (página 1 de 2) · usuaria CLIENT (ejemplo; un visitante ve lo mismo) · Revision 2 · pendiente de aprobación · fotos, logo y nombre (TBD)</div>
+  <header class="topbar">
+    <button class="icon-btn" id="btn-menu" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menú"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <img src="../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">
+    <a class="icon-btn" href="#/carrito" aria-label="Carrito, 3 productos"><svg class="ico" aria-hidden="true"><use href="#i-carrito"/></svg><span class="count" aria-hidden="true">3</span></a>
+  </header>
+
+  <main class="page page-wide">
+    <div class="page-head">
+      <h1>Catálogo</h1>
+      <p>Elegí lo que tengas ganas y sumalo al carrito.</p>
+    </div>
+    <div class="cat-layout">
+      <aside class="filters" id="filtros" aria-label="Filtros"></aside>
+      <div class="cat-main">
+        <div id="barra"></div>
+        <div class="results-head">
+          <h2 class="results-count" id="resultados" tabindex="-1" role="status"></h2>
+          <div class="chips" id="chips"></div>
+        </div>
+        <ul class="prod-grid" id="grilla"></ul>
+        <nav class="pager" id="pager" aria-label="Paginación del catálogo">
+          <button class="btn btn-secondary btn-sm" type="button" disabled>Anterior</button>
+          <span>Página 1 de 2</span>
+          <button class="btn btn-secondary btn-sm" type="button">Siguiente</button>
+        </nav>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+
+<div class="toasts" aria-live="polite" id="toasts">
+  <div class="toast t-success" role="status"><div><strong>Agregado al carrito</strong>1 × Burger Vegana</div>
+    <button class="icon-btn" type="button" aria-label="Cerrar notificación"><svg class="ico" aria-hidden="true"><use href="#i-cerrar"/></svg></button></div>
+</div>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="mockup.js"></script>
+<script src="catalogo.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P;
+  if (M.estado === 'filtrado') {
+    /* Hamburguesas (incluye Veganas y Sin TACC) + precio 1.000 a 2.000 */
+    document.getElementById('banner').textContent = 'Mockup C-16 · Catálogo filtrado: «Hamburguesas» (con sus subcategorías) y precio $ 1.000 – $ 2.000 · una sola página · Revision 2 · pendiente de aprobación';
+    M.llenar('filtros', M.filtros({ actual: 1, min: '1000', max: '2000' }));
+    M.llenar('barra', M.barra({ actualRaiz: 1, nFiltros: 2 }));
+    M.llenar('resultados', '4 productos <small>en Hamburguesas</small>');
+    M.llenar('chips', M.chip('Hamburguesas') + M.chip('$ 1.000 – $ 2.000') + '<button class="link-btn" type="button">Limpiar filtros</button>');
+    M.llenar('grilla', [P.clasica, P.bbq, P.vegana, P.sintacc].map(M.tarjeta).join(''));
+    document.getElementById('pager').hidden = true;
+    document.getElementById('toasts').hidden = true;
+  } else {
+    M.llenar('filtros', M.filtros({ actual: null }));
+    M.llenar('barra', M.barra({ actualRaiz: null }));
+    M.llenar('resultados', '20 productos');
+    M.llenar('grilla', [P.clasica, P.bbq, P.vegana, P.sintacc, P.doble, P.coca, P.limonada, P.agua, P.sprite, P.flan, P.brownie, P.volcan].map(M.tarjeta).join(''));
+  }
+})();
+</script>
+</body>
+</html>
