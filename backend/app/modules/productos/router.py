@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Annotated, Optional, List
 from fastapi import APIRouter, Depends, Path, Query, status
 
@@ -38,7 +39,10 @@ def list_productos(
     disponible: Annotated[Optional[bool], Query(description="Filtrar por disponibilidad")] = None,
     categoria_ids: Annotated[Optional[List[int]], Query(description="Filtrar por múltiples categorías")] = None,
     ingrediente_ids: Annotated[Optional[List[int]], Query(description="Filtrar por múltiples ingredientes")] = None,
-    q: Annotated[Optional[str], Query(description="Buscar en nombre o descripción")] = None,
+    q: Annotated[Optional[str], Query(description="Buscar por nombre (búsqueda parcial)")] = None,
+    precio_min: Annotated[Optional[Decimal], Query(ge=0, description="Precio base mínimo (incluido)")] = None,
+    precio_max: Annotated[Optional[Decimal], Query(ge=0, description="Precio base máximo (incluido)")] = None,
+    con_stock: Annotated[Optional[bool], Query(description="true: solo productos con stock")] = None,
     *, svc: ProductoServiceDep
 ):
     """
@@ -54,6 +58,9 @@ def list_productos(
         categoria_ids=categoria_ids, 
         ingrediente_ids=ingrediente_ids,
         q=q,
+        precio_min=precio_min,
+        precio_max=precio_max,
+        con_stock=con_stock,
         ver_no_disponibles=ver_no_disponibles,
         ver_eliminados=ver_eliminados,
     )

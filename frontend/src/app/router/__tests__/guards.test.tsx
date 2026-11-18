@@ -143,6 +143,59 @@ describe('rutas solo para visitantes sin sesión', () => {
     },
   );
 
+  it('vuelve al detalle de un producto recordado (/catalogo/7)', async () => {
+    const { router } = renderApp('/catalogo');
+    await titulo('Catálogo');
+    server.use(handlerMe(['CLIENT']));
+
+    await act(() => router.navigate('/ingresar', { state: { desde: { pathname: '/catalogo/7', search: '', hash: '' } } }));
+    await titulo('Ingresar');
+    await act(() => abrirSesion('A9'));
+
+    await waitFor(() => expect(ubicacion(router)).toBe('/catalogo/7'));
+  });
+
+  it('vuelve al catálogo con sus filtros y página (/catalogo?categoria=2&page=2)', async () => {
+    const { router } = renderApp('/catalogo?categoria=2&page=2');
+    await titulo('Catálogo');
+    await act(() => router.navigate('/ingresar', { state: { desde: { pathname: '/catalogo', search: '?categoria=2&page=2', hash: '' } } }));
+    await titulo('Ingresar');
+    server.use(handlerMe(['CLIENT']));
+
+    await act(() => abrirSesion('A9'));
+
+    await waitFor(() => expect(ubicacion(router)).toBe('/catalogo?categoria=2&page=2'));
+  });
+
+  it('conserva query y hash del detalle recordado (/catalogo/7?x=1#a)', async () => {
+    const { router } = renderApp('/catalogo');
+    await titulo('Catálogo');
+    server.use(handlerMe(['CLIENT']));
+
+    await act(() => router.navigate('/ingresar', { state: { desde: { pathname: '/catalogo/7', search: '?x=1', hash: '#a' } } }));
+    await titulo('Ingresar');
+    await act(() => abrirSesion('A9'));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/catalogo/7'));
+    expect(router.state.location.search).toBe('?x=1');
+    expect(router.state.location.hash).toBe('#a');
+  });
+
+  it.each([['/catalogo/abc'], ['/catalogo/0'], ['/catalogo/-3'], ['/catalogo/07'], ['/catalogo/7/extra'], ['/catalogo/1e3']])(
+    'un detalle recordado inválido (%s) vuelve a /catalogo',
+    async (pathname) => {
+      const { router } = renderApp('/catalogo');
+      await titulo('Catálogo');
+      server.use(handlerMe(['CLIENT']));
+
+      await act(() => router.navigate('/ingresar', { state: { desde: { pathname, search: '', hash: '' } } }));
+      await titulo('Ingresar');
+      await act(() => abrirSesion('A9'));
+
+      await waitFor(() => expect(ubicacion(router)).toBe('/catalogo'));
+    },
+  );
+
   it('una ruta recordada a la que el usuario no accede (administración como CLIENT) se ignora', async () => {
     const { router } = renderApp('/admin/usuarios');
     await titulo('Ingresar');

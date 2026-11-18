@@ -52,7 +52,7 @@ Para correr un archivo: `npm test -- fsd` (filtra por nombre).
 ```text
 src/
   app/        providers/ (AppProviders, SesionGate), router/ (rutas, mapa con dueño, guards), layouts/app-shell/ (panel lateral), styles/
-  pages/      un slice por pantalla: placeholder/, not-found/, error/, forbidden/, direcciones/ (C-15; las demás de negocio llegan en C-14 y siguientes)
+  pages/      un slice por pantalla: placeholder/, not-found/, error/, forbidden/, direcciones/ (C-15), catalogo/ y producto/ (C-16b; las demás de negocio llegan en C-14 y siguientes)
   entities/   session/ (operaciones y hooks de sesión), cart/ (cartStore), payment/ (paymentStore), direccion/ (C-15: contrato, consultas, mutaciones, TarjetaDireccion y SelectorDireccion)
   shared/     api/ (cliente HTTP, ApiError, QueryClient), auth/ (authStore), config/ (env, roles, rutas y acceso, marca),
               model/ (uiStore), lib/ (useMediaQuery, almacenamiento seguro), ui/ (Icon, PantallaCarga, botones, Campo, Dialogo)
@@ -80,6 +80,15 @@ tests/architecture/   fronteras FSD y tokens de Tailwind (corren con `npm test`)
 - **Pantallas reales**: `PAGINAS` en `src/app/router/routes.tsx` asocia una ruta con su pantalla; las rutas sin entrada siguen con `PlaceholderPage`. Cada change visual agrega su línea.
 - **Formularios**: `@tanstack/react-form` 1.x (la KB decía 0.x; la API base `useForm`/`form.Field`/`validators` es la misma). Los validadores son funciones puras que devuelven `undefined` si el valor es válido.
 - **Accesibilidad en tests**: `esperarSinViolacionesA11y(contenedor)` de `src/test/axe.ts` (`axe-core`, con `color-contrast` desactivada porque jsdom no calcula estilos); se usa en páginas, formularios y diálogos.
+
+## Catálogo público y detalle (C-16b)
+
+- **Slices nuevos**: `src/entities/producto/` (tipos, `formatearPrecio`, `estadoStock`, `productoQueries`, `TarjetaProducto` con slot `accion`), `src/entities/categoria/` (`categoriaQueries.arbol`, `idsDelSubarbol`, `ArbolCategorias`), `src/features/agregar-al-carrito/` (`BotonAgregarAlCarrito`), `src/pages/catalogo/`, `src/pages/producto/`, `src/shared/ui/paginacion/` (`Paginacion`, reemplaza a la de direcciones) y `src/shared/lib/valor-diferido/` (`useValorDiferido`, debounce).
+- **Claves de consulta**: `['productos', 'lista', filtros]`, `['productos', 'detalle', id]` y `['categorias', 'arbol']` (árbol con `staleTime` de 5 minutos).
+- **Listas en query string**: el cliente Axios serializa los arrays repetidos (`categoria_ids=1&categoria_ids=2`) con `paramsSerializer: { indexes: null }`, como espera FastAPI.
+- **Filtros en la URL**: `categoria`, `q`, `min`, `max`, `stock` y `page` (12 por página). Elegir una categoría envía todo su subárbol; `q` se escribe en la URL con un debounce de 300 ms. Cualquier cambio de filtro vuelve a la página 1.
+- **Detalle**: `RUTA_PRODUCTO` (`/catalogo/:productoId`, pública) y `rutaProducto(id)` en `@/shared/config`. No es sección de navegación, así que no entra en `RUTAS` ni en `ACCESO_RUTAS`. «Volver al catálogo» recupera los filtros desde `state.volverA`.
+- **Agregar al carrito**: con sesión suma al `cartStore` y avisa con un toast; sin sesión lleva a `/ingresar` con `state.desde` (`rutaRecordada`) y, tras el ingreso, vuelve al producto sin agregarlo.
 
 ## Tokens y estilos
 
@@ -113,6 +122,6 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 ## Estado actual
 
 - La app arranca verificando la sesión y muestra el panel lateral con la variante de los roles del usuario (o «sin sesión»: Catálogo, Ingresar, Registrarse) y páginas provisorias por ruta. Las rutas tienen guards por rol (anónimo → `/ingresar`, rol insuficiente → «Sin permiso»).
-- Las páginas provisorias (todas menos `/direcciones`) no piden ni muestran datos del backend.
+- Las páginas provisorias (todas menos `/direcciones`, `/catalogo` y `/catalogo/:productoId`) no piden ni muestran datos del backend.
 - Cada ruta declara en `src/app/router/route-map.ts` el change que implementa su pantalla (`owner`).
-- `/direcciones` ya es una pantalla real (C-15): el resto de las rutas sigue con la página provisoria.
+- `/direcciones` ya es una pantalla real (C-15), y `/catalogo` y `/catalogo/:productoId` (C-16b): el resto de las rutas sigue con la página provisoria.

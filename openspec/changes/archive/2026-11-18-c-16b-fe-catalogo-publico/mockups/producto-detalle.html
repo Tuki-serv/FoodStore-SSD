@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-16 - Detalle de producto (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="catalogo">
+<div class="shell" id="shell">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <img class="sidebar-logo" src="../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">
+    <button class="icon-btn btn-collapse" id="btn-collapse" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Colapsar panel"><svg class="ico" aria-hidden="true"><use href="#i-panel"/></svg></button>
+    <button class="icon-btn btn-close" id="btn-close" type="button" aria-label="Cerrar menú"><svg class="ico" aria-hidden="true"><use href="#i-cerrar"/></svg></button>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav" aria-label="Principal"></nav>
+  <div class="sidebar-foot">
+    <span class="avatar" aria-hidden="true">LP</span>
+    <div class="user-meta"><strong>Lucía Pérez</strong><small>CLIENT</small></div>
+    <button class="icon-btn btn-logout" type="button" aria-label="Cerrar sesión"><svg class="ico" aria-hidden="true"><use href="#i-salir"/></svg></button>
+  </div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<div class="shell-main">
+  <div class="banner" id="banner">Mockup C-16 · Detalle de producto con ingredientes y alérgenos (stock 3) · Revision 2 · pendiente de aprobación · foto (TBD)</div>
+  <header class="topbar">
+    <button class="icon-btn" id="btn-menu" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menú"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <img src="../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">
+    <a class="icon-btn" href="#/carrito" aria-label="Carrito, 3 productos"><svg class="ico" aria-hidden="true"><use href="#i-carrito"/></svg><span class="count" aria-hidden="true">3</span></a>
+  </header>
+
+  <main class="page page-wide has-buy-bar" id="main">
+    <a class="back-link" href="catalogo.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Volver al catálogo</a>
+    <div id="contenido"></div>
+  </main>
+  <div class="buy-bar" id="buy-bar"></div>
+</div>
+</div>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="mockup.js"></script>
+<script src="catalogo.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, est = M.estado;
+  if (est === 'no-disponible') {
+    document.getElementById('banner').textContent = 'Mockup C-16 · Producto no disponible (404 o id inválido) · Revision 2 · pendiente de aprobación';
+    document.querySelector('.back-link').hidden = true;
+    document.getElementById('buy-bar').remove();
+    M.llenar('contenido', '<div class="nf"><section class="state" aria-labelledby="nd-t" style="max-width:560px;width:100%;border-style:solid;margin:var(--space-6) auto 0">' +
+      '<span class="badge-ico" aria-hidden="true" style="width:64px;height:64px;border-radius:50%;background:var(--color-primary-soft);color:var(--color-primary);display:grid;place-items:center">' + ico('i-plato') + '</span>' +
+      '<h1 id="nd-t" style="font-size:var(--text-2xl)">Este producto no está disponible</h1>' +
+      '<p>Puede que ya no esté en el menú o que el enlace esté mal. Mirá lo que tenemos hoy.</p>' +
+      '<div class="actions"><a class="btn btn-primary" href="catalogo.html">Ver el catálogo</a></div></section></div>');
+    return;
+  }
+  var agotado = est === 'agotado';
+  var p = agotado
+    ? { nombre: 'Burger BBQ Bacon', precio: '1900.00', stock: 0, cats: ['Hamburguesas'], t: 't3', desc: 'Ahumada, crocante y con todo.',
+        ingr: [['Pan Brioche', 1], ['Carne Vacuna 250g', 0], ['Bacon Crocante', 0], ['Queso Cheddar', 1], ['Cebolla Caramelizada', 0], ['Salsa BBQ', 0]] }
+    : { nombre: 'Hamburguesa Clásica', precio: '1500.00', stock: 3, cats: ['Hamburguesas'], t: '', desc: 'La de siempre, perfecta de siempre. Medallón de carne vacuna, cheddar fundido y vegetales frescos en pan brioche.',
+        ingr: [['Pan Brioche', 1], ['Carne Vacuna 250g', 0], ['Queso Cheddar', 1], ['Lechuga', 0], ['Tomate', 0], ['Mayonesa', 1]] };
+  if (agotado) document.getElementById('banner').textContent = 'Mockup C-16 · Detalle de un producto agotado (stock 0) · Revision 2 · pendiente de aprobación · foto (TBD)';
+  var alerg = p.ingr.filter(function (i) { return i[1]; }).map(function (i) { return i[0]; });
+  var marca = agotado ? '<span class="badge b-cancelado">Agotado</span>' : '<span class="badge b-pendiente">Quedan ' + p.stock + '</span>';
+  var compra = agotado
+    ? '<button class="btn btn-primary" type="button" disabled>Agotado</button>'
+    : '<div class="qty" role="group" aria-label="Cantidad"><button type="button" aria-label="Restar una unidad">' + ico('i-menos') + '</button><output aria-live="polite">2</output>' +
+      '<button type="button" aria-label="Sumar una unidad">' + ico('i-mas') + '</button></div>' +
+      '<button class="btn btn-primary" type="button" aria-label="Agregar ' + p.nombre + ' al carrito">' + ico('i-carrito') + 'Agregar al carrito · ' + M.precio(String(1500 * 2) + '.00') + '</button>';
+  M.llenar('contenido', '<article class="pd">' +
+    '<div class="pd-media' + (agotado ? ' unavailable' : '') + '"><div class="ph ' + p.t + '" role="img" aria-label="' + p.nombre + ' (foto TBD)">' + ico('i-plato') + '</div></div>' +
+    '<div class="pd-info">' +
+      '<div class="pd-cats">' + p.cats.map(function (c, i) { return '<a href="catalogo.html?estado=filtrado"' + (i === 0 ? ' class="is-main"' : '') + '>' + c + '</a>'; }).join('') + '</div>' +
+      '<h1>' + p.nombre + '</h1>' +
+      '<div class="pd-price"><span class="price">' + M.precio(p.precio) + '</span>' + marca + '</div>' +
+      '<p class="pd-desc">' + p.desc + '</p>' +
+      '<div class="buy inline">' + compra + '</div>' +
+      (alerg.length ? '<div class="allergen-note" role="note">' + ico('i-alerta') + '<div>Contiene alérgenos<p>' + alerg.join(', ') + '</p></div></div>' : '') +
+      '<section class="ingr" aria-labelledby="ingr-t"><h2 id="ingr-t">Ingredientes</h2><ul>' +
+        p.ingr.map(function (i) { return '<li' + (i[1] ? ' class="is-allergen"' : '') + '>' + i[0] + (i[1] ? ' <span class="badge b-pendiente">Alérgeno</span>' : '') + '</li>'; }).join('') +
+      '</ul></section>' +
+    '</div></article>');
+  M.llenar('buy-bar', compra.replace(' · ' + M.precio('3000.00'), ''));
+})();
+</script>
+</body>
+</html>

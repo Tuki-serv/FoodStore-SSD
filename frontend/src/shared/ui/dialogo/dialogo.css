@@ -15,4 +15,14 @@
     .modal-actions{flex-direction:column-reverse}
     .modal-actions > *{width:100%}
   }
+
+  /* Hoja desplazable (prop `desplazable`): cabecera, cuerpo con scroll y pie fijo; aprobada en los mockups de C-16b. */
+  .modal.sheet{max-width:480px;padding:0;gap:0;max-height:85vh;max-height:85dvh;overflow:hidden}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) var(--space-2) var(--space-2) var(--space-5);border-bottom:1px solid var(--color-border)}
+  .sheet-body{overflow-y:auto;padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+  .sheet-foot{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-5) calc(var(--space-3) + env(safe-area-inset-bottom));border-top:1px solid var(--color-border);background:var(--color-surface)}
+  .sheet-foot .grow{flex:1}
+  .grab{width:40px;height:4px;border-radius:var(--radius-pill);background:var(--color-border);margin:var(--space-2) auto 0;flex:none}
+  @media (min-width:720px){.grab{display:none}}
+  @media (max-width:719.98px){.modal.sheet{padding:0}.sheet-foot{flex-direction:row}}
 }

@@ -1,0 +1,4 @@
+/* Paginación «Anterior / Página X de N / Siguiente»: reglas aprobadas en los mockups de C-15 y C-16b. Solo tokens. */
+@layer components {
+  .pager{display:flex;align-items:center;justify-content:center;gap:var(--space-3);color:var(--color-text-muted);font-size:var(--text-sm)}
+}

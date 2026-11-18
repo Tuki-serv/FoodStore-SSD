@@ -1,17 +1,20 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 import type { ComponentType } from 'react';
 import { ShellConSesion } from '@/app/layouts/app-shell';
+import { CatalogoPage } from '@/pages/catalogo';
 import { DireccionesPage } from '@/pages/direcciones';
 import { ErrorPage } from '@/pages/error';
 import { NotFoundPage } from '@/pages/not-found';
 import { PlaceholderPage } from '@/pages/placeholder';
-import { ACCESO_RUTAS, RUTAS, type Ruta } from '@/shared/config';
+import { ProductoPage } from '@/pages/producto';
+import { ACCESO_RUTAS, RUTA_PRODUCTO, RUTAS, type Ruta } from '@/shared/config';
 import { FUTURO_ROUTER } from './future';
 import { RequiereAcceso } from './requiere-acceso';
 import { MAPA_RUTAS } from './route-map';
 
 /** Pantallas reales por ruta: cada change visual agrega su línea; las rutas sin entrada usan `PlaceholderPage`. */
 const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
+  [RUTAS.catalogo]: CatalogoPage,
   [RUTAS.direcciones]: DireccionesPage,
 };
 
@@ -39,6 +42,7 @@ export const routes: RouteObject[] = [
               ),
             };
           }),
+          { path: RUTA_PRODUCTO, element: <RequiereAcceso acceso="publica"><ProductoPage /></RequiereAcceso> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

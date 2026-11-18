@@ -35,6 +35,23 @@ describe('hoja de estilos de la app', () => {
     expect(css).toMatch(/\.min-h-tap\s*\{[^}]*min-height:\s*var\(--tap-min\)/);
   });
 
+  it('todos los @import van antes de cualquier otra regla (el navegador ignora los tardíos; verify C-16b)', () => {
+    const lineas = readFileSync(ENTRADA, 'utf8')
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l !== '' && !l.startsWith('/*') && !l.startsWith('*'));
+    const primeraNoImport = lineas.findIndex((l) => !l.startsWith('@import'));
+    const importsTardios = lineas.slice(primeraNoImport).filter((l) => l.startsWith('@import'));
+
+    expect(importsTardios).toEqual([]);
+  });
+
+  it('incluye las reglas del detalle de producto', async () => {
+    const css = await compilar();
+
+    expect(css).toMatch(/\.pd\s*\{[^}]*grid-template-columns/);
+  });
+
   it('los títulos conservan el peso del design system aunque el preflight de Tailwind lo reinicie (verify V-1)', async () => {
     const css = await compilar();
 

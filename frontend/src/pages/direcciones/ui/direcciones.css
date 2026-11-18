@@ -3,7 +3,6 @@
   .page-head-row{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-3)}
   .page-head-row .page-head{flex:1 1 320px}
   .page-head p{color:var(--color-text-muted);margin:var(--space-1) 0 0}
-  .pager{display:flex;align-items:center;justify-content:center;gap:var(--space-3);color:var(--color-text-muted);font-size:var(--text-sm)}
   .notice{display:flex;gap:var(--space-3);align-items:flex-start;background:var(--color-warning-bg);color:var(--color-warning);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-weight:700}
   .notice p{color:var(--color-text);font-weight:400;margin:0}
   @media (max-width:719.98px){ .page-head-row .btn-agregar{width:100%} }

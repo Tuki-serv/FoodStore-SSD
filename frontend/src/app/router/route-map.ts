@@ -1,7 +1,7 @@
 import { RUTAS, type Ruta } from '@/shared/config';
 
 /** Change que implementa la pantalla real de cada ruta (mientras tanto: página provisoria). */
-export type DuenoRuta = 'C-14' | 'C-15' | 'C-16' | 'C-17a' | 'C-17b' | 'C-18' | 'C-21' | 'C-22' | 'C-23' | 'C-24';
+export type DuenoRuta = 'C-14' | 'C-15' | 'C-16b' | 'C-17a' | 'C-17b' | 'C-18' | 'C-21' | 'C-22' | 'C-23' | 'C-24';
 
 export interface RutaDeclarada {
   path: Ruta;
@@ -11,7 +11,7 @@ export interface RutaDeclarada {
 
 /** Mapa de rutas con dueño: cada sección de la navegación apunta a una de estas. */
 export const MAPA_RUTAS: readonly RutaDeclarada[] = [
-  { path: RUTAS.catalogo, title: 'Catálogo', owner: 'C-16' },
+  { path: RUTAS.catalogo, title: 'Catálogo', owner: 'C-16b' },
   { path: RUTAS.ingresar, title: 'Ingresar', owner: 'C-14' },
   { path: RUTAS.registrarse, title: 'Registrarse', owner: 'C-14' },
   { path: RUTAS.carrito, title: 'Carrito', owner: 'C-18' },

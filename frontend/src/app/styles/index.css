@@ -3,8 +3,13 @@
 @import "../layouts/app-shell/notificaciones.css";
 @import "../../shared/ui/dialogo/dialogo.css";
 @import "../../shared/ui/campo/campo.css";
+@import "../../shared/ui/paginacion/paginacion.css";
+@import "../../entities/categoria/ui/categoria.css";
 @import "../../entities/direccion/ui/direccion.css";
+@import "../../entities/producto/ui/producto.css";
 @import "../../pages/direcciones/ui/direcciones.css";
+@import "../../pages/catalogo/ui/catalogo.css";
+@import "../../pages/producto/ui/producto.css";
 
 @tailwind base;
 @tailwind components;

@@ -45,12 +45,14 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 
 ### US-007 — Explorar catálogo
 **Como** cliente/visitante **Quiero** ver productos con filtros **Para** encontrar qué comprar.
-- [ ] Filtros: categoría, nombre (búsqueda parcial), rango de precio, disponibilidad; paginación; detalle con categorías, ingredientes (con alérgenos) y stock
-- [ ] UI: debounce, skeleton, estados vacíos `[Pendiente-FE]`
+- [x] Frontend (C-16b): filtros en la URL (categoría con su subárbol, nombre con debounce de 300 ms, rango de precio, solo con stock), paginación de 12, detalle `/catalogo/:productoId` con categorías, ingredientes (con alérgenos) y stock; agregar al carrito (anónimo → `/ingresar` y vuelve al producto)
+- [x] Backend (C-16a): `GET /productos/` filtra por `precio_min`/`precio_max` (extremos incluidos; `min > max` → 422) y `con_stock=true` (solo con stock); al filtrar por varias categorías o ingredientes cada producto aparece y se cuenta una sola vez
+- [x] UI (C-16b): debounce, skeleton, estados vacíos y de error con «Reintentar»
 **Reglas**: RN-PR-03, RN-PR-04
 
 ### US-008 — Árbol de categorías
 - [ ] `GET /categorias/arbol` devuelve el árbol completo; listado filtrable (`is_main`, `parent_id`, estado)
+- [x] Frontend (C-16b): `ArbolCategorias` en el catálogo (filtro por categoría con todo su subárbol)
 
 ### US-009 — Gestión de categorías (ADMIN)
 - [ ] Crear/editar/eliminar con validación de nombre único, anti-ciclos y re-asignación de hijas

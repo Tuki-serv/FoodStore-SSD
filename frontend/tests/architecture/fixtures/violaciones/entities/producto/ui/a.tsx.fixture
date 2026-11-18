@@ -1,0 +1,2 @@
+import { useCartStore } from '@/entities/cart';
+export const carrito = useCartStore;
