@@ -58,7 +58,7 @@ C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        │           └── C-19 fe-checkout-pedido (+C-10, C-11, C-15)
        │                 ├── C-20 fe-pago-mercadopago (+C-12)
        │                 └── C-21 fe-mis-pedidos-seguimiento (+C-11)
-       ├── C-17a fe-admin-categorias-ingredientes (+C-08)
+       ├── C-17a ✓ fe-admin-categorias-ingredientes (+C-08)
        │     └── C-17b fe-admin-productos-stock (+C-08)
        ├── C-22 fe-gestion-operativa-pedidos (+C-09, C-11)
        │     └── C-24 fe-dashboard-metricas
@@ -105,7 +105,7 @@ GATE 5: C-13b ✓                                         ← FORK
   → C-14 fe-auth-cuenta                       [Agente C]
   → C-16b ✓ fe-catalogo-publico               [Agente C — si C-16a ✓]
   → C-15 ✓ fe-direcciones                     [Agente B]
-  → C-17a fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b
+  → C-17a ✓ fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b
   → C-22 fe-gestion-operativa-pedidos         [Agente B — si C-09, C-11 ✓]
   → C-23 fe-admin-usuarios-roles              [Agente A — si C-08 ✓]
 
@@ -135,7 +135,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 5 | C-09 ✓ | — | — |
 | 6 | C-10 ✓ | C-12 ✓ | C-11 ✓ |
 | 7 | C-25a ✓ | — | C-13b |
-| 8 | C-16a ✓ → C-17a | C-15 | C-14 + C-16b ✓ |
+| 8 | C-16a ✓ → C-17a ✓ | C-15 | C-14 + C-16b ✓ |
 | 9 | C-17b | C-22 | C-18 |
 | 10 | C-23 | C-24 | C-19 |
 | 11 | — | C-20 | C-21 |
@@ -481,7 +481,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `openspec/changes/c-16a-backend-catalogo-filtros/design.md` (decisiones DU-1..DU-3 y contrato de los filtros)
 
 ### [C-17a] `fe-admin-categorias-ingredientes`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-18). Verify: PASS (frontend 685/685 tests, lint y typecheck limpios). Verify visual: passed tras corregir los botones compactos y el resaltado de «Es alérgeno»; diferencias menores anotadas en el design. Archivado en `openspec/changes/archive/2026-11-18-c-17a-fe-admin-categorias-ingredientes/`; spec principal nueva `openspec/specs/frontend-admin-catalog/spec.md`.
 - **Scope**:
   - US-009 categorías (nombre único, anti-ciclos), US-011 ingredientes y alérgenos (`es_alergeno`, `es_removible`).
   - Vistas condicionadas por rol (RBAC alineado con C-08).
@@ -718,7 +718,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 17 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 18** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-16a, C-16b, C-25a). **Pendientes obligatorios: 11** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 19** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-16a, C-16b, C-17a, C-25a). **Pendientes obligatorios: 10** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
