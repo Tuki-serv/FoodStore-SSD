@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17a - Formulario de categoría (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="ADMIN" data-current="categorias">
+<main class="page" id="main">
+  <a class="back-link" href="#/admin/categorias"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Volver a Categorías</a>
+  <section class="form-card" aria-labelledby="form-titulo">
+    <h2 id="form-titulo" tabindex="-1">Nueva categoría</h2>
+    <div class="form-alert" role="alert" id="alerta-general" hidden>
+      <svg class="ico" aria-hidden="true"><use href="#i-alerta"/></svg>
+      <div>No pudimos guardar la categoría<p>No pudimos conectar con el servidor. Probá de nuevo; lo que escribiste se conserva.</p></div>
+    </div>
+    <form class="form-grid" novalidate>
+      <div class="field c-3">
+        <div class="label-row"><label for="nombre">Nombre</label><span class="counter" id="nombre-cont">0/100</span></div>
+        <input id="nombre" class="input" maxlength="120" value="" aria-invalid="true" aria-describedby="nombre-err">
+        <span id="nombre-err" class="err">Ingresá un nombre.</span>
+      </div>
+      <div class="field c-3">
+        <label for="padre">Categoría padre <small>(opcional)</small></label>
+        <select id="padre" class="input" aria-describedby="padre-hint"></select>
+        <span id="padre-hint" class="hint">Vacío = categoría principal.</span>
+      </div>
+      <div class="field c-6">
+        <label for="descripcion">Descripción <small>(opcional)</small></label>
+        <textarea id="descripcion" class="input" rows="3"></textarea>
+      </div>
+      <div class="field c-6">
+        <label for="imagen">URL de imagen <small>(opcional)</small></label>
+        <input id="imagen" class="input" type="url" inputmode="url" placeholder="https://…" aria-describedby="imagen-hint">
+        <span id="imagen-hint" class="hint">Pegá el enlace de una imagen que represente la categoría.</span>
+      </div>
+      <div class="form-actions c-6">
+        <button class="btn btn-ghost" type="button">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="btn-guardar">Crear categoría</button>
+      </div>
+    </form>
+  </section>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: alta desde «Subcategoría» en Bebidas, guardada con el nombre vacío.
+   ?modo=editar: edición de «Hamburguesas» (el padre no ofrece ella ni sus subcategorías).
+   ?modo=duplicado: 409 DUPLICATE_VALUE en nombre. ?modo=red: el servidor no respondió. */
+(function () {
+  var M = MOCK, modo = M.modo;
+  var $ = function (id) { return document.getElementById(id); };
+  function valido(id, v) { var el = $(id); el.value = v; el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); var e = $(id + '-err'); if (e) e.remove(); }
+  function nota(t) { M.llenar('nota', '<span class="note" title="Anotación del mockup: no se muestra en la app">Anotación · ' + t + '</span>'); }
+  function contador() { $('nombre-cont').textContent = $('nombre').value.length + '/100'; }
+
+  if (modo === 'editar') {
+    M.banner('Mockup C-17a · Editar categoría «Hamburguesas» · ADMIN · Revision 2 · pendiente de aprobación');
+    $('form-titulo').textContent = 'Editar «Hamburguesas»';
+    valido('nombre', 'Hamburguesas');
+    $('padre').innerHTML = M.opcionesPadre([1, 4, 5], null);
+    $('padre-hint').textContent = 'No se ofrecen «Hamburguesas» ni sus subcategorías (Sin TACC, Veganas): crearían un ciclo.';
+    $('descripcion').value = 'Nuestras burgers artesanales';
+    $('imagen').value = 'https://via.placeholder.com/400x300?text=Hamburguesas';
+    $('btn-guardar').textContent = 'Guardar cambios';
+    nota('opciones del padre: Sin padre · Bebidas · — Gaseosas · Postres. Si no cambiaste nada, «Guardar cambios» vuelve sin enviar');
+  } else if (modo === 'duplicado') {
+    M.banner('Mockup C-17a · Nueva categoría: el nombre ya existe (409) · ADMIN · Revision 2 · pendiente de aprobación');
+    $('nombre').value = 'Gaseosas';
+    $('nombre-err').textContent = 'Ya existe una categoría con ese nombre.';
+    $('padre').innerHTML = M.opcionesPadre([], 2);
+    $('descripcion').value = 'Bebidas con gas';
+    nota('respuesta 409 DUPLICATE_VALUE con field «nombre»: el error va al campo y el foco vuelve a «Nombre»');
+  } else if (modo === 'red') {
+    M.banner('Mockup C-17a · Nueva categoría: el servidor no respondió · ADMIN · Revision 2 · pendiente de aprobación');
+    valido('nombre', 'Aguas');
+    $('padre').innerHTML = M.opcionesPadre([], 2);
+    $('descripcion').value = 'Con y sin gas';
+    $('alerta-general').hidden = false;
+    nota('también se usa para el 400 de ciclo y el 404 de padre eliminado mientras se editaba (con el detalle del servidor)');
+  } else {
+    M.banner('Mockup C-17a · Nueva subcategoría desde «Bebidas», guardada con el nombre vacío · ADMIN · Revision 2 · pendiente de aprobación');
+    $('form-titulo').textContent = 'Nueva subcategoría';
+    $('padre').innerHTML = M.opcionesPadre([], 2);
+    nota('«Subcategoría» en una fila abre el alta con ese padre elegido · errores tras pulsar «Crear categoría»: no se envía nada');
+  }
+  contador();
+})();
+</script>
+</body>
+</html>

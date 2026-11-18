@@ -1,0 +1,22 @@
+/* Piezas comunes de los listados de administración (categorías e ingredientes): reglas aprobadas en los mockups de C-17a (design-system Revision 2). Solo tokens. */
+@layer components {
+  .admin-summary{font-size:var(--text-sm);color:var(--color-text-muted);font-weight:600;margin:0}
+  .admin-summary strong{color:var(--color-text)}
+  .page-head-row .btn-agregar .ico{width:20px;height:20px}
+  .crow-actions{display:flex;gap:var(--space-1);justify-content:flex-end}
+  .crow-actions .ico{width:18px;height:18px}
+  .b-neutral{color:var(--color-text-muted);background:var(--color-surface-alt)}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3)}
+  .skel-rows{display:flex;flex-direction:column;gap:var(--space-3)}
+  .skel-row{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:grid;grid-template-columns:40px 1fr;gap:var(--space-4);align-items:center}
+  .skel-row .sq{width:40px;height:40px;border-radius:var(--radius-md)}
+  .skel-row .ln{display:grid;gap:var(--space-2)}
+  .skel-line{display:block;height:12px}
+  .is-new{animation:rowin 900ms var(--ease-out)}
+  @keyframes rowin{from{background:var(--color-accent-soft)}to{background:transparent}}
+  @media (prefers-reduced-motion:reduce){.is-new{animation:none;background:var(--color-accent-soft)}}
+  .back-link{display:inline-flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min);color:var(--color-text-muted);font-weight:700;text-decoration:none;align-self:flex-start;border-radius:var(--radius-md);padding:0 var(--space-2);margin-left:calc(var(--space-2) * -1);background:none;border:0;font-family:inherit;font-size:inherit;cursor:pointer}
+  .back-link:hover{color:var(--color-text);background:var(--color-surface-alt)}
+  .back-link:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+  .back-link .ico{width:18px;height:18px}
+}

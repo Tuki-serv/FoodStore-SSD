@@ -14,6 +14,8 @@ export interface CampoProps {
   ayuda?: string;
   /** Mensaje de error ya decidido por quien usa el campo (por ejemplo, solo tras tocarlo). */
   error?: string;
+  /** Contador a la derecha de la etiqueta (por ejemplo, «12/100»); decorativo para lectores de pantalla. */
+  contador?: string;
   /** Clase del contenedor (por ejemplo, columnas de una grilla). */
   className?: string;
   /** Dibuja el control con las propiedades de accesibilidad que le corresponden. */
@@ -21,7 +23,7 @@ export interface CampoProps {
 }
 
 /** Etiqueta + control + ayuda + error, con `aria-invalid` y `aria-describedby` coherentes (design system: `.field`). */
-export function Campo({ etiqueta, opcional = false, ayuda, error, className, children }: CampoProps) {
+export function Campo({ etiqueta, opcional = false, ayuda, error, contador, className, children }: CampoProps) {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
   const idError = `${id}-error`;
@@ -33,10 +35,16 @@ export function Campo({ etiqueta, opcional = false, ayuda, error, className, chi
   };
   return (
     <div className={className === undefined ? 'field' : `field ${className}`}>
-      <label htmlFor={id}>
-        {etiqueta}
-        {opcional ? <> <small>(opcional)</small></> : null}
-      </label>
+      {contador === undefined ? (
+        etiquetaDe(id, etiqueta, opcional)
+      ) : (
+        <div className="label-row">
+          {etiquetaDe(id, etiqueta, opcional)}
+          <span className="counter" aria-hidden="true">
+            {contador}
+          </span>
+        </div>
+      )}
       {children(control)}
       {ayuda === undefined ? null : (
         <span id={idAyuda} className="hint">
@@ -49,5 +57,14 @@ export function Campo({ etiqueta, opcional = false, ayuda, error, className, chi
         </span>
       )}
     </div>
+  );
+}
+
+function etiquetaDe(id: string, etiqueta: string, opcional: boolean): ReactNode {
+  return (
+    <label htmlFor={id}>
+      {etiqueta}
+      {opcional ? <> <small>(opcional)</small></> : null}
+    </label>
   );
 }

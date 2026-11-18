@@ -1,0 +1,37 @@
+/* Página Ingredientes (administración): listado, filtro y marca de alérgeno aprobados en los mockups de C-17a (design-system Revision 2). Solo tokens. */
+@layer components {
+  .seg{display:inline-flex;gap:var(--space-1);padding:4px;background:var(--color-surface-alt);border-radius:var(--radius-pill);border:1px solid var(--color-border)}
+  .seg button{min-height:40px;padding:0 var(--space-4);border:0;border-radius:var(--radius-pill);background:transparent;font:inherit;font-weight:700;font-size:var(--text-sm);color:var(--color-text-muted);cursor:pointer}
+  .seg button:hover{color:var(--color-text)}
+  .seg button[aria-pressed=true]{background:var(--color-surface);color:var(--color-text);box-shadow:var(--shadow-sm)}
+  .seg button:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+  .ilist{list-style:none;margin:0;padding:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+  .irow{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.2fr) 200px;gap:var(--space-4);align-items:center;padding:var(--space-3) var(--space-5);min-height:64px}
+  .ilist > li + li{border-top:1px solid var(--color-border)}
+  .ihead{background:var(--color-surface-alt);min-height:0;padding-top:var(--space-2);padding-bottom:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted)}
+  .iname{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .iname-top{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+  .iname small{color:var(--color-text-muted);font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .iunit,.iuse{font-size:var(--text-sm)}
+  .iuse{color:var(--color-text-muted)}
+  .iuse strong{color:var(--color-text)}
+  .b-alergeno{color:var(--color-warning);background:var(--color-warning-bg)}
+  .b-alergeno::before{display:none}
+  .b-alergeno .ico{width:14px;height:14px;stroke-width:2.2}
+  .ilist .crow-actions{flex-wrap:nowrap}
+  @media (min-width:1024px){.imeta{display:contents}}
+  @media (max-width:1023.98px){
+    .irow{grid-template-columns:minmax(0,1fr) auto;gap:var(--space-1) var(--space-3)}
+    .irow .iname{grid-column:1;grid-row:1}
+    .irow .imeta{grid-column:1;grid-row:2;display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-3)}
+    .irow .crow-actions{grid-column:2;grid-row:1 / span 2}
+    .ihead{display:none}
+  }
+  @media (max-width:719.98px){
+    .irow{padding:var(--space-3) var(--space-4);grid-template-columns:minmax(0,1fr)}
+    .irow .crow-actions{grid-column:1;grid-row:3;justify-content:flex-start;margin-left:-8px}
+    .irow .imeta .iunit::after{content:" ·"}
+    .seg{width:100%}
+    .seg button{flex:1;padding:0 var(--space-2)}
+  }
+}

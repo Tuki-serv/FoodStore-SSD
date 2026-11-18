@@ -9,6 +9,11 @@
   .modal p{color:var(--color-text-muted);margin:0}
   .modal .warn{display:flex;gap:var(--space-2);align-items:flex-start;background:var(--color-warning-bg);color:var(--color-warning);border-radius:var(--radius-md);padding:var(--space-3);font-size:var(--text-sm);font-weight:600}
   .modal-actions{display:flex;gap:var(--space-3);justify-content:flex-end;margin-top:var(--space-2)}
+  .modal .warn.is-danger{background:var(--color-danger-bg);color:var(--color-danger)}
+  .modal .warn .ico{width:18px;height:18px;margin-top:2px}
+  .modal .warn span{display:flex;flex-direction:column;gap:2px}
+  .modal .warn span small{color:var(--color-text);font-weight:400;font-size:var(--text-sm)}
+  .modal .mlist{margin:0;padding-left:1.2em;color:var(--color-text);font-size:var(--text-sm)}
   @media (max-width:719.98px){
     .modal-scrim{align-items:flex-end;padding:0}
     .modal{max-width:none;border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding-bottom:var(--space-6)}

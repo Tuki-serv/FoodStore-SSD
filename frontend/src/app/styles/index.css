@@ -4,10 +4,13 @@
 @import "../../shared/ui/dialogo/dialogo.css";
 @import "../../shared/ui/campo/campo.css";
 @import "../../shared/ui/paginacion/paginacion.css";
+@import "../../shared/ui/lista-admin/lista-admin.css";
 @import "../../entities/categoria/ui/categoria.css";
 @import "../../entities/direccion/ui/direccion.css";
 @import "../../entities/producto/ui/producto.css";
 @import "../../pages/direcciones/ui/direcciones.css";
+@import "../../pages/admin-categorias/ui/admin-categorias.css";
+@import "../../pages/admin-ingredientes/ui/admin-ingredientes.css";
 @import "../../pages/catalogo/ui/catalogo.css";
 @import "../../pages/producto/ui/producto.css";
 

@@ -156,6 +156,25 @@ const TRAZOS = {
       <path d="M2.5 4v4a1.5 1.5 0 0 0 3 0V4M4 8v12M21.5 4c-1.5 0-2.5 2-2.5 5s1 4 2.5 4v7" />
     </>
   ),
+  subcategoria: (
+    <>
+      <path d="M5 3v13a2 2 0 0 0 2 2h5" />
+      <path d="M5 9h7" />
+      <path d="M18 13v8M14 17h8" />
+    </>
+  ),
+  alergeno: (
+    <>
+      <path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" />
+      <path d="M12 8v5M12 16.5v.01" />
+    </>
+  ),
+  reintentar: (
+    <>
+      <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+      <path d="M20 4v7h-7" />
+    </>
+  ),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof TRAZOS;

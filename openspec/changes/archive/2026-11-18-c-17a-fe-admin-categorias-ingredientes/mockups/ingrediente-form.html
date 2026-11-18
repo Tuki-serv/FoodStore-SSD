@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17a - Formulario de ingrediente (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="ADMIN" data-current="ingredientes">
+<main class="page" id="main">
+  <a class="back-link" href="#/admin/ingredientes"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Volver a Ingredientes</a>
+  <section class="form-card" aria-labelledby="form-titulo">
+    <h2 id="form-titulo" tabindex="-1">Nuevo ingrediente</h2>
+    <div class="form-alert" role="alert" id="alerta-general" hidden>
+      <svg class="ico" aria-hidden="true"><use href="#i-alerta"/></svg>
+      <div>No pudimos guardar el ingrediente<p>No pudimos conectar con el servidor. Probá de nuevo; lo que escribiste se conserva.</p></div>
+    </div>
+    <form class="form-grid" novalidate>
+      <div class="field c-4">
+        <div class="label-row"><label for="nombre">Nombre</label><span class="counter" id="nombre-cont">0/100</span></div>
+        <input id="nombre" class="input" maxlength="120" value="Maní">
+        <span id="nombre-err" class="err" hidden></span>
+      </div>
+      <div class="field c-2">
+        <label for="unidad">Unidad de medida</label>
+        <select id="unidad" class="input"></select>
+      </div>
+      <div class="field c-6">
+        <label for="descripcion">Descripción <small>(opcional)</small></label>
+        <textarea id="descripcion" class="input" rows="2">Tostado, sin sal</textarea>
+      </div>
+      <div class="field c-6">
+        <label class="check is-on" id="check-al"><input type="checkbox" id="alergeno" checked>
+          <span>Es alérgeno<small>Se destaca en el detalle de cada producto que lo lleve, para avisar a quien compra.</small></span></label>
+      </div>
+      <div class="form-actions c-6">
+        <button class="btn btn-ghost" type="button">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="btn-guardar">Crear ingrediente</button>
+      </div>
+    </form>
+  </section>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: alta de «Maní», alérgeno, en gramos (datos válidos, listo para crear).
+   ?modo=editar: «Mayonesa» con «Es alérgeno» desmarcado. ?modo=duplicado: 409 en nombre. */
+(function () {
+  var M = MOCK, modo = M.modo;
+  var $ = function (id) { return document.getElementById(id); };
+  function nota(t) { M.llenar('nota', '<span class="note" title="Anotación del mockup: no se muestra en la app">Anotación · ' + t + '</span>'); }
+  function alergeno(on) { $('alergeno').checked = on; $('check-al').classList.toggle('is-on', on); }
+  if (modo === 'editar') {
+    M.banner('Mockup C-17a · Editar ingrediente «Mayonesa» · ADMIN · Revision 2 · pendiente de aprobación');
+    $('form-titulo').textContent = 'Editar «Mayonesa»';
+    $('nombre').value = 'Mayonesa';
+    $('descripcion').value = 'Mayo artesanal';
+    $('unidad').innerHTML = M.opcionesUnidad('Unidad (u)');
+    alergeno(false);
+    $('btn-guardar').textContent = 'Guardar cambios';
+    nota('se envía PATCH solo con lo que cambió (acá: es_alergeno = false); lo usa 1 producto');
+  } else if (modo === 'duplicado') {
+    M.banner('Mockup C-17a · Nuevo ingrediente: el nombre ya existe (409) · ADMIN · Revision 2 · pendiente de aprobación');
+    $('nombre').value = 'Lechuga';
+    $('nombre').setAttribute('aria-invalid', 'true');
+    $('nombre').setAttribute('aria-describedby', 'nombre-err');
+    $('nombre-err').hidden = false;
+    $('nombre-err').textContent = 'Ya existe un ingrediente con ese nombre.';
+    $('descripcion').value = 'Lechuga morada';
+    $('unidad').innerHTML = M.opcionesUnidad('Unidad (u)');
+    alergeno(false);
+    nota('respuesta 409 DUPLICATE_VALUE con field «nombre»; con el nombre vacío: «Ingresá un nombre.» sin enviar nada');
+  } else {
+    M.banner('Mockup C-17a · Nuevo ingrediente «Maní» (alérgeno, en gramos) · ADMIN · Revision 2 · pendiente de aprobación');
+    $('unidad').innerHTML = M.opcionesUnidad('Gramo (g)');
+    nota('unidades del servidor; en un alta nuevo viene elegida «Unidad (u)» · si el servidor no responde: alerta general arriba');
+  }
+  $('nombre-cont').textContent = $('nombre').value.length + '/100';
+})();
+</script>
+</body>
+</html>

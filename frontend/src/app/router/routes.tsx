@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 import type { ComponentType } from 'react';
 import { ShellConSesion } from '@/app/layouts/app-shell';
+import { AdminCategoriasPage } from '@/pages/admin-categorias';
+import { AdminIngredientesPage } from '@/pages/admin-ingredientes';
 import { CatalogoPage } from '@/pages/catalogo';
 import { DireccionesPage } from '@/pages/direcciones';
 import { ErrorPage } from '@/pages/error';
@@ -16,6 +18,8 @@ import { MAPA_RUTAS } from './route-map';
 const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
   [RUTAS.catalogo]: CatalogoPage,
   [RUTAS.direcciones]: DireccionesPage,
+  [RUTAS.adminCategorias]: AdminCategoriasPage,
+  [RUTAS.adminIngredientes]: AdminIngredientesPage,
 };
 
 /**

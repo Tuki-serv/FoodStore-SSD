@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17a - Ingredientes (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="ADMIN" data-current="ingredientes">
+<main class="page" id="main">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Ingredientes</h1>
+      <p>Cargá los ingredientes y marcá los alérgenos: se destacan en el detalle de cada producto.</p>
+    </div>
+    <button class="btn btn-primary" type="button" id="btn-nuevo"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nuevo ingrediente</button>
+  </div>
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Filtrar por alérgeno" id="filtro">
+      <button type="button" aria-pressed="true">Todos</button>
+      <button type="button" aria-pressed="false">Alérgenos</button>
+      <button type="button" aria-pressed="false">No alérgenos</button>
+    </div>
+    <p class="admin-summary" id="resumen" role="status"></p>
+  </div>
+  <div id="contenido"></div>
+  <nav class="pager" id="pager" aria-label="Paginación de ingredientes" hidden>
+    <button class="btn btn-secondary btn-sm" type="button" disabled>Anterior</button>
+    <span>Página 1 de 2</span>
+    <button class="btn btn-secondary btn-sm" type="button">Siguiente</button>
+  </nav>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: listado del seed + «Maní» recién creado (toast).
+   ?estado=carga | ?estado=vacio (filtro «Alérgenos» sin resultados) | ?estado=error */
+(function () {
+  var M = MOCK;
+  var botones = document.querySelectorAll('#filtro button');
+  function filtro(i) { botones.forEach(function (b, k) { b.setAttribute('aria-pressed', String(k === i)); }); }
+  function nota(t) { M.llenar('nota', '<span class="note" title="Anotación del mockup: no se muestra en la app">Anotación · ' + t + '</span>'); }
+  if (M.estado === 'carga') {
+    M.banner('Mockup C-17a · Ingredientes: cargando · ADMIN · Revision 2 · pendiente de aprobación');
+    document.getElementById('resumen').hidden = true;
+    M.llenar('contenido', M.esqueleto(6));
+  } else if (M.estado === 'vacio') {
+    M.banner('Mockup C-17a · Ingredientes: el filtro «Alérgenos» no trajo resultados · ADMIN · Revision 2 · pendiente de aprobación');
+    filtro(1);
+    M.llenar('resumen', '<strong>0 ingredientes</strong> alérgenos');
+    M.llenar('contenido', M.estadoVista('vacio', 'i-alergeno', 'No hay ingredientes alérgenos',
+      'Cuando marques un ingrediente como alérgeno va a aparecer acá.',
+      '<button class="btn btn-secondary" type="button">Ver todos</button>'));
+    nota('sin filtro y sin datos: «Todavía no hay ingredientes» + «Nuevo ingrediente» · URL: ?alergeno=si');
+  } else if (M.estado === 'error') {
+    M.banner('Mockup C-17a · Ingredientes: falló la carga · ADMIN · Revision 2 · pendiente de aprobación');
+    document.getElementById('resumen').hidden = true;
+    M.llenar('contenido', M.estadoVista('error', 'i-alerta', 'No pudimos cargar los ingredientes',
+      'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.',
+      '<button class="btn btn-secondary" type="button">' + M.ico('i-reintentar') + 'Reintentar</button>'));
+  } else {
+    M.banner('Mockup C-17a · Ingredientes del seed + «Maní» recién creado · usuaria ADMIN (ejemplo) · Revision 2 · pendiente de aprobación');
+    var items = M.ING.concat([{ nombre: 'Maní', desc: 'Tostado, sin sal', al: true, u: 'Gramo (g)', prods: [], nuevo: true }]);
+    M.llenar('resumen', '<strong>' + items.length + ' ingredientes</strong>');
+    M.llenar('contenido', M.listaIngredientes(items));
+    M.toast('Ingrediente creado', '«Maní» · marcado como alérgeno');
+    nota('20 por página en el orden del servidor; con más de 20 aparece «Anterior / Página 1 de 2 / Siguiente» · filtro y página en la URL');
+  }
+})();
+</script>
+</body>
+</html>
