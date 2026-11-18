@@ -49,7 +49,7 @@ Las anotaciones (franja amarilla y etiquetas azules punteadas) no son parte de l
 
 ## Cómo previsualizar
 
-1. Abrir cualquier `.html` directamente en el navegador (sin servidor). Las rutas a `design-system/` son relativas: `../../../../design-system/` (al archivar el change pasan a `../../../../../`).
+1. Abrir cualquier `.html` directamente en el navegador (sin servidor). Las rutas a `design-system/` son relativas: `../../../../../design-system/` (ajustadas al archivar el change).
 2. Mobile: ventana de menos de 1024 px; menú con «Abrir menú». Para capturas: `?nav=drawer`.
 3. Re-render: headless Edge con `--screenshot` y `--window-size=1440,900`; para 390 px, un HTML contenedor con un iframe de 390x844 y `--window-size=390,844` (Edge no baja de ~500 px de viewport, pero recorta la captura al tamaño pedido).
 

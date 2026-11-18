@@ -52,7 +52,7 @@ FASE 1 (frontend sobre base corregida)
 C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
  └── C-13b ✓ fe-foundation-auth-data (C-13a, C-02, C-11)
        ├── C-14 fe-auth-cuenta
-       ├── C-15 fe-direcciones
+       ├── C-15 ✓ fe-direcciones
        ├── C-16 fe-catalogo-publico
        │     └── C-18 fe-carrito-personalizacion
        │           └── C-19 fe-checkout-pedido (+C-10, C-11, C-15)
@@ -102,7 +102,7 @@ GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
 GATE 5: C-13b ✓                                         ← FORK
   → C-14 fe-auth-cuenta                       [Agente C]
   → C-16 fe-catalogo-publico                  [Agente C]
-  → C-15 fe-direcciones                       [Agente B]
+  → C-15 ✓ fe-direcciones                     [Agente B]
   → C-17a fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b
   → C-22 fe-gestion-operativa-pedidos         [Agente B — si C-09, C-11 ✓]
   → C-23 fe-admin-usuarios-roles              [Agente A — si C-08 ✓]
@@ -428,7 +428,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/07_flujos_principales.md` §Auth
 
 ### [C-15] `fe-direcciones`
-- **Estado**: `[ ]` en implementación (apply 2026-11-17; mockups aprobados; pendiente verify y archive)
+- **Estado**: `[x]` cerrado (2026-11-17). Verify: PASS WITH FINDINGS; los 4 warnings (limpieza de toasts/diálogo al cerrar sesión, foco tras eliminar, aviso de lista desactualizada, feedback de mutaciones superpuestas) se corrigieron en el mismo change. Verify visual: passed con el backend real (capturas en el change archivado, `mockups/verify/`).
 - **Scope**:
   - US-006: CRUD de direcciones propias, marcar principal (la primera queda principal) con TanStack Query.
   - Páginas y selector reutilizable para checkout.
@@ -692,7 +692,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 15** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-25a). **Pendientes obligatorios: 13** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 16** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-25a). **Pendientes obligatorios: 12** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
