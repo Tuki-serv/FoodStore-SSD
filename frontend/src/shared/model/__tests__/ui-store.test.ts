@@ -38,6 +38,23 @@ describe('uiStore', () => {
 
     expect(useUiStore.getState()).toMatchObject({ sidebarCollapsed: false, sidebarOpen: false });
   });
+
+  it('limpiarTransitorios vacía toasts y confirmación y conserva sidebarCollapsed', () => {
+    const { toggleSidebarCollapsed, notificar, pedirConfirmacion } = useUiStore.getState();
+    toggleSidebarCollapsed();
+    notificar({ tipo: 'info', titulo: 'Uno' });
+    pedirConfirmacion({ titulo: 'T', mensaje: 'M', onConfirmar: vi.fn() });
+
+    useUiStore.getState().limpiarTransitorios();
+
+    expect(useUiStore.getState()).toMatchObject({ toasts: [], confirmModal: null, sidebarCollapsed: true });
+  });
+
+  it('limpiarTransitorios sin nada pendiente no cambia el estado', () => {
+    useUiStore.getState().limpiarTransitorios();
+
+    expect(useUiStore.getState()).toMatchObject({ toasts: [], confirmModal: null, sidebarCollapsed: false });
+  });
 });
 
 describe('uiStore con el almacenamiento del navegador', () => {

@@ -6,12 +6,14 @@ const FIXTURES = new URL('./fixtures/', import.meta.url);
 const SRC = new URL('../../src/', import.meta.url);
 
 describe('violacionesFsd con fixtures que violan cada regla', () => {
-  it('detecta capa superior (incluida shared → entities), cross-import entre páginas y entre entidades, import profundo y relativo fuera del slice', () => {
+  it('detecta capa superior (incluida shared → entities y entities → pages), cross-import entre páginas y entre entidades, import profundo y relativo fuera del slice', () => {
     const archivos = leerArbol(new URL('violaciones/', FIXTURES), '.fixture');
 
     expect(violacionesFsd(archivos)).toEqual([
       "app/router/rutas.ts: '@/pages/otra/ui/y' -> import profundo (usar '@/pages/otra')",
       "entities/a/model/a.ts: '@/entities/b' -> cross-import entre slices de entities",
+      "entities/direccion/ui/a.tsx: '@/pages/direcciones' -> capa superior (entities no puede importar pages)",
+      "pages/a/ui/a.tsx: '@/pages/direcciones' -> cross-import entre slices de pages",
       "pages/home/ui/home.ts: '../../otra/ui/z' -> relativo fuera del slice",
       "pages/home/ui/home.ts: '@/app/router' -> capa superior (pages no puede importar app)",
       "pages/home/ui/home.ts: '@/pages/otra' -> cross-import entre slices de pages",
@@ -22,12 +24,13 @@ describe('violacionesFsd con fixtures que violan cada regla', () => {
 });
 
 describe('violacionesFsd con código válido', () => {
-  it('acepta app -> pages/shared por API pública, pages -> shared y relativos dentro del slice', () => {
+  it('acepta app -> pages/shared por API pública, pages -> entities/shared (p. ej. el selector de direcciones) y relativos dentro del slice', () => {
     const archivos = leerArbol(new URL('validos/', FIXTURES), '.fixture');
 
     expect(archivos.map((archivo) => archivo.ruta).sort()).toEqual([
       'app/router/rutas.ts',
       'entities/x/model/a.ts',
+      'pages/x/ui/a.tsx',
       'pages/x/ui/pagina.ts',
       'shared/ui/boton.ts',
     ]);

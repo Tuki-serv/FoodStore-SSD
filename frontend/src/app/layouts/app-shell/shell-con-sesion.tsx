@@ -5,6 +5,8 @@ import { selectEstado, useAuthStore } from '@/shared/auth';
 import { RUTAS } from '@/shared/config';
 import { AppShell } from './app-shell';
 import { rolPrincipal } from './model/rol-principal';
+import { ConfirmacionGlobal } from './confirmacion-global';
+import { Notificaciones } from './notificaciones';
 
 /**
  * `AppShell` alimentado por la sesión: navegación de sus roles, pie con el usuario y «Cerrar sesión».
@@ -41,10 +43,14 @@ export function ShellConSesion() {
   };
 
   return (
-    <AppShell
-      roles={roles}
-      usuario={usuario === null ? undefined : { nombre: `${usuario.nombre} ${usuario.apellido}`, rolPrincipal: rolPrincipal(roles) }}
-      onCerrarSesion={cerrarSesion}
-    />
+    <>
+      <AppShell
+        roles={roles}
+        usuario={usuario === null ? undefined : { nombre: `${usuario.nombre} ${usuario.apellido}`, rolPrincipal: rolPrincipal(roles) }}
+        onCerrarSesion={cerrarSesion}
+      />
+      <Notificaciones />
+      <ConfirmacionGlobal />
+    </>
   );
 }

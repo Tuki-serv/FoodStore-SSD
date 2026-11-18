@@ -1,0 +1,12 @@
+/* Campo de formulario (etiqueta, control, ayuda y error): reglas aprobadas en los mockups de C-15 (design-system Revision 2). Solo tokens. */
+@layer components {
+  .field{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+  .field label{font-weight:600;font-size:var(--text-sm)}
+  .field label small{font-weight:400;color:var(--color-text-muted);font-size:inherit}
+  .input{font:inherit;min-height:var(--tap-min);padding:0 var(--space-3);border:2px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text);width:100%}
+  .input:hover{border-color:var(--color-text-muted)}
+  .input:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+  .input[aria-invalid=true]{border-color:var(--color-danger)}
+  .hint{font-size:var(--text-xs);color:var(--color-text-muted)}
+  .err{font-size:var(--text-xs);color:var(--color-danger);font-weight:600}
+}

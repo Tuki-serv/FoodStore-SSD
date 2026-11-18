@@ -1,0 +1,2 @@
+import { SelectorDireccion } from '@/entities/direccion';
+export const Entrega = SelectorDireccion;
