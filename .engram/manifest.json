@@ -200,6 +200,14 @@
       "sessions": 1,
       "memories": 5,
       "prompts": 0
+    },
+    {
+      "id": "2eb7643b",
+      "created_by": "jacop",
+      "created_at": "2026-11-18T17:23:31.6085194Z",
+      "sessions": 1,
+      "memories": 4,
+      "prompts": 0
     }
   ]
 }
