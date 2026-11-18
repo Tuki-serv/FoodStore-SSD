@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17a - Categorías (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="ADMIN" data-current="categorias">
+<main class="page" id="main">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Categorías</h1>
+      <p>Organizá el catálogo en categorías y subcategorías. Los cambios se ven enseguida en el catálogo.</p>
+    </div>
+    <button class="btn btn-primary" type="button" id="btn-nueva"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nueva categoría</button>
+  </div>
+  <p class="admin-summary" id="resumen" role="status"></p>
+  <div id="contenido"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK;
+  var reintentar = '<button class="btn btn-secondary" type="button">' + M.ico('i-reintentar') + 'Reintentar</button>';
+  var nota = function (t) { M.llenar('nota', '<span class="note" title="Anotación del mockup: no se muestra en la app">Anotación · ' + t + '</span>'); };
+  if (M.estado === 'carga') {
+    M.banner('Mockup C-17a · Categorías: cargando el árbol · ADMIN · Revision 2 · pendiente de aprobación');
+    document.getElementById('resumen').hidden = true;
+    M.llenar('contenido', M.esqueleto(4));
+  } else if (M.estado === 'vacio') {
+    M.banner('Mockup C-17a · Categorías: todavía no hay ninguna · ADMIN · Revision 2 · pendiente de aprobación');
+    document.getElementById('resumen').hidden = true;
+    document.getElementById('btn-nueva').hidden = true;
+    M.llenar('contenido', M.estadoVista('vacio', 'i-categorias', 'Todavía no hay categorías',
+      'Creá la primera para empezar a ordenar el catálogo. Después vas a poder sumarle subcategorías.',
+      '<button class="btn btn-primary" type="button">' + M.ico('i-mas') + 'Nueva categoría</button>'));
+  } else if (M.estado === 'error') {
+    M.banner('Mockup C-17a · Categorías: falló la carga del árbol · ADMIN · Revision 2 · pendiente de aprobación');
+    document.getElementById('resumen').hidden = true;
+    M.llenar('contenido', M.estadoVista('error', 'i-alerta', 'No pudimos cargar las categorías',
+      'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.', reintentar));
+  } else if (M.estado === 'creada') {
+    M.banner('Mockup C-17a · Categorías: después de crear «Aguas» dentro de «Bebidas» · ADMIN · Revision 2 · pendiente de aprobación');
+    M.ARBOL[0].subcategorias.unshift({ id: 7, nombre: 'Aguas', descripcion: 'Con y sin gas', subcategorias: [] });
+    M.llenar('resumen', '<strong>7 categorías</strong> · 3 principales');
+    M.llenar('contenido', M.arbol(7));
+    M.toast('Categoría creada', '«Aguas» dentro de Bebidas');
+    nota('la fila nueva se resalta un momento (sin animación con «reducir movimiento») y el foco vuelve al botón «Nueva categoría»');
+  } else {
+    M.banner('Mockup C-17a · Categorías: árbol del seed · usuaria ADMIN (ejemplo) · Revision 2 · pendiente de aprobación · logo y nombre (TBD)');
+    M.llenar('resumen', '<strong>' + M.contar(M.ARBOL) + ' categorías</strong> · 3 principales');
+    M.llenar('contenido', M.arbol());
+    nota('orden del servidor (alfabético por nivel) · sin paginación: el árbol llega completo');
+  }
+})();
+</script>
+</body>
+</html>

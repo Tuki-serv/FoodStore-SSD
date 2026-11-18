@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17a - Eliminar categoría (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="ADMIN" data-current="categorias">
+<main class="page" id="main" aria-hidden="true">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Categorías</h1>
+      <p>Organizá el catálogo en categorías y subcategorías. Los cambios se ven enseguida en el catálogo.</p>
+    </div>
+    <button class="btn btn-primary" type="button"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nueva categoría</button>
+  </div>
+  <p class="admin-summary"><strong>6 categorías</strong> · 3 principales</p>
+  <div id="contenido"></div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: confirmar la baja de «Postres» (sin subcategorías ni productos).
+   ?estado=subcategorias: «Hamburguesas» tiene subcategorías activas (se sabe por el árbol; no se envía nada).
+   ?estado=productos: el servidor respondió 409 CATEGORY_HAS_PRODUCTS para «Gaseosas». */
+(function () {
+  var M = MOCK, ico = M.ico;
+  M.llenar('contenido', M.arbol());
+  if (M.estado === 'subcategorias') {
+    M.banner('Mockup C-17a · Eliminar «Hamburguesas»: tiene subcategorías activas · ADMIN · Revision 2 · pendiente de aprobación');
+    M.dialogo(
+      '<h2 id="dlg-titulo">No podés eliminar «Hamburguesas» todavía</h2>' +
+      '<div class="warn">' + ico('i-alerta') + '<span>Tiene 2 subcategorías activas<small>Movelas a otra categoría (con «Editar») o eliminalas primero.</small></span></div>' +
+      '<ul class="mlist"><li>Sin TACC</li><li>Veganas</li></ul>' +
+      '<div class="modal-actions"><button class="btn btn-primary" type="button">Entendido</button></div>');
+  } else if (M.estado === 'productos') {
+    M.banner('Mockup C-17a · Eliminar «Gaseosas»: el servidor la rechazó por tener productos (409) · ADMIN · Revision 2 · pendiente de aprobación');
+    M.dialogo(
+      '<h2 id="dlg-titulo">¿Eliminar «Gaseosas»?</h2>' +
+      '<p>Deja de verse en el catálogo. Podés volver a crear una con el mismo nombre más adelante.</p>' +
+      '<div class="warn is-danger" role="alert">' + ico('i-alerta') + '<span>No se puede eliminar: tiene productos activos<small>Quitalos de la categoría desde Productos y stock y volvé a intentarlo.</small></span></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cerrar</button><a class="btn btn-secondary" href="#/admin/productos">Ir a Productos y stock</a></div>');
+  } else {
+    M.banner('Mockup C-17a · Eliminar «Postres»: confirmación · ADMIN · Revision 2 · pendiente de aprobación');
+    M.dialogo(
+      '<h2 id="dlg-titulo">¿Eliminar «Postres»?</h2>' +
+      '<p>Deja de verse en el catálogo. Podés volver a crear una con el mismo nombre más adelante.</p>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Eliminar</button></div>');
+  }
+})();
+</script>
+</body>
+</html>

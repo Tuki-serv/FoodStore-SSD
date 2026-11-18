@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17a - Eliminar ingrediente (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="ADMIN" data-current="ingredientes">
+<main class="page" id="main" aria-hidden="true">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Ingredientes</h1>
+      <p>Cargá los ingredientes y marcá los alérgenos: se destacan en el detalle de cada producto.</p>
+    </div>
+    <button class="btn btn-primary" type="button"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nuevo ingrediente</button>
+  </div>
+  <div id="contenido"></div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: «Queso Cheddar», usado por 3 productos (aviso). ?estado=sin-uso: ingrediente sin productos. */
+(function () {
+  var M = MOCK, ico = M.ico;
+  M.llenar('contenido', M.listaIngredientes(M.ING));
+  if (M.estado === 'sin-uso') {
+    M.banner('Mockup C-17a · Eliminar ingrediente sin uso · ADMIN · Revision 2 · pendiente de aprobación');
+    M.dialogo('<h2 id="dlg-titulo">¿Eliminar «Maní»?</h2><p>Deja de ofrecerse al armar productos. Podés volver a crearlo con el mismo nombre más adelante.</p>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Eliminar</button></div>');
+  } else {
+    M.banner('Mockup C-17a · Eliminar «Queso Cheddar», usado por 3 productos · ADMIN · Revision 2 · pendiente de aprobación');
+    M.dialogo('<h2 id="dlg-titulo">¿Eliminar «Queso Cheddar»?</h2><p>Deja de ofrecerse al armar productos. Podés volver a crearlo con el mismo nombre más adelante.</p>' +
+      '<div class="warn">' + ico('i-alerta') + '<span>Lo usan 3 productos<small>Hamburguesa Clásica, Burger BBQ Bacon, Burger Sin TACC. Revisalos después en Productos y stock.</small></span></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Eliminar</button></div>');
+  }
+})();
+</script>
+</body>
+</html>
