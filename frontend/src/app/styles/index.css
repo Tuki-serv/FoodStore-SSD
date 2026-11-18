@@ -1,5 +1,10 @@
 @import "@design-system/tokens.css";
 @import "../layouts/app-shell/app-shell.css";
+@import "../layouts/app-shell/notificaciones.css";
+@import "../../shared/ui/dialogo/dialogo.css";
+@import "../../shared/ui/campo/campo.css";
+@import "../../entities/direccion/ui/direccion.css";
+@import "../../pages/direcciones/ui/direcciones.css";
 
 @tailwind base;
 @tailwind components;

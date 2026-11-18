@@ -1,12 +1,19 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
+import type { ComponentType } from 'react';
 import { ShellConSesion } from '@/app/layouts/app-shell';
+import { DireccionesPage } from '@/pages/direcciones';
 import { ErrorPage } from '@/pages/error';
 import { NotFoundPage } from '@/pages/not-found';
 import { PlaceholderPage } from '@/pages/placeholder';
-import { ACCESO_RUTAS, RUTAS } from '@/shared/config';
+import { ACCESO_RUTAS, RUTAS, type Ruta } from '@/shared/config';
 import { FUTURO_ROUTER } from './future';
 import { RequiereAcceso } from './requiere-acceso';
 import { MAPA_RUTAS } from './route-map';
+
+/** Pantallas reales por ruta: cada change visual agrega su línea; las rutas sin entrada usan `PlaceholderPage`. */
+const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
+  [RUTAS.direcciones]: DireccionesPage,
+};
 
 /**
  * Árbol de rutas único: lo usa la app (`router`) y los tests (con `createMemoryRouter`).
@@ -21,14 +28,17 @@ export const routes: RouteObject[] = [
         element: <ShellConSesion />,
         children: [
           { index: true, element: <Navigate to={RUTAS.catalogo} replace /> },
-          ...MAPA_RUTAS.map(({ path, title, owner }) => ({
-            path,
-            element: (
-              <RequiereAcceso acceso={ACCESO_RUTAS[path]}>
-                <PlaceholderPage title={title} owner={owner} />
-              </RequiereAcceso>
-            ),
-          })),
+          ...MAPA_RUTAS.map(({ path, title, owner }) => {
+            const Pagina = PAGINAS[path];
+            return {
+              path,
+              element: (
+                <RequiereAcceso acceso={ACCESO_RUTAS[path]}>
+                  {Pagina === undefined ? <PlaceholderPage title={title} owner={owner} /> : <Pagina />}
+                </RequiereAcceso>
+              ),
+            };
+          }),
           { path: '*', element: <NotFoundPage /> },
         ],
       },

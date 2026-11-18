@@ -1,0 +1,2 @@
+import { DireccionesPage } from '@/pages/direcciones';
+export const Otra = DireccionesPage;

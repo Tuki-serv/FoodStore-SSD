@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-15 - Direcciones: eliminar (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="direcciones">
+<div class="shell" id="shell">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <img class="sidebar-logo" src="../../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">
+    <button class="icon-btn btn-collapse" id="btn-collapse" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Colapsar panel"><svg class="ico" aria-hidden="true"><use href="#i-panel"/></svg></button>
+    <button class="icon-btn btn-close" id="btn-close" type="button" aria-label="Cerrar menú"><svg class="ico" aria-hidden="true"><use href="#i-cerrar"/></svg></button>
+  </div>
+  <nav class="sidebar-nav" id="sidebar-nav" aria-label="Principal"></nav>
+  <div class="sidebar-foot">
+    <span class="avatar" aria-hidden="true">LP</span>
+    <div class="user-meta"><strong>Lucía Pérez</strong><small>CLIENT</small></div>
+    <button class="icon-btn btn-logout" type="button" aria-label="Cerrar sesión"><svg class="ico" aria-hidden="true"><use href="#i-salir"/></svg></button>
+  </div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<div class="shell-main">
+  <div class="banner">Mockup C-15 · Confirmación al eliminar la dirección principal · Revision 2 · pendiente de aprobación</div>
+  <header class="topbar">
+    <button class="icon-btn" id="btn-menu" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menú"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
+    <img src="../../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">
+    <a class="icon-btn" href="#/carrito" aria-label="Carrito, 3 productos"><svg class="ico" aria-hidden="true"><use href="#i-carrito"/></svg><span class="count" aria-hidden="true">3</span></a>
+  </header>
+
+  <main class="page">
+    <div class="page-head-row">
+      <div class="page-head">
+        <h1>Direcciones</h1>
+        <p>Guardá dónde querés recibir tus pedidos. La principal se elige sola al pedir.</p>
+      </div>
+      <button class="btn btn-primary" type="button"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Agregar dirección</button>
+    </div>
+
+    <div class="notice" id="aviso-sin-principal" hidden>
+      <svg class="ico" aria-hidden="true"><use href="#i-alerta"/></svg>
+      <div>Ninguna dirección es principal<p>Marcá una para que se elija sola cuando hagas un pedido.</p></div>
+    </div>
+
+    <ul class="addr-list" aria-label="Tus direcciones" id="lista">
+      <li class="addr is-principal" data-principal>
+        <span class="addr-ico" aria-hidden="true"><svg class="ico"><use href="#i-direcciones"/></svg></span>
+        <div class="addr-body">
+          <div class="addr-title"><strong>Casa</strong><span class="badge b-principal">Principal</span></div>
+          <span class="addr-line">Av. San Martín 1234, piso 3, depto. B</span>
+          <span class="addr-sub">Mendoza, Mendoza · CP 5500</span>
+        </div>
+        <div class="addr-actions">
+          <button class="btn btn-ghost btn-sm" type="button" aria-label="Editar Casa"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button>
+          <button class="btn btn-ghost btn-sm" type="button" aria-label="Eliminar Casa"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button>
+        </div>
+      </li>
+      <li class="addr">
+        <span class="addr-ico" aria-hidden="true"><svg class="ico"><use href="#i-direcciones"/></svg></span>
+        <div class="addr-body">
+          <div class="addr-title"><strong>Trabajo</strong></div>
+          <span class="addr-line">Belgrano 455</span>
+          <span class="addr-sub">Godoy Cruz, Mendoza · CP 5501</span>
+        </div>
+        <div class="addr-actions">
+          <button class="btn btn-secondary btn-sm" type="button" aria-label="Marcar Trabajo como principal"><svg class="ico" aria-hidden="true"><use href="#i-estrella"/></svg>Marcar como principal</button>
+          <button class="btn btn-ghost btn-sm" type="button" aria-label="Editar Trabajo"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button>
+          <button class="btn btn-ghost btn-sm" type="button" aria-label="Eliminar Trabajo"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button>
+        </div>
+      </li>
+      <li class="addr">
+        <span class="addr-ico" aria-hidden="true"><svg class="ico"><use href="#i-direcciones"/></svg></span>
+        <div class="addr-body">
+          <div class="addr-title"><strong class="muted">Sin alias</strong></div>
+          <span class="addr-line">Ruta 40 km 3200</span>
+          <span class="addr-sub">Luján de Cuyo</span>
+        </div>
+        <div class="addr-actions">
+          <button class="btn btn-secondary btn-sm" type="button" aria-label="Marcar Ruta 40 km 3200 como principal"><svg class="ico" aria-hidden="true"><use href="#i-estrella"/></svg>Marcar como principal</button>
+          <button class="btn btn-ghost btn-sm" type="button" aria-label="Editar Ruta 40 km 3200"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button>
+          <button class="btn btn-ghost btn-sm" type="button" aria-label="Eliminar Ruta 40 km 3200"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button>
+        </div>
+      </li>
+    </ul>
+    <p style="text-align:center"><span class="note" title="Anotación del mockup: no se muestra en la app">Anotación · sin paginación porque hay 1 sola página (con más de 20: «Anterior» / «Página 1 de 2» / «Siguiente»)</span></p>
+  </main>
+</div>
+</div>
+<div class="modal-scrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlg-titulo" aria-describedby="dlg-texto">
+    <h2 id="dlg-titulo">¿Eliminar «Casa»?</h2>
+    <p id="dlg-texto">Av. San Martín 1234, piso 3, depto. B · Mendoza. Los pedidos que ya hiciste no cambian.</p>
+    <div class="warn"><svg class="ico" aria-hidden="true"><use href="#i-alerta"/></svg><span>Es tu dirección principal. Si la eliminás, ninguna quedará como principal hasta que marques otra.</span></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button">Cancelar</button>
+      <button class="btn btn-danger" type="button">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../../../../design-system/brand.js"></script>
+<script src="mockup.js"></script>
+</body>
+</html>

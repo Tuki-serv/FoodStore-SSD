@@ -52,11 +52,11 @@ Para correr un archivo: `npm test -- fsd` (filtra por nombre).
 ```text
 src/
   app/        providers/ (AppProviders, SesionGate), router/ (rutas, mapa con dueño, guards), layouts/app-shell/ (panel lateral), styles/
-  pages/      un slice por pantalla: placeholder/, not-found/, error/, forbidden/ (las de negocio llegan en C-14 y siguientes)
-  entities/   session/ (operaciones y hooks de sesión), cart/ (cartStore), payment/ (paymentStore)
+  pages/      un slice por pantalla: placeholder/, not-found/, error/, forbidden/, direcciones/ (C-15; las demás de negocio llegan en C-14 y siguientes)
+  entities/   session/ (operaciones y hooks de sesión), cart/ (cartStore), payment/ (paymentStore), direccion/ (C-15: contrato, consultas, mutaciones, TarjetaDireccion y SelectorDireccion)
   shared/     api/ (cliente HTTP, ApiError, QueryClient), auth/ (authStore), config/ (env, roles, rutas y acceso, marca),
-              model/ (uiStore), lib/ (useMediaQuery, almacenamiento seguro), ui/ (Icon, PantallaCarga, botones)
-  test/       setup de Vitest (MSW y reset de stores), msw/, render-app, router, query (no es una capa de la app)
+              model/ (uiStore), lib/ (useMediaQuery, almacenamiento seguro), ui/ (Icon, PantallaCarga, botones, Campo, Dialogo)
+  test/       setup de Vitest (MSW y reset de stores), msw/ (auth, direcciones), render-app, render-direcciones, router, query, axe (no es una capa de la app)
 tests/architecture/   fronteras FSD y tokens de Tailwind (corren con `npm test`)
 ```
 
@@ -71,11 +71,21 @@ tests/architecture/   fronteras FSD y tokens de Tailwind (corren con `npm test`)
 | `api/` | `src/shared/api/` |
 | `types/` | segmento `model/` del slice; contratos HTTP en `shared/api` |
 
+## Direcciones, notificaciones y confirmaciones (C-15)
+
+- **Slices nuevos**: `src/entities/direccion/` (tipos `Direccion`/`DireccionDatos`, `direccionPorDefecto`, `nombreDireccion`, `direccionQueries`, hooks de mutación, `TarjetaDireccion`, `ResumenDireccion` y `SelectorDireccion` para el checkout de C-19), `src/pages/direcciones/` (página `/direcciones`: listado paginado, formulario, marcar principal y eliminar; `model/` con la validación y la normalización) y los componentes genéricos `src/shared/ui/campo/` (`Campo`: etiqueta + control + ayuda + error con `aria-invalid`/`aria-describedby`) y `src/shared/ui/dialogo/` (`Dialogo`: modal accesible con foco atrapado, Escape y scrim).
+- **Claves de consulta**: `['direcciones']` (`direccionQueries.todas()`), `['direcciones', 'lista']` y `['direcciones', 'lista', { page, size }]`. Son privadas de la sesión: se descartan al cerrar o vencer la sesión. Todas las mutaciones invalidan `['direcciones']` (y también ante un 403/404, porque la dirección ya no existe).
+- **Notificaciones**: `useUiStore.getState().notificar({ tipo: 'success' | 'error' | 'warning' | 'info', titulo, mensaje? })` desde cualquier pantalla; el host `Notificaciones` (`src/app/layouts/app-shell/`, montado en `ShellConSesion`) las dibuja (`role="alert"` en las de error, `role="status"` en el resto) y las descarta a los 5 s.
+- **Confirmaciones**: `useUiStore.getState().pedirConfirmacion({ titulo, mensaje, textoConfirmar?, textoCancelar?, variante?: 'peligro' | 'normal', onConfirmar })`; `ConfirmacionGlobal` muestra el diálogo (foco inicial en «Cancelar», Escape/scrim cancelan, el foco vuelve al control que lo abrió). Con `variante: 'peligro'` el botón de confirmar es rojo.
+- **Pantallas reales**: `PAGINAS` en `src/app/router/routes.tsx` asocia una ruta con su pantalla; las rutas sin entrada siguen con `PlaceholderPage`. Cada change visual agrega su línea.
+- **Formularios**: `@tanstack/react-form` 1.x (la KB decía 0.x; la API base `useForm`/`form.Field`/`validators` es la misma). Los validadores son funciones puras que devuelven `undefined` si el valor es válido.
+- **Accesibilidad en tests**: `esperarSinViolacionesA11y(contenedor)` de `src/test/axe.ts` (`axe-core`, con `color-contrast` desactivada porque jsdom no calcula estilos); se usa en páginas, formularios y diálogos.
+
 ## Tokens y estilos
 
 La fuente visual es `design-system/tokens.css` (Revision 2): se importa tal cual desde `src/app/styles/index.css`, sin copiarlo. El tema de Tailwind (`tailwind.config.ts`) solo referencia esas variables con `var(--…)`; un test (`tests/architecture/tailwind-tokens.test.ts`) falla si aparece un valor literal o una variable inexistente. Para cambiar un color o espaciado, se edita `design-system/tokens.css`.
 
-El CSS del panel lateral (`src/app/layouts/app-shell/app-shell.css`) es el aprobado en `design-system/components.html`. Las páginas usan utilidades de Tailwind.
+El CSS del panel lateral (`src/app/layouts/app-shell/app-shell.css`) es el aprobado en `design-system/components.html`. Las páginas usan utilidades de Tailwind; las piezas con reglas propias de los mockups aprobados (notificaciones, diálogo, campo, tarjeta/selector de dirección y página de direcciones) viven en un `.css` junto a su componente y se importan desde `src/app/styles/index.css`. Esas reglas no definen el tamaño de `svg.ico`: el tamaño lo da la clase del `<Icon>` (verify V-2).
 
 ## Tests
 
@@ -103,5 +113,6 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 ## Estado actual
 
 - La app arranca verificando la sesión y muestra el panel lateral con la variante de los roles del usuario (o «sin sesión»: Catálogo, Ingresar, Registrarse) y páginas provisorias por ruta. Las rutas tienen guards por rol (anónimo → `/ingresar`, rol insuficiente → «Sin permiso»).
-- Las páginas provisorias no piden ni muestran datos del backend.
+- Las páginas provisorias (todas menos `/direcciones`) no piden ni muestran datos del backend.
 - Cada ruta declara en `src/app/router/route-map.ts` el change que implementa su pantalla (`owner`).
+- `/direcciones` ya es una pantalla real (C-15): el resto de las rutas sigue con la página provisoria.

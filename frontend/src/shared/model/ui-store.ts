@@ -11,12 +11,14 @@ export interface Toast {
   mensaje?: string;
 }
 
-/** Diálogo de confirmación pendiente (C-13b deja el estado; lo dibuja el primer change que lo use). */
+/** Diálogo de confirmación pendiente (C-13b dejó el estado; lo dibuja `ConfirmacionGlobal` del shell, C-15). */
 export interface ConfirmModal {
   titulo: string;
   mensaje: string;
   textoConfirmar?: string;
   textoCancelar?: string;
+  /** `peligro` pinta el botón de confirmar como acción destructiva (por defecto `normal`). */
+  variante?: 'peligro' | 'normal';
   onConfirmar: () => void;
 }
 
@@ -41,6 +43,8 @@ export interface UiState {
   descartarToast: (id: string) => void;
   pedirConfirmacion: (modal: ConfirmModal) => void;
   cerrarConfirmacion: () => void;
+  /** Descarta toasts y confirmación pendiente (al terminar la sesión) sin tocar las preferencias persistidas. */
+  limpiarTransitorios: () => void;
   reset: () => void;
 }
 
@@ -70,6 +74,7 @@ export const useUiStore = create<UiState>()(
       descartarToast: (id) => set((estado) => ({ toasts: estado.toasts.filter((toast) => toast.id !== id) })),
       pedirConfirmacion: (modal) => set({ confirmModal: modal }),
       cerrarConfirmacion: () => set({ confirmModal: null }),
+      limpiarTransitorios: () => set({ toasts: [], confirmModal: null }),
       reset: () => set({ ...ESTADO_INICIAL, toasts: [] }),
     }),
     {

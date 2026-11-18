@@ -39,6 +39,7 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 **Como** cliente **Quiero** guardar varias direcciones **Para** elegirlas al pedir.
 - [ ] Crear/listar/ver/editar/eliminar solo propias; marcar una como principal; la primera queda principal
 **Reglas**: RN-DI-01..04
+**Frontend**: cubierto por C-15 (página `/direcciones` con listado, alta, edición, marcar principal y eliminación con confirmación, y `SelectorDireccion` para el checkout de C-19). «La primera queda principal» es una regla del backend (`POST /direcciones/`); el frontend solo muestra lo que devuelve el servidor. Al eliminar la principal el backend no promueve otra: la página avisa y el selector elige la primera (OQ-1 de C-15).
 
 ## Épica 3: Catálogo
 

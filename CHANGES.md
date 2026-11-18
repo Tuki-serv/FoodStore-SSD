@@ -52,7 +52,7 @@ FASE 1 (frontend sobre base corregida)
 C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
  └── C-13b ✓ fe-foundation-auth-data (C-13a, C-02, C-11)
        ├── C-14 fe-auth-cuenta
-       ├── C-15 fe-direcciones
+       ├── C-15 ✓ fe-direcciones
        ├── C-16 fe-catalogo-publico
        │     └── C-18 fe-carrito-personalizacion
        │           └── C-19 fe-checkout-pedido (+C-10, C-11, C-15)
@@ -102,7 +102,7 @@ GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
 GATE 5: C-13b ✓                                         ← FORK
   → C-14 fe-auth-cuenta                       [Agente C]
   → C-16 fe-catalogo-publico                  [Agente C]
-  → C-15 fe-direcciones                       [Agente B]
+  → C-15 ✓ fe-direcciones                     [Agente B]
   → C-17a fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b
   → C-22 fe-gestion-operativa-pedidos         [Agente B — si C-09, C-11 ✓]
   → C-23 fe-admin-usuarios-roles              [Agente A — si C-08 ✓]
@@ -428,7 +428,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/07_flujos_principales.md` §Auth
 
 ### [C-15] `fe-direcciones`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-17). Verify: PASS WITH FINDINGS; los 4 warnings (limpieza de toasts/diálogo al cerrar sesión, foco tras eliminar, aviso de lista desactualizada, feedback de mutaciones superpuestas) se corrigieron en el mismo change. Verify visual: passed con el backend real (capturas en el change archivado, `mockups/verify/`).
 - **Scope**:
   - US-006: CRUD de direcciones propias, marcar principal (la primera queda principal) con TanStack Query.
   - Páginas y selector reutilizable para checkout.
@@ -521,6 +521,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/07_flujos_principales.md` §Compra
   - `knowledge-base/05_reglas_de_negocio.md` RN-PE-06, RN-PE-09, RN-ST
   - `knowledge-base/10_preguntas_abiertas.md` (PA-03, PA-06, PA-11, PA-13)
+  - Punto de partida (C-15): usar `SelectorDireccion` de `@/entities/direccion` (props `valor: number | null | undefined` donde `null` = retiro en el local, `onCambiar`, `permitirRetiro` —por defecto `true`; apagarlo según PA-13— y `leyenda`); preselecciona la principal (si no la primera, si no retiro) llamando una vez a `onCambiar`, y trata como «sin elegir» un id que ya no existe; pide `direccionQueries.lista({ page: 1, size: 100 })` y su enlace «Agregar dirección» lleva a `/direcciones` (el formulario de alta no está en el checkout). Notificaciones con `useUiStore.getState().notificar(...)` y confirmaciones con `pedirConfirmacion(...)` (ya se dibujan en el shell). Eliminar la principal no promueve otra en el backend (OQ-1 de C-15): el selector puede encontrarse con direcciones y ninguna principal. `entities/direccion` suma además `nombreDireccion` y `TarjetaDireccion`/`ResumenDireccion`.
 
 ### [C-20] `fe-pago-mercadopago`
 - **Estado**: `[ ]` pendiente
@@ -621,6 +622,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Checklist de entrega de la rúbrica de 200 pts; capturas de las 10 pantallas; video de la entrega; metadatos faltantes (PA-18); deploy opcional (PA-17).
   - Verificación visual contra mockups aprobados.
   - **Heredado de C-13a** (menores del verify 2026-11-15): favicon (hoy `/favicon.ico` da 404 en consola); accesibilidad del drawer mobile (`role="dialog"`/`aria-modal`, trampa de foco, contenido `inert` detrás del scrim); test que exija `index.ts` en cada slice/segmento FSD; título del 404 en mobile (una línea en la app, dos en el mockup); decidir si se quita la escala por defecto de Tailwind (hoy `h-10` sale como `2.5rem` literal, fuera de los tokens); sumar los íconos `obra`, `brujula` y `alerta` al sprite de `design-system/components.html` (cambio visual del design system: requiere revisión del usuario); test de `readConfig` con valor vacío que no distingue del caso URL inválida; imagen de producción del frontend (el Dockerfile actual es solo servidor de desarrollo).
+  - **Heredado de C-15** (deuda sugerida, 2026-11-17): índice único parcial de `es_principal` (`WHERE es_principal AND deleted_at IS NULL`, por usuario) en `direcciones`, porque la regla «solo una principal» (RN-DI-01) la garantiza solo el service y dos `PATCH /direcciones/{id}/principal` simultáneos podrían dejar dos principales (R3; requiere migración Alembic, governance BAJO); sumar al sprite de `design-system/components.html` los íconos `editar`, `basura`, `estrella`, `mas` y `tienda` que usa el frontend (cambio visual del design system: requiere revisión del usuario); decidir con OQ-1 de C-15 si al eliminar la principal el backend promueve otra.
 - **Dependencias**: `C-01 a C-24, C-25a`
 - **Governance**: MEDIO
 - **Decisión pendiente**: PA-16, PA-17, PA-18
@@ -690,7 +692,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 16 | C-13a, C-13b, C-14..C-16, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 15** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-25a). **Pendientes obligatorios: 13** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 31 changes** (28 originales; C-13, C-17 y C-25 partidos en dos). **Cerrados: 16** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-25a). **Pendientes obligatorios: 12** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

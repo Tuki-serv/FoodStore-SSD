@@ -1,0 +1,12 @@
+/* Notificaciones (toasts): reglas aprobadas en los mockups de C-15 (design-system Revision 2). Solo tokens. */
+@layer components {
+  .toasts{position:fixed;right:var(--space-5);bottom:var(--space-5);z-index:60;display:flex;flex-direction:column;gap:var(--space-2);width:min(420px,calc(100vw - 2*var(--space-4)))}
+  @media (max-width:1023.98px){.toasts{left:var(--space-4);right:var(--space-4);bottom:var(--space-4);width:auto}}
+  .toast{display:flex;gap:var(--space-3);align-items:center;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);box-shadow:var(--shadow-md);border-left:6px solid;background:var(--color-surface);animation:slidein var(--motion-base) var(--ease-out)}
+  @keyframes slidein{from{opacity:0;transform:translateY(8px)}}
+  .t-success{border-color:var(--color-success)}.t-error{border-color:var(--color-danger)}.t-info{border-color:var(--color-info)}.t-warning{border-color:var(--color-warning)}
+  .toast strong{display:block}
+  .toast > div{flex:1;min-width:0}
+  .toast .icon-btn{width:36px;height:36px}
+  @media (prefers-reduced-motion:reduce){.toast{animation:none}}
+}
