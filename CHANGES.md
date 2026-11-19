@@ -51,7 +51,7 @@ C-01 ✓ baseline-backend
 FASE 1 (frontend sobre base corregida)
 C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
  └── C-13b ✓ fe-foundation-auth-data (C-13a, C-02, C-11)
-       ├── C-14 fe-auth-cuenta
+       ├── C-14 ✓ fe-auth-cuenta
        ├── C-15 ✓ fe-direcciones
        ├── C-16b ✓ fe-catalogo-publico (+C-16a)
        │     └── C-18 ✓ fe-carrito-personalizacion
@@ -102,7 +102,7 @@ GATE 4: C-13a ✓ + C-02 ✓ + C-11 ✓  (inicio del frontend con datos)
   → C-16a ✓ backend-catalogo-filtros          [Agente A — si C-11 ✓ y C-25a ✓ (ya desbloqueado); independiente de C-13b]
 
 GATE 5: C-13b ✓                                         ← FORK
-  → C-14 fe-auth-cuenta                       [Agente C]
+  → C-14 ✓ fe-auth-cuenta                     [Agente C]
   → C-16b ✓ fe-catalogo-publico               [Agente C — si C-16a ✓]
   → C-15 ✓ fe-direcciones                     [Agente B]
   → C-17a ✓ fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b ✓
@@ -337,7 +337,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Paginación `page/size` → `{items,total,page,size,pages}` en todos los listados; errores `{detail, code, field}` en toda la API incl. 429.
   - Borrado de categoría: soft delete validando productos asociados e hijas (no re-asignar al abuelo sin validar).
   - Migración nueva (la siguiente a la cabeza vigente, hoy `002`) solo si cambia el esquema.
-  - Punto de partida (C-02): `GET /auth/me` es el contrato de sesión; `GET`/`PATCH /usuarios/me` quedan como perfil (el `GET` duplicado se retira en C-14/C-25a).
+  - Punto de partida (C-02): `GET /auth/me` es el contrato de sesión; `GET`/`PATCH /usuarios/me` quedan como perfil (el `GET` duplicado se retiró en C-14: hoy solo existe el `PATCH`).
   - Tests: contrato por endpoint, paginación, forma de errores, borrado con productos.
   - Punto de partida (C-08): las unicidades, el 409 y los `HTTPException` en services siguen pendientes (C-08 no los tocó); `GET /productos/{id}/ingredientes` y `DELETE /productos/{id}/ingredientes/{ing_id}` (spec §5.2, OQ-5) tienen a C-11 como dueño; actualizar en la matriz `tests/support/rbac_matriz.py` las filas con dueño C-11 (`GET /pedidos/{id}`, historial, `DELETE`).
   - Punto de partida (C-09): el contrato `{nuevo_estado}` y el `DELETE` propio deben delegar en los mismos métodos del service (`cambiar_estado_pedido`/`cancelar_pedido_propio` → `_transicionar`); no reimplementar la FSM en el router.
@@ -414,9 +414,9 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `openspec/changes/archive/2026-11-10-c-02-auth-sesion-tokens-bearer-refresh/design.md` (D1, D3, D6)
 
 ### [C-14] `fe-auth-cuenta`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-19). Apply completo (51/51 tareas; frontend 1084 tests verdes, backend suite completa verde; typecheck y lint limpios). Verify: PASS WITH FINDINGS; los 2 hallazgos se corrigieron en el mismo change (CORS con `expose_headers=["Retry-After"]` para que el 429 muestre el tiempo de bloqueo, y subrayado de los enlaces en texto). Pedido posterior del usuario: botón «Cerrar sesión» en Mi cuenta (mockup revisado y aprobado 2026-11-19, implementado; corregida una especificidad CSS en `mi-cuenta.css`). Visual verify: passed (Mi cuenta revisada a 1440x900 y 390x844; ver `design.md`). Decisiones DU-1..DU-5 en `design.md` (auto-login tras registrarse, se retira `GET /usuarios/me`, nombre/apellido obligatorios en backend, email normalizado en backend, «Repetir contraseña» solo en cliente). Migración `005_email_normalizado` (normaliza emails existentes y agrega `ck_usuario_email_normalizado`). Archivado en `openspec/changes/archive/2026-11-19-c-14-fe-auth-cuenta/`; specs principales creadas `frontend-account` y `user-profile`, y ampliadas `auth-session`, `backend-db-migrations` y `user-registration`.
 - **Scope**:
-  - US-001 registro, US-002 login (mensajes 401/409/429), US-004 logout, US-005 perfil propio (`GET/PATCH` perfil sin tocar roles).
+  - US-001 registro (409 si el email ya existe), US-002 login (mensajes 401/429; el login no tiene 409), US-004 logout, US-005 perfil propio (`GET/PATCH` perfil sin tocar roles).
   - Páginas `Login`, `Register`, `Perfil`; validación con TanStack Form.
   - Punto de partida (C-02): login por `POST /auth/login` (form OAuth2) que devuelve el access en el body y setea la cookie del refresh (requiere `withCredentials`); logout por `POST /auth/logout` y «cerrar todas las sesiones» por `POST /auth/logout-all` (Bearer, sin body, 204); usuario por `GET /auth/me`.
   - Tests: formularios y flujos de error.
@@ -605,6 +605,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 - **Scope**:
   - US-027 ADMIN: crear usuario con roles (multi-rol), listar paginado con filtro por rol, actualizar roles, desactivar (soft delete).
   - Tests: asignación multi-rol, filtros.
+  - Punto de partida (C-14): el alta ADMIN (`UserCreateAdmin`) hereda el endurecimiento de `UserCreate`: `nombre`/`apellido` recortados y obligatorios (422 con `field`) y el email normalizado (recortado y en minúsculas; `ck_usuario_email_normalizado`, migración `005`); `UserUpdateAdmin` hereda el rechazo de `nombre`/`apellido` en `null`. `GET /usuarios/me` ya no existe (`GET /auth/me` lee el usuario autenticado).
 - **Dependencias**: `C-13b, C-08`
 - **Governance**: CRITICO
 - **UI**: `[UI-MOCKUP]` administración de usuarios.
@@ -723,7 +724,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 17 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 22** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-25a). **Pendientes obligatorios: 7** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 23** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-25a). **Pendientes obligatorios: 6** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

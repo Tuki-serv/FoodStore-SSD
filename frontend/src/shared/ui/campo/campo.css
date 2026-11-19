@@ -7,6 +7,7 @@
   .input:hover{border-color:var(--color-text-muted)}
   .input:focus-visible{outline:none;box-shadow:var(--focus-ring)}
   .input[aria-invalid=true]{border-color:var(--color-danger)}
+  .input:disabled{background:var(--color-surface-alt);color:var(--color-text-muted);cursor:not-allowed}
   .hint{font-size:var(--text-xs);color:var(--color-text-muted)}
   .err{font-size:var(--text-xs);color:var(--color-danger);font-weight:600}
 

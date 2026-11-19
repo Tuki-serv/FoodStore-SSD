@@ -11,8 +11,8 @@ El flujo descrito es el **objetivo**; los pasos marcados *deuda* son comportamie
 **Disparador**: usuario envía el formulario de registro/login. **Actor**: Visitante/Cliente.
 
 **Pasos**:
-1. Frontend `POST /api/v1/auth/register` {nombre, apellido, email, password, celular?} → API valida (Pydantic), verifica email libre, hashea con bcrypt, crea usuario con rol CLIENT → 201 `UserResponse`.
-2. Frontend `POST /api/v1/auth/login` (objetivo: JSON `{email,password}`; *deuda:* el código actual usa `application/x-www-form-urlencoded` con `username`=email). El **rate limiter** (middleware) corre antes.
+1. Frontend `POST /api/v1/auth/register` {nombre, apellido, email, password, celular?} → API valida (Pydantic: nombre/apellido recortados y no vacíos, email normalizado), verifica email libre, hashea con bcrypt, crea usuario con rol CLIENT → 201 `UserResponse`.
+2. Frontend `POST /api/v1/auth/login` como formulario OAuth2 (`application/x-www-form-urlencoded`: `username` = email, `password`); el backend normaliza el email (recortado y en minúsculas, C-14) antes de buscar al usuario. Si el registro (paso 1) fue exitoso, el frontend hace este login automáticamente con las mismas credenciales (C-14); si falla, lleva a `/ingresar` con el email precargado. El **rate limiter** (middleware) corre antes.
 3. Service verifica hash bcrypt y `deleted_at`; genera access JWT (`sub`, `roles`, `type=access`, 30 min) y refresh token aleatorio (`secrets.token_urlsafe(32)`), guarda su SHA-256 en `refresh_token` (7 días).
 4. API responde `Token {access_token, refresh_token, token_type:"bearer", expires_in}` El objetivo es solo Bearer; *deuda DT-11:* el código actual agrega `Set-Cookie: access_token` (HttpOnly, SameSite=lax).
 5. Frontend guarda la sesión en `authStore` (Zustand) **solo en memoria** (DD-27): el access no se persiste. Al recargar, `SesionGate` hace una sola vez `POST /auth/refresh` (la cookie HttpOnly viaja sola) y, si responde 200, `GET /auth/me` reconstruye el usuario; si responde 401 la sesión queda anónima. Ante un 401 en uso, el interceptor Axios renueva una sola vez para todos los pedidos concurrentes y repite el original.

@@ -8,11 +8,14 @@ import { CarritoPage } from '@/pages/carrito';
 import { CatalogoPage } from '@/pages/catalogo';
 import { DireccionesPage } from '@/pages/direcciones';
 import { FinalizarCompraPage } from '@/pages/finalizar-compra';
+import { IngresarPage } from '@/pages/ingresar';
+import { MiCuentaPage } from '@/pages/mi-cuenta';
 import { ErrorPage } from '@/pages/error';
 import { NotFoundPage } from '@/pages/not-found';
 import { PedidoCreadoPage } from '@/pages/pedido-creado';
 import { PlaceholderPage } from '@/pages/placeholder';
 import { ProductoPage } from '@/pages/producto';
+import { RegistrarsePage } from '@/pages/registrarse';
 import { ACCESO_RUTAS, RUTA_FINALIZAR_COMPRA, RUTA_PAGO_PEDIDO, RUTA_PEDIDO_CREADO, RUTA_PRODUCTO, RUTAS, type Acceso, type Ruta } from '@/shared/config';
 import { FUTURO_ROUTER } from './future';
 import { RequiereAcceso } from './requiere-acceso';
@@ -24,8 +27,11 @@ const ACCESO_CLIENTE: Acceso = { roles: ['CLIENT'] };
 /** Pantallas reales por ruta: cada change visual agrega su línea; las rutas sin entrada usan `PlaceholderPage`. */
 const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
   [RUTAS.catalogo]: CatalogoPage,
+  [RUTAS.ingresar]: IngresarPage,
+  [RUTAS.registrarse]: RegistrarsePage,
   [RUTAS.carrito]: CarritoPage,
   [RUTAS.direcciones]: DireccionesPage,
+  [RUTAS.miCuenta]: MiCuentaPage,
   [RUTAS.adminCategorias]: AdminCategoriasPage,
   [RUTAS.adminIngredientes]: AdminIngredientesPage,
   [RUTAS.adminProductos]: AdminProductosPage,

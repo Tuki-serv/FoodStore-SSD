@@ -266,18 +266,50 @@ class TestLogin:
 # TESTS: /me (O perfil)
 # ===========================================================================
 class TestMe:
-    """GET /api/v1/usuarios/me"""
+    """GET /api/v1/auth/me (lectura única) y PATCH /api/v1/usuarios/me (edición)"""
 
     def test_me_with_valid_token_returns_user(self, client: TestClient, user_auth_headers: dict, normal_user_data: dict):
         """Obtener perfil con token válido devuelve los datos del usuario."""
-        response = client.get("/api/v1/usuarios/me", headers=user_auth_headers)
+        response = client.get("/api/v1/auth/me", headers=user_auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["email"] == normal_user_data["email"]
+        assert [r["codigo"] for r in data["roles"]] == ["CLIENT"]
 
     def test_me_without_token_returns_401(self, client: TestClient):
         """Intentar obtener perfil sin token devuelve 401 Unauthorized."""
-        response = client.get("/api/v1/usuarios/me")
+        response = client.get("/api/v1/auth/me")
+        assert response.status_code == 401
+
+    def test_get_usuarios_me_fue_retirado_y_responde_405(self, client: TestClient, user_auth_headers: dict):
+        response = client.get("/api/v1/usuarios/me", headers=user_auth_headers)
+        assert response.status_code == 405
+
+    def test_patch_con_roles_y_email_los_ignora(
+        self, client: TestClient, user_auth_headers: dict, normal_user_data: dict
+    ):
+        response = client.patch(
+            "/api/v1/usuarios/me",
+            json={"roles_codigos": ["ADMIN"], "email": "otro@example.com"},
+            headers=user_auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["email"] == normal_user_data["email"]
+        me = client.get("/api/v1/auth/me", headers=user_auth_headers).json()
+        assert me["email"] == normal_user_data["email"]
+        assert [r["codigo"] for r in me["roles"]] == ["CLIENT"]
+
+    def test_patch_de_un_solo_campo_deja_los_demas_intactos(
+        self, client: TestClient, user_auth_headers: dict, normal_user_data: dict
+    ):
+        antes = client.get("/api/v1/auth/me", headers=user_auth_headers).json()
+        response = client.patch("/api/v1/usuarios/me", json={"nombre": "Analía"}, headers=user_auth_headers)
+        assert response.status_code == 200
+        assert response.json()["nombre"] == "Analía"
+        assert response.json()["apellido"] == antes["apellido"]
+
+    def test_patch_sin_token_devuelve_401(self, client: TestClient):
+        response = client.patch("/api/v1/usuarios/me", json={"nombre": "Analía"})
         assert response.status_code == 401
 
 

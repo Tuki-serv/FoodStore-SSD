@@ -66,7 +66,6 @@ RUTAS_ESPERADAS: set[tuple[str, str]] = {
     ("PATCH", "/api/v1/unidades-medida/{unidad_id}"),
     ("POST", "/api/v1/uploads/imagen"),
     ("DELETE", "/api/v1/uploads/imagen/{public_id:path}"),
-    ("GET", "/api/v1/usuarios/me"),
     ("PATCH", "/api/v1/usuarios/me"),
     ("GET", "/docs"),
     ("GET", "/docs/oauth2-redirect"),

@@ -50,7 +50,6 @@ FILAS: tuple[Fila, ...] = (
     Fila("POST", f"{P}/auth/logout-all", AUTENTICADO),
     Fila("GET", f"{P}/auth/me", AUTENTICADO),
     # Perfil propio (8-9)
-    Fila("GET", f"{P}/usuarios/me", AUTENTICADO, dueno="C-14/C-25a (retiro)"),
     Fila("PATCH", f"{P}/usuarios/me", AUTENTICADO, {}),
     # Admin de usuarios (10-13)
     Fila("POST", f"{P}/admin/usuarios/createUser", ADMIN, {}),

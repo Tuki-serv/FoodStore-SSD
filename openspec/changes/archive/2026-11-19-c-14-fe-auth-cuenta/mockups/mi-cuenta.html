@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-14 - Mi cuenta (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="mi-cuenta">
+<script>
+/* Parámetros:
+   ?estado=guardado (PATCH 200 + toast «Datos guardados», panel con el nombre nuevo) | validacion (apellido vacío)
+          | error-servidor (503) | guardando («Guardando…») | cerrar-todas (diálogo de confirmación)
+   ?rol=admin (varios roles: ADMIN + STOCK)
+   ?nav=collapsed | drawer (de mockup.js). */
+(function () {
+  var q = new URLSearchParams(location.search), e = q.get('estado'), admin = q.get('rol') === 'admin';
+  if (admin) document.body.setAttribute('data-roles', 'ADMIN STOCK');
+  var t = { guardado: 'Guardado + «Datos guardados»', validacion: 'Validación (apellido vacío)', 'error-servidor': 'Error del servidor (503)', guardando: 'Enviando: «Guardando…»',
+    'cerrar-todas': 'Confirmación «Cerrar todas las sesiones»' };
+  window.CFG = {
+    usuario: admin ? 'Super Admin' : (e === 'guardado' ? 'Analía Gómez' : 'Ana Gómez'),
+    banner: 'Mockup C-14 · /mi-cuenta · ' + (t[e] || 'datos del perfil') + ' · ' + (admin ? 'ADMIN + STOCK' : 'CLIENT') + ' · Revision 2 · pendiente de aprobación'
+  };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="cuenta.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, e = M.estado, admin = M.params.get('rol') === 'admin';
+  var guardando = e === 'guardando';
+  var NOMBRE_ROL = { CLIENT: 'Cliente', PEDIDOS: 'Gestor de pedidos', STOCK: 'Gestor de stock', ADMIN: 'Administrador' };
+  var roles = admin ? ['ADMIN', 'STOCK'] : ['CLIENT'];
+
+  var nombre = admin ? 'Super' : ((e === 'guardado' || e === 'guardando') ? 'Analía' : 'Ana');
+  var apellido = e === 'validacion' ? '' : (admin ? 'Admin' : 'Gómez');
+
+  var aviso = e === 'error-servidor' ? M.alerta('No pudimos guardar los cambios.', 'El servidor no está disponible en este momento. Tus cambios siguen acá; probá de nuevo.') : '';
+
+  var datos =
+    '<form class="form-card" aria-labelledby="t-datos" novalidate>' +
+      '<div class="card-head"><h2 id="t-datos">Tus datos</h2><p>Así te vamos a nombrar en tus pedidos.</p></div>' +
+      aviso +
+      '<div class="form-grid">' +
+        M.campo({ id: 'nombre', label: 'Nombre', auto: 'given-name', max: 80, valor: e === 'error-servidor' ? 'Analía' : nombre, cls: 'c-3', disabled: guardando }) +
+        M.campo({ id: 'apellido', label: 'Apellido', auto: 'family-name', max: 80, valor: apellido, cls: 'c-3', disabled: guardando,
+          error: e === 'validacion' ? 'Ingresá tu apellido' : null }) +
+        M.campo({ id: 'celular', label: 'Celular', type: 'tel', auto: 'tel', max: 20, opcional: true, valor: '2615551234', cls: 'c-3', disabled: guardando }) +
+      '</div>' +
+      '<dl class="ro-list">' +
+        '<dt>Email</dt><dd>' + (admin ? 'admin@foodstore.com' : 'ana@example.com') + '<small>El email no se puede cambiar.</small></dd>' +
+        '<dt>' + (roles.length > 1 ? 'Roles' : 'Rol') + '</dt><dd>' + roles.map(function (r) { return '<span class="badge b-rol">' + NOMBRE_ROL[r] + '</span>'; }).join('') + '</dd>' +
+      '</dl>' +
+      '<div class="form-actions"><button class="btn btn-primary" type="submit"' + (guardando ? ' disabled' : '') + '>' +
+        (guardando ? '<span class="spinner spinner-sm" aria-hidden="true"></span>Guardando…' : 'Guardar cambios') + '</button></div>' +
+    '</form>';
+
+  var sesiones =
+    '<section class="form-card danger-zone" aria-labelledby="t-sesiones">' +
+      '<div class="row"><div><h2 id="t-sesiones">Sesiones</h2>' +
+        '<p>Cerrá la sesión en este dispositivo o en todos tus dispositivos. Un acceso ya abierto en otro dispositivo puede seguir activo hasta 30 minutos.</p></div>' +
+        '<div class="sesiones-actions">' +
+          '<button class="btn btn-neutral" type="button">' + ico('i-salir') + 'Cerrar sesión</button>' +
+          '<button class="btn btn-danger-outline" type="button">' + ico('i-salir') + 'Cerrar todas las sesiones</button></div></div>' +
+    '</section>';
+
+  M.llenar('contenido',
+    '<div class="page-head"><h1>Mi cuenta</h1><p>Revisá y actualizá tus datos personales.</p></div>' +
+    '<div class="account">' + datos + sesiones + '</div>');
+
+  if (e === 'guardado') M.toast('success', 'Datos guardados', '');
+  if (e === 'cerrar-todas') {
+    M.dialogo('<h2 id="dlg-titulo">¿Cerrar todas las sesiones?</h2>' +
+      '<p id="dlg-texto">Vas a salir en este y en todos tus dispositivos.</p>' +
+      '<div class="warn">' + ico('i-alerta') + '<span>Para volver a entrar vas a necesitar tu email y tu contraseña.</span></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Cerrar todas</button></div>');
+  }
+})();
+</script>
+</body>
+</html>

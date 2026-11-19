@@ -1,7 +1,8 @@
 from typing import Optional, List, ClassVar, TYPE_CHECKING
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import BigInteger, Column, CHAR
+from sqlalchemy import BigInteger, CheckConstraint, Column, CHAR
+from sqlalchemy.orm import declared_attr
 
 from app.core.mixins.auditable_mixin import UniqueAuditableMixin
 from app.core.timestamps import aware_datetime_field
@@ -46,6 +47,12 @@ class Usuario(UniqueAuditableMixin, SQLModel, table=True):
     __tablename__ = "usuario"
     
     _unique_fields: ClassVar[List[str]] = ["email"]
+
+    @declared_attr
+    def __table_args__(cls):
+        """Índice único parcial del mixin + email siempre normalizado (sin espacios al borde y en minúsculas, DU-4)."""
+        parent_args = super().__table_args__
+        return parent_args + (CheckConstraint("email = lower(btrim(email))", name="ck_usuario_email_normalizado"),)
 
     # id: Optional[int] = Field(default=None, primary_key=True)
     id: Optional[int] = Field(default=None, primary_key=True, sa_type=BigInteger)

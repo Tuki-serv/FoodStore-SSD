@@ -83,8 +83,8 @@ Resumen por recurso (rutas reales del backend salvo indicación; contraste con s
 
 | Recurso | Endpoints | Acceso |
 |---------|-----------|--------|
-| Auth | `POST /auth/register` (201), `POST /auth/login` (form OAuth2, setea cookie), `POST /auth/refresh`, `POST /auth/logout` (204) | register/login/refresh públicos; logout autenticado. `GET /auth/me` solo en spec (en es `/usuarios/me`) |
-| Usuarios | `GET /usuarios/me`, `PATCH /usuarios/me` | Autenticado |
+| Auth | `POST /auth/register` (201), `POST /auth/login` (form OAuth2, setea cookie), `POST /auth/refresh`, `POST /auth/logout` (204) | register/login/refresh públicos; logout autenticado. `GET /auth/me` (usuario autenticado con roles) y `POST /auth/logout-all` (204) autenticados |
+| Usuarios | `PATCH /usuarios/me` (edición de nombre, apellido y celular; la lectura es `GET /auth/me`) | Autenticado |
 | Admin usuarios | `POST /admin/usuarios/createUser`, `GET /admin/usuarios/` (paginado, filtro `rol_codigo`), `PATCH /{id}`, `DELETE /{id}` (soft) | `ADMIN` |
 | Direcciones | `POST/GET /direcciones/`, `GET/PATCH/DELETE /direcciones/{id}`, `PATCH /{id}/principal` | Autenticado, solo propias |
 | Categorías | `POST`, `PATCH/{id}`, `DELETE/{id}` (ADMIN); `GET /`, `GET /arbol`, `GET /{id}` (público) | Ver 03 |

@@ -198,3 +198,31 @@ class TestSinLimiteEnOtrosEndpoints:
 
         assert me.status_code == 200
         assert refresh.status_code == 200
+
+
+class TestRetryAfterExpuestoPorCors:
+    """Un navegador cross-origin solo lee `Retry-After` si CORS lo expone (`Access-Control-Expose-Headers`)."""
+
+    ORIGEN = "http://localhost:5173"
+
+    def test_429_cross_origin_expone_retry_after(self, client: TestClient) -> None:
+        fallar_login(client, 5, headers={"Origin": self.ORIGEN})
+
+        bloqueado = login(client, *ADMIN, headers={"Origin": self.ORIGEN})
+
+        assert bloqueado.status_code == 429
+        assert bloqueado.headers["access-control-allow-origin"] == self.ORIGEN
+        expuestos = [h.strip().lower() for h in bloqueado.headers["access-control-expose-headers"].split(",")]
+        assert "retry-after" in expuestos
+
+    def test_respuesta_normal_cross_origin_tambien_expone_retry_after(self, client: TestClient) -> None:
+        respuesta = client.get("/health", headers={"Origin": self.ORIGEN})
+
+        expuestos = [h.strip().lower() for h in respuesta.headers["access-control-expose-headers"].split(",")]
+        assert "retry-after" in expuestos
+
+    def test_origen_no_permitido_no_recibe_autorizacion_cors(self, client: TestClient) -> None:
+        # Exponer cabeceras no autoriza nada: sin `Allow-Origin` el navegador descarta la respuesta.
+        respuesta = client.get("/health", headers={"Origin": "http://evil.example"})
+
+        assert "access-control-allow-origin" not in respuesta.headers

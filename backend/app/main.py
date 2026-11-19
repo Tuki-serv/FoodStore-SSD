@@ -49,6 +49,8 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Un navegador cross-origin solo lee las cabeceras no «safelisted» si se exponen: el front lee `Retry-After` del 429.
+        expose_headers=["Retry-After"],
     )
 
     # ======== ROUTERS ======== #

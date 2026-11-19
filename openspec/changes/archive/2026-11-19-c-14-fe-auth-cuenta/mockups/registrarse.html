@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-14 - Registrarse (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-current="registrarse">
+<script>
+/* Parámetros:
+   ?estado=errores (nombre en blanco, apellido vacío, contraseñas distintas) | email-duplicado (409 en el campo email)
+          | enviando («Creando cuenta…»)
+   El fallback del login automático (DU-1) es ingresar.html?estado=cuenta-creada.
+   ?nav=collapsed | drawer (de mockup.js). */
+(function () {
+  var e = new URLSearchParams(location.search).get('estado');
+  var t = { errores: 'Validación (nombre/apellido vacíos, contraseñas distintas)', 'email-duplicado': '409 email ya registrado', enviando: 'Enviando: «Creando cuenta…»' };
+  window.CFG = { pageClass: 'page-auth', banner: 'Mockup C-14 · /registrarse · ' + (t[e] || 'vacío') + ' · sin sesión · Revision 2 · pendiente de aprobación' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="cuenta.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, e = M.estado;
+  var enviando = e === 'enviando', lleno = e === 'email-duplicado' || enviando || e === 'errores';
+
+  var v = lleno
+    ? { nombre: e === 'errores' ? '   ' : 'Ana', apellido: e === 'errores' ? '' : 'Gómez', email: 'ana@example.com', celular: '', pass: 'secreta123', rep: e === 'errores' ? 'secreta12' : 'secreta123' }
+    : { nombre: '', apellido: '', email: '', celular: '', pass: '', rep: '' };
+
+  var form =
+    '<form class="auth-form" novalidate>' +
+      '<div class="auth-grid">' +
+        M.campo({ id: 'nombre', label: 'Nombre', auto: 'given-name', max: 80, valor: v.nombre, disabled: enviando, error: e === 'errores' ? 'Ingresá tu nombre' : null }) +
+        M.campo({ id: 'apellido', label: 'Apellido', auto: 'family-name', max: 80, valor: v.apellido, disabled: enviando, error: e === 'errores' ? 'Ingresá tu apellido' : null }) +
+      '</div>' +
+      M.campo({ id: 'email', label: 'Email', type: 'email', auto: 'email', valor: v.email, placeholder: 'nombre@ejemplo.com', disabled: enviando,
+        error: e === 'email-duplicado' ? 'Ya existe una cuenta con este email. <a href="ingresar.html">Ingresar</a>' : null }) +
+      M.campo({ id: 'celular', label: 'Celular', type: 'tel', auto: 'tel', max: 20, opcional: true, valor: v.celular, disabled: enviando, ayuda: 'Para avisarte sobre tus pedidos.' }) +
+      M.campo({ id: 'password', label: 'Contraseña', type: 'password', auto: 'new-password', valor: v.pass, disabled: enviando, ayuda: 'Al menos 8 caracteres.' }) +
+      M.campo({ id: 'confirmacion', label: 'Repetir contraseña', type: 'password', auto: 'new-password', valor: v.rep, disabled: enviando,
+        error: e === 'errores' ? 'Las contraseñas no coinciden' : null }) +
+      M.boton('Crear cuenta', enviando, 'Creando cuenta…') +
+    '</form>';
+
+  M.llenar('contenido',
+    '<section class="auth-card is-wide" aria-labelledby="titulo">' +
+      '<div class="auth-head"><h1 id="titulo">Crear cuenta</h1><p>Registrate para hacer pedidos. Al terminar, entrás directo.</p></div>' +
+      form +
+      '<p class="auth-foot">¿Ya tenés cuenta? <a href="ingresar.html">Ingresá</a></p>' +
+    '</section>' +
+    (e === 'email-duplicado' ? '<p><span class="note">Anotación · 409 sin field: el mensaje va en «Email» por status; los demás valores se conservan</span></p>' : '') +
+    '<p><span class="note">Anotación · «Repetir contraseña» se valida solo en el navegador y no se envía (DU-5)</span></p>');
+})();
+</script>
+</body>
+</html>

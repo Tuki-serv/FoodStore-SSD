@@ -256,16 +256,16 @@ def test_ida_y_vuelta_termina_en_head_y_sin_diferencias_con_los_modelos(migratio
         assert _diferencias(conn) == []
 
 
-def test_current_and_head_tras_upgrade_devuelve_004_en_ambas_posiciones(migrations_db: Engine) -> None:
+def test_current_and_head_tras_upgrade_devuelve_005_en_ambas_posiciones(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == ("004", "004")
+        assert current_and_head(conn) == ("005", "005")
 
 
 def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_db: Engine) -> None:
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == (None, "004")
+        assert current_and_head(conn) == (None, "005")
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +274,7 @@ def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_
 def test_foodstore_test_queda_en_head_al_iniciar_la_sesion(session: Session) -> None:
     actual, head = current_and_head(session.connection())
 
-    assert actual == head == "004"
+    assert actual == head == "005"
 
 
 # ---------------------------------------------------------------------------
@@ -501,7 +501,7 @@ def test_tras_upgrade_head_external_reference_es_uuid_not_null_unico_y_sin_colum
     assert (columna[0], columna[2]) == ("uuid", "NO")
     assert restriccion == "u"
     assert not {"mp_preference_id", "mp_init_point"} & nombres
-    assert version == ("004", "004")
+    assert version == ("005", "005")
 
 
 def test_dos_pagos_con_la_misma_external_reference_son_rechazados_por_la_restriccion_unica(
@@ -635,7 +635,7 @@ def test_tras_upgrade_head_pagos_tiene_mp_order_id_unico_mp_payment_id_texto_y_s
     assert tuple(pago) == ("character varying", 64, "YES")
     assert restriccion == "u"
     assert "mp_merchant_order_id" not in nombres
-    assert version == "004"
+    assert version == "005"
 
 
 def test_upgrade_de_003_a_004_convierte_mp_payment_id_a_texto_y_descarta_la_merchant_order(
@@ -702,6 +702,116 @@ def test_ida_y_vuelta_004_003_004_no_deja_diferencias_con_los_modelos(migrations
     _migrar(migrations_db)
     with migrations_db.begin() as conn:
         command.downgrade(build_alembic_config(conn), "003")
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        assert _diferencias(conn) == []
+
+
+# ---------------------------------------------------------------------------
+# Migración 005: email de usuario normalizado (C-14, DU-4)
+# ---------------------------------------------------------------------------
+_INSERTAR_USUARIO_CRUDO = text(
+    "INSERT INTO usuario (nombre, apellido, email, password_hash, created_at, updated_at, deleted_at) "
+    "VALUES ('N', 'A', :email, :hash, now(), now(), :baja) RETURNING id"
+)
+
+
+def _a_004(engine: Engine) -> None:
+    with engine.begin() as conn:
+        command.upgrade(build_alembic_config(conn), "004")
+
+
+def _usuario_crudo(conn: Connection, email: str, *, baja: bool = False) -> int:
+    return conn.execute(_INSERTAR_USUARIO_CRUDO, {"email": email, "hash": HASH, "baja": BAJA if baja else None}).scalar_one()
+
+
+def _emails(engine: Engine) -> list[str]:
+    with engine.connect() as conn:
+        return [fila[0] for fila in conn.execute(text("SELECT email FROM usuario ORDER BY id"))]
+
+
+def test_tras_upgrade_head_la_version_es_005_y_existen_el_check_y_el_indice_unico_parcial(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        check = conn.execute(text("SELECT contype FROM pg_constraint WHERE conname = 'ck_usuario_email_normalizado'")).scalar()
+        indice = conn.execute(text("SELECT 1 FROM pg_indexes WHERE indexname = 'uq_usuario_email_activo'")).scalar()
+        version = current_and_head(conn)[0]
+
+    assert (check, indice, version) == ("c", 1, "005")
+
+
+@pytest.mark.parametrize("email", ["Ana@x.com", " ana@x.com", "ana@X.com"])
+def test_la_base_rechaza_un_email_sin_normalizar_insertado_directamente(migrations_db: Engine, email: str) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        with pytest.raises(IntegrityError, match="ck_usuario_email_normalizado"):
+            _usuario_crudo(conn, email)
+
+
+def test_upgrade_de_004_a_005_normaliza_los_emails_activos_y_dados_de_baja_sin_tocar_los_demas_datos(migrations_db: Engine) -> None:
+    _a_004(migrations_db)
+    with migrations_db.begin() as conn:
+        _usuario_crudo(conn, "Ana@X.com")
+        _usuario_crudo(conn, " Beto@x.com", baja=True)
+
+    _migrar(migrations_db)
+
+    assert _emails(migrations_db) == ["ana@x.com", "beto@x.com"]
+    with migrations_db.connect() as conn:
+        filas = conn.execute(text("SELECT nombre, apellido, password_hash, deleted_at IS NULL FROM usuario ORDER BY id")).all()
+    assert [tuple(f) for f in filas] == [("N", "A", HASH, True), ("N", "A", HASH, False)]
+
+
+def test_upgrade_con_dos_usuarios_activos_que_colisionan_falla_listando_email_e_ids_y_no_cambia_nada(migrations_db: Engine) -> None:
+    _a_004(migrations_db)
+    with migrations_db.begin() as conn:
+        id_a = _usuario_crudo(conn, "Juan@x.com")
+        id_b = _usuario_crudo(conn, "juan@x.com")
+
+    with pytest.raises(RuntimeError, match="juan@x.com") as error:
+        _migrar(migrations_db)
+
+    assert str(id_a) in str(error.value) and str(id_b) in str(error.value)
+    with migrations_db.connect() as conn:
+        assert current_and_head(conn)[0] == "004"
+    assert _emails(migrations_db) == ["Juan@x.com", "juan@x.com"]
+
+
+def test_upgrade_con_un_activo_y_un_dado_de_baja_que_coinciden_termina_sin_errores(migrations_db: Engine) -> None:
+    _a_004(migrations_db)
+    with migrations_db.begin() as conn:
+        _usuario_crudo(conn, "juan@x.com")
+        _usuario_crudo(conn, "Juan@x.com", baja=True)
+
+    _migrar(migrations_db)
+
+    assert _emails(migrations_db) == ["juan@x.com", "juan@x.com"]
+
+
+def test_downgrade_de_005_a_004_quita_el_check_y_conserva_los_emails_en_minusculas(migrations_db: Engine) -> None:
+    _a_004(migrations_db)
+    with migrations_db.begin() as conn:
+        _usuario_crudo(conn, "Ana@X.com")
+    _migrar(migrations_db)
+
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "004")
+
+    with migrations_db.connect() as conn:
+        check = conn.execute(text("SELECT 1 FROM pg_constraint WHERE conname = 'ck_usuario_email_normalizado'")).scalar()
+        indice = conn.execute(text("SELECT 1 FROM pg_indexes WHERE indexname = 'uq_usuario_email_activo'")).scalar()
+        version = current_and_head(conn)[0]
+    assert (check, indice, version) == (None, 1, "004")
+    assert _emails(migrations_db) == ["ana@x.com"]
+
+
+def test_ida_y_vuelta_005_004_005_no_deja_diferencias_con_los_modelos(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "004")
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
