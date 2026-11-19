@@ -147,3 +147,24 @@ Son contrato; romperlas es un defecto.
 ```
 
 Primer change: **C-01**. Aplicar TODAS las reglas duras en cada paso. Ante conflicto entre la KB y este archivo, las reglas duras prevalecen.
+
+---
+
+## Flujo de Git (`dev → main → dev`)
+
+- **`main`**: solo lo que quedó bien (changes cerrados). NUNCA se commitea directo; solo recibe merges desde `dev`.
+- **`dev`**: rama de trabajo. Se trabaja en el checkout principal sobre `dev`, sin worktrees (los `.env` gitignoreados de la raíz y `backend/tests/.env.test` solo existen ahí).
+- Commits y push siempre a pedido del usuario (regla 14), sin `Co-Authored-By` (regla 15).
+
+**A. Change terminado** (todo en `dev`, en este orden):
+
+1. `feat|fix|…: <descripción> (C-XX)` — el código del change.
+2. `chore(openspec): archivar C-XX y marcarlo cerrado en CHANGES.md`.
+3. `engram sync` + `git add .engram` → `chore(engram): sync project memory` (NUNCA `engram sync --all`).
+4. `git push origin dev`.
+5. `git checkout main` → `git merge --no-ff dev -m "merge: integrar C-XX (<resumen>) desde dev"` → `git push origin main`.
+6. Volver a dev: `git checkout dev` → `git merge --ff-only main` → `git push origin dev` (dev queda idéntica a main, merge incluido).
+
+**B. Change sin terminar** que necesita commit/push: se commitea en `dev` (engram también: `engram sync` + commit en `dev`) y se pushea solo `dev`. `main` no se toca.
+
+**C. Alguien retoma el proyecto**: `git clone` (queda en `main`) → `git checkout dev` → `engram sync --import`.
