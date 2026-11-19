@@ -1,8 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { esperarSinViolacionesA11y } from '@/test/axe';
+import { crearEstadoPagos, handlersPagos } from '@/test/msw/pagos';
 import { detalleDto, pedidoDto } from '@/test/msw/pedidos';
+import { server } from '@/test/msw/server';
 import { esperarCheckout, montarCheckout } from '@/test/render-checkout';
+
+vi.mock('@mercadopago/sdk-react', () => import('@/test/mp-sdk-doble'));
 
 const itemsPrueba = (pedidoId: number) => [
   detalleDto({
@@ -157,6 +161,7 @@ describe('confirmación: transferencia', () => {
 });
 
 describe('confirmación: Mercado Pago (traspaso al pago)', () => {
+    server.use(...handlersPagos(crearEstadoPagos()));
   it('muestra «Falta el pago» y «Pagar $ 2.850 con tarjeta», que lleva a la ruta de pago del pedido', async () => {
     const { usuario, router } = abrirPedido({ id: 58, forma_pago_codigo: 'MERCADOPAGO', subtotal: '2800.00', total: '2850.00' });
     await titulo(58);
@@ -167,7 +172,7 @@ describe('confirmación: Mercado Pago (traspaso al pago)', () => {
     await usuario.click(principal().getByRole('link', { name: 'Pagar $ 2.850 con tarjeta' }));
 
     expect(router.state.location.pathname).toBe('/finalizar-compra/pedido/58/pago');
-    expect(await screen.findByRole('heading', { name: 'Pago', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Pagar pedido #58', level: 1 })).toBeInTheDocument();
   });
 
   it('un pedido de Mercado Pago que ya no está PENDIENTE muestra el estado sin la acción de pagar', async () => {

@@ -271,7 +271,7 @@ Copiar `backend/.env.example` a `backend/.env` y reemplazar los `CHANGE_ME_*`. C
 
 | Integración | Variables que habilita | Sin ellas |
 |---|---|---|
-| Pagos (MercadoPago, Orders API) | `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_WEBHOOK_SECRET` | `POST /api/v1/pagos/crear` responde 503 nombrando `MP_ACCESS_TOKEN` (el 503 se evalúa después de 401/403/404 y de las precondiciones 409); también responde 503 si MercadoPago rechaza las credenciales. El webhook responde 503 sin `MP_WEBHOOK_SECRET` |
+| Pagos (MercadoPago, Orders API) | `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY`, `MP_WEBHOOK_SECRET` | `GET /api/v1/pagos/config` (clave pública para el brick `CardPayment` del frontend, C-20a; usuario autenticado, sin restricción de rol) responde 503 sin `MP_PUBLIC_KEY` (vacía o con solo espacios también); `POST /api/v1/pagos/crear` responde 503 nombrando `MP_ACCESS_TOKEN` (el 503 se evalúa después de 401/403/404 y de las precondiciones 409); también responde 503 si MercadoPago rechaza las credenciales. El webhook responde 503 sin `MP_WEBHOOK_SECRET` |
 | Imágenes (Cloudinary) | `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | subir una imagen responde 503; borrar es un no-op |
 
 `DATABASE_URL` es la **única** variable de BD que lee el backend y se usa tal cual (esquema `postgresql+psycopg://`).

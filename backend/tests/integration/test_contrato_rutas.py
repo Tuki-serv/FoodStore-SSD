@@ -40,6 +40,7 @@ RUTAS_ESPERADAS: set[tuple[str, str]] = {
     ("PATCH", "/api/v1/ingredientes/{ingrediente_id}"),
     ("POST", "/api/v1/pagos/crear"),
     ("POST", "/api/v1/pagos/webhook"),
+    ("GET", "/api/v1/pagos/config"),
     ("GET", "/api/v1/pagos/{pedido_id}"),
     ("GET", "/api/v1/pedidos/"),
     ("POST", "/api/v1/pedidos/"),

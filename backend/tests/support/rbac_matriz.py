@@ -113,6 +113,7 @@ FILAS: tuple[Fila, ...] = (
     Fila("GET", f"{P}/pedidos/cocina/pedidos", ADMIN_PEDIDOS_COCINA, dueno="C-26"),
     # Pagos (C-04: autenticado; la propiedad del pedido se prueba en test_pago_autorizacion.py)
     Fila("POST", f"{P}/pagos/crear", AUTENTICADO, {"pedido_id": ID_INEXISTENTE}),
+    Fila("GET", f"{P}/pagos/config", AUTENTICADO),
     Fila("GET", f"{P}/pagos/{{pedido_id}}", AUTENTICADO),
     # Estadísticas (59-63)
     Fila("GET", f"{P}/estadisticas/ventas", ADMIN),

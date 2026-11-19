@@ -1,7 +1,10 @@
 import { screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { rutaPagoPedido, rutaPedidoCreado, RUTA_FINALIZAR_COMPRA, RUTA_PAGO_PEDIDO, RUTA_PEDIDO_CREADO } from '@/shared/config';
 import { renderApp } from '@/test/render-app';
+import { montarPago } from '@/test/render-pago';
+
+vi.mock('@mercadopago/sdk-react', () => import('@/test/mp-sdk-doble'));
 
 describe('rutas del checkout', () => {
   it('un visitante sin sesión en /finalizar-compra va a /ingresar recordando la ruta', async () => {
@@ -25,11 +28,17 @@ describe('rutas del checkout', () => {
     expect(await screen.findByRole('heading', { name: 'No tenés acceso a esta sección', level: 1 })).toBeInTheDocument();
   });
 
-  it('un CLIENT en /finalizar-compra/pedido/58/pago ve la página provisoria «Pago» con dueño C-20', async () => {
-    renderApp('/finalizar-compra/pedido/58/pago', { sesion: { roles: ['CLIENT'] } });
+  it('un CLIENT en /finalizar-compra/pedido/58/pago ve la página real «Pagar pedido #58», no la provisoria', async () => {
+    montarPago();
 
-    const pagina = (await screen.findByRole('heading', { name: 'Pago', level: 1 })).closest('[data-owner]');
-    expect(pagina).toHaveAttribute('data-owner', 'C-20');
+    expect(await screen.findByRole('heading', { name: 'Pagar pedido #58', level: 1 })).toBeInTheDocument();
+    expect(document.querySelector('[data-owner]')).toBeNull();
+  });
+
+  it('un usuario solo ADMIN en la ruta de pago ve «Sin permiso»', async () => {
+    renderApp('/finalizar-compra/pedido/58/pago', { sesion: { roles: ['ADMIN'] } });
+
+    expect(await screen.findByRole('heading', { name: 'No tenés acceso a esta sección', level: 1 })).toBeInTheDocument();
   });
 
   it('un visitante sin sesión en la ruta de pago va a /ingresar', async () => {

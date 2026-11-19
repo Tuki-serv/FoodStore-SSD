@@ -50,6 +50,12 @@ class PagoEstadoResponse(BaseModel):
     mp_status_detail: Optional[str] = None
 
 
+class ConfiguracionPagosResponse(BaseModel):
+    """Configuración pública para el brick `CardPayment`: solo la clave pública (nunca access token ni secreto)."""
+
+    public_key: str
+
+
 class NotificacionWebhook(BaseModel):
     """Notificación de MercadoPago tal como llega: headers de firma, query string y cuerpo (JSON o form)."""
 

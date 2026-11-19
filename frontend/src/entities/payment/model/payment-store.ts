@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 
-export type EstadoPago = 'inactivo' | 'procesando' | 'aprobado' | 'rechazado' | 'pendiente' | 'error';
+export type EstadoPago = 'inactivo' | 'procesando' | 'aprobado' | 'rechazado' | 'pendiente' | 'a_devolver' | 'error';
 
 export interface ResultadoPago {
-  estado: 'aprobado' | 'rechazado' | 'pendiente';
-  mpPaymentId: number;
+  estado: 'aprobado' | 'rechazado' | 'pendiente' | 'a_devolver';
+  /** Identificador de pago de MercadoPago tal como lo devuelve el backend (texto, p. ej. `PAY01…`). */
+  mpPaymentId: string | null;
   statusDetail: string | null;
 }
 
@@ -15,7 +16,7 @@ export interface ResultadoPago {
 export interface PaymentState {
   pedidoId: number | null;
   estado: EstadoPago;
-  mpPaymentId: number | null;
+  mpPaymentId: string | null;
   statusDetail: string | null;
   error: string | null;
   iniciar: (pedidoId: number) => void;
