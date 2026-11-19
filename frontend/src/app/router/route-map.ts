@@ -1,7 +1,7 @@
 import { RUTAS, type Ruta } from '@/shared/config';
 
 /** Change que implementa la pantalla real de cada ruta (mientras tanto: página provisoria). */
-export type DuenoRuta = 'C-14' | 'C-15' | 'C-16b' | 'C-17a' | 'C-17b' | 'C-18' | 'C-21' | 'C-22' | 'C-23' | 'C-24';
+export type DuenoRuta = 'C-14' | 'C-15' | 'C-16b' | 'C-17a' | 'C-17b' | 'C-18' | 'C-20' | 'C-21' | 'C-22' | 'C-23' | 'C-24';
 
 export interface RutaDeclarada {
   path: Ruta;

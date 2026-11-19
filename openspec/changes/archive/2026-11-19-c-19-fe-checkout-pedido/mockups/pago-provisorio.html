@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-19 - Punto de traspaso al pago (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="">
+<script>
+window.CFG = { count: 0, banner: 'Mockup C-19 · /finalizar-compra/pedido/58/pago · página provisoria (dueño C-20) · CLIENT · Revision 2 · pendiente de aprobación' };
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="checkout.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var ico = MOCK.ico;
+  /* Misma página provisoria del shell (PlaceholderPage, C-13a): título + aviso «en preparación» + change dueño. */
+  MOCK.llenar('contenido',
+    '<div class="page-head"><h1>Pago</h1></div>' +
+    '<div class="nf"><div class="state"><span class="badge-ico">' + ico('i-obra') + '</span>' +
+      '<h2>Esta sección está en preparación</h2><p>El pago con tarjeta llega con el change <span class="path">C-20</span>. Tu pedido #58 ya está creado y queda pendiente de pago.</p>' +
+      '<div class="actions"><a class="btn btn-secondary" href="pedido-creado.html?forma=MERCADOPAGO">' + ico('i-volver') + 'Volver al pedido</a></div></div></div>' +
+    '<p><span class="note">Anotación · punto de traspaso C-19 → C-20: la ruta y el enlace «Pagar $ X con tarjeta» los define C-19; el brick CardPayment lo implementa C-20</span></p>');
+})();
+</script>
+</body>
+</html>

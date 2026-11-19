@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-19 - Finalizar compra (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="carrito">
+<script>
+/* Parámetros:
+   ?estado=validacion (confirmar sin forma de pago) | efectivo | transferencia | mercadopago (nota según forma) | retiro (sin direcciones, PA-13)
+          | nota (campo de notas abierto) | enviando («Creando pedido…»)
+   ?error=stock | no-disponible | no-encontrado | duplicado (→ «Revisar carrito») | forma-pago (→ elegir otra) | red (→ «Reintentar»)
+   ?nav=collapsed | drawer (de mockup.js). */
+(function () {
+  var q = new URLSearchParams(location.search), e = q.get('estado'), err = q.get('error');
+  var t = { validacion: 'Validación «Elegí una forma de pago»', efectivo: 'Efectivo: confirmación manual (DD-22)', transferencia: 'Transferencia: confirmación manual (DD-22)',
+    mercadopago: 'Mercado Pago: pago en el paso siguiente (C-20)', retiro: 'Sin direcciones: retiro en el local (PA-13)', nota: 'Nota para el local abierta', enviando: 'Enviando: «Creando pedido…»' };
+  var te = { stock: 'Error: sin stock', 'no-disponible': 'Error: producto no disponible', 'no-encontrado': 'Error: producto no encontrado (404)', duplicado: 'Error: líneas duplicadas',
+    'forma-pago': 'Error: forma de pago deshabilitada', red: 'Error: sin conexión' };
+  window.CFG = { pageClass: 'page-wide page-checkout', banner: 'Mockup C-19 · Finalizar compra · ' + (te[err] || t[e] || 'principal preseleccionada, sin forma de pago') + ' · CLIENT · Revision 2 · pendiente de aprobación' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="checkout.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, q = M.params, est = M.estado, err = q.get('error');
+  var enviando = est === 'enviando';
+
+  /* Forma de pago elegida según el estado. */
+  var forma = null;
+  if (est === 'efectivo' || est === 'enviando' || est === 'nota') forma = 'EFECTIVO';
+  if (est === 'transferencia') forma = 'TRANSFERENCIA';
+  if (est === 'mercadopago') forma = 'MERCADOPAGO';
+  if (est === 'retiro') forma = 'EFECTIVO';
+  if (err) forma = err === 'forma-pago' ? 'TRANSFERENCIA' : 'EFECTIVO';
+
+  var FORMAS = [
+    { c: 'MERCADOPAGO', l: 'Tarjeta (Mercado Pago)', s: 'Crédito o débito', i: 'i-tarjeta' },
+    { c: 'EFECTIVO', l: 'Efectivo', s: 'Pagás al recibirlo o retirarlo', i: 'i-efectivo' },
+    { c: 'TRANSFERENCIA', l: 'Transferencia bancaria', s: 'El local te pasa los datos', i: 'i-transferencia' }
+  ];
+
+  /* --- Paso 1: entrega (SelectorDireccion de C-15) --- */
+  var sinDirs = est === 'retiro';
+  var entrega = sinDirs
+    ? '<div class="sel-empty">' + ico('i-direcciones') + '<div><strong>No tenés direcciones guardadas</strong><p>Agregá una para que te la llevemos.</p><a href="#/direcciones">Agregar dirección</a></div></div>' +
+      '<label class="opt is-checked"><input type="radio" name="dir" checked><span class="addr-body"><span class="addr-title">' + ico('i-tienda') + '<strong>Retiro en el local</strong></span><span class="addr-sub">Pasás a buscarlo cuando esté listo</span></span></label>'
+    : '<label class="opt is-checked"><input type="radio" name="dir" checked><span class="addr-body"><span class="addr-title"><strong>Casa</strong><span class="badge b-principal">Principal</span></span>' +
+        '<span class="addr-line">Av. San Martín 1234, piso 3, depto. B</span><span class="addr-sub">Mendoza, Mendoza · CP 5500</span></span></label>' +
+      '<label class="opt"><input type="radio" name="dir"><span class="addr-body"><span class="addr-title"><strong>Trabajo</strong></span>' +
+        '<span class="addr-line">Belgrano 455</span><span class="addr-sub">Godoy Cruz, Mendoza · CP 5501</span></span></label>' +
+      '<label class="opt"><input type="radio" name="dir"><span class="addr-body"><span class="addr-title">' + ico('i-tienda') + '<strong>Retiro en el local</strong></span><span class="addr-sub">Pasás a buscarlo cuando esté listo</span></span></label>';
+  var paso1 = '<section class="step" aria-labelledby="paso-1">' +
+    '<h2 id="paso-1"><span class="step-num" aria-hidden="true">1</span>Entrega</h2>' +
+    '<fieldset class="sel"' + (enviando ? ' disabled' : '') + '><legend>¿Dónde lo recibís?</legend>' + entrega + '</fieldset>' +
+    (sinDirs ? '' : '<div class="sel-foot"><span>¿Otra dirección?</span><a href="#/direcciones">Gestionar direcciones</a></div>') +
+    '</section>';
+
+  /* --- Paso 2: forma de pago --- */
+  var invalida = est === 'validacion';
+  var opciones = FORMAS.map(function (f) {
+    var on = f.c === forma;
+    return '<label class="opt' + (on ? ' is-checked' : '') + '"><input type="radio" name="pago"' + (on ? ' checked' : '') + (invalida ? ' aria-describedby="pago-err"' : '') + '>' +
+      '<span><span class="pay-lbl">' + ico(f.i) + f.l + '</span><small>' + f.s + '</small></span></label>';
+  }).join('');
+  var notaPago = '';
+  if (forma === 'EFECTIVO' || forma === 'TRANSFERENCIA') {
+    notaPago = '<div class="info-box">' + ico('i-reloj') + '<div><strong>Confirmación manual</strong>Tu pedido queda <b>pendiente</b> hasta que el local confirme el pago' +
+      (forma === 'EFECTIVO' ? ' en efectivo' : ' de la transferencia') + '. Te avisamos en «Mis pedidos» cuando pase a confirmado. No necesitás cargar ninguna tarjeta.</div></div>';
+  } else if (forma === 'MERCADOPAGO') {
+    notaPago = '<div class="info-box">' + ico('i-tarjeta') + '<div><strong>Pago en el paso siguiente</strong>Primero creamos el pedido; después cargás la tarjeta en el formulario seguro de Mercado Pago. El pedido se confirma cuando se aprueba el pago.</div></div>';
+  }
+  var errPago = err === 'forma-pago'
+    ? '<p class="field-err" id="pago-err">' + ico('i-alerta') + 'Transferencia bancaria no está disponible ahora. Elegí otra forma de pago.</p>' : '';
+  var paso2 = '<section class="step" aria-labelledby="paso-2"' + (invalida || err === 'forma-pago' ? ' aria-invalid="true"' : '') + '>' +
+    '<h2 id="paso-2"><span class="step-num" aria-hidden="true">2</span>Forma de pago</h2>' +
+    '<fieldset class="sel"' + (enviando ? ' disabled' : '') + '><legend class="sr">¿Cómo pagás?</legend><div class="pay-opts">' + opciones + '</div></fieldset>' +
+    (invalida ? '<p class="field-err" id="pago-err">' + ico('i-alerta') + 'Elegí una forma de pago.</p>' : '') + errPago + notaPago +
+    '</section>';
+
+  /* --- Paso 3: notas (opcional) --- */
+  var paso3 = est === 'nota'
+    ? '<section class="step" aria-labelledby="paso-3"><h2 id="paso-3"><span class="step-num" aria-hidden="true">3</span>Notas <small style="font-family:var(--font-sans);font-weight:400;color:var(--color-text-muted);font-size:var(--text-sm);margin-left:var(--space-2)">(opcional)</small></h2>' +
+      '<div class="field"><label for="notas">Notas para el local</label><textarea class="input" id="notas" maxlength="300" aria-describedby="notas-h">Tocar timbre 3B. Sin servilletas, gracias.</textarea>' +
+      '<div class="meta-row"><span class="hint" id="notas-h">Aclaraciones para la entrega o la preparación.</span><span class="hint">41/300</span></div></div></section>'
+    : '<button class="nota-toggle" type="button" aria-expanded="false"' + (enviando ? ' disabled' : '') + '>' + ico('i-mas') + 'Agregar una nota para el local</button>';
+
+  /* --- Aviso de error (arriba de los pasos, recibe el foco) --- */
+  var ERRORES = {
+    stock: { d: 'No hay stock suficiente', a: 'carrito' },
+    'no-disponible': { d: 'Producto no disponible', a: 'carrito' },
+    'no-encontrado': { d: 'Producto no encontrado', a: 'carrito' },
+    duplicado: { d: 'No puede pedir dos veces el mismo producto con la misma personalización', a: 'carrito' },
+    'forma-pago': { d: 'Forma de pago no está habilitada', a: 'pago' },
+    red: { d: 'No pudimos conectar con el servidor.', a: 'reintentar' }
+  };
+  var alerta = '';
+  if (err && ERRORES[err]) {
+    var x = ERRORES[err], ayuda, acc;
+    if (x.a === 'carrito') {
+      ayuda = 'Revisá el carrito: puede que un producto se haya agotado, ya no esté a la venta o haya cambiado. Tu carrito sigue intacto.';
+      acc = '<a class="btn btn-secondary btn-sm" href="carrito-checkout.html">' + ico('i-carrito') + 'Revisar carrito</a>';
+    } else if (x.a === 'pago') {
+      ayuda = 'Elegí otra forma de pago y volvé a confirmar.';
+      acc = '<button class="btn btn-secondary btn-sm" type="button">Elegí otra forma de pago</button>';
+    } else {
+      ayuda = 'Revisá tu conexión. No se creó ningún pedido con este intento.';
+      acc = '<button class="btn btn-secondary btn-sm" type="button">Reintentar</button>';
+    }
+    alerta = '<div class="form-alert" role="alert" tabindex="-1">' + ico('i-alerta') + '<div><strong>No pudimos crear el pedido</strong>' +
+      '<p>' + x.d + (/\.$/.test(x.d) ? '' : '.') + ' ' + ayuda + '</p><div class="alert-actions">' + acc + '</div></div></div>';
+  }
+
+  /* --- Resumen --- */
+  var subCent = M.totalCent, envio = 5000, desc = 0, totalCent = subCent + envio - desc;
+  var items = M.lineas.map(function (l) {
+    var pers = M.textoPers(l);
+    return '<li><span class="q">' + l.cant + ' ×</span><span class="n">' + l.nombre + (pers ? '<small>' + pers + '</small>' : '') + '</span><span>' + M.precio(M.deCent(M.aCent(l.precio) * l.cant)) + '</span></li>';
+  }).join('');
+  var boton = enviando
+    ? '<button class="btn btn-primary btn-block" type="button" disabled aria-busy="true"><span class="spinner" aria-hidden="true"></span>Creando pedido…</button>'
+    : '<button class="btn btn-primary btn-block" type="submit">Confirmar pedido</button>';
+  var resumen = '<aside class="summary" aria-labelledby="res-t"><h2 id="res-t">Tu pedido</h2>' +
+    '<ul class="sum-items" aria-label="Productos del pedido">' + items + '</ul>' +
+    '<div class="line"><span>Subtotal (' + M.unidades + ' unidades)</span><span>' + M.precio(M.deCent(subCent)) + '</span></div>' +
+    '<div class="line"><span>Costo de envío</span><span>' + M.precio(M.deCent(envio)) + '</span></div>' +
+    (sinDirs ? '<div class="line"><span class="muted-tag">Tarifa fija por pedido, también con retiro</span><span></span></div>' : '') +
+    '<div class="line"><span>Descuento</span><span>' + M.precio(M.deCent(desc)) + '</span></div>' +
+    '<div class="total"><span>Total estimado</span><span>' + M.precio(M.deCent(totalCent)) + '</span></div>' +
+    '<p class="sum-note">' + ico('i-info') + '<span>El total final lo confirma el servidor con los precios vigentes.</span></p>' +
+    '<p class="sum-note">' + ico('i-alerta') + '<span>Verificamos el stock al crear el pedido, pero no lo reservamos: se descuenta cuando el pedido se confirma.</span></p>' +
+    '<div style="margin-top:var(--space-3)">' + boton + '</div></aside>';
+
+  M.llenar('contenido',
+    '<a class="back-link" href="carrito-checkout.html">' + ico('i-volver') + 'Volver al carrito</a>' +
+    '<div class="page-head"><h1>Finalizar compra</h1><p>Elegí cómo lo recibís y cómo pagás.</p></div>' +
+    '<form class="checkout" onsubmit="return false" novalidate>' +
+      '<div class="steps">' + alerta + paso1 + paso2 + paso3 + '</div>' + resumen +
+    '</form>');
+
+  if (alerta) { var a = document.querySelector('.form-alert'); if (a) a.focus({ preventScroll: true }); }
+})();
+</script>
+</body>
+</html>

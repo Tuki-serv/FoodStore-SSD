@@ -135,11 +135,20 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 
 ## Carrito y personalización (C-18)
 
-- **Página `/carrito`** (`src/pages/carrito/`: `CarritoPage`, `EntradaCarrito`, `ResumenCarrito`, `CarritoVacio`, `carrito.css`): solo con sesión; sin pedir nada al servidor (el carrito es estado de cliente). Cantidades con tope 99 por línea en la UI, «Quitar» sin confirmación (toast «Quitado del carrito»), «Vaciar carrito» con el diálogo global. **Sin botón de checkout** hasta C-19.
+- **Página `/carrito`** (`src/pages/carrito/`: `CarritoPage`, `EntradaCarrito`, `ResumenCarrito`, `CarritoVacio`, `carrito.css`): solo con sesión; sin pedir nada al servidor (el carrito es estado de cliente). Cantidades con tope 99 por línea en la UI, «Quitar» sin confirmación (toast «Quitado del carrito»), «Vaciar carrito» con el diálogo global. Desde C-19 el resumen suma «Finalizar compra» (solo con rol `CLIENT`; el resto ve que solo las cuentas de cliente pueden hacer pedidos) y la nota del costo de envío fijo.
 - **Personalización**: `SelectorPersonalizacion` (`src/features/agregar-al-carrito/`) en el detalle del producto, una casilla «Sin X» por ingrediente removible (`ingredientesRemovibles` de `entities/producto`). Las casillas se mantienen tras agregar.
 - **Store**: `LineaCarrito.personalizacionNombres` (snapshot de nombres) y `agregar(producto, cantidad, excluidos: {id, nombre}[])`; persistencia v2 con `migrate` desde v1. Helpers puros: `subtotalLinea`, `textoPersonalizacion`.
 - **Contador**: `ContadorCarrito` (`entities/cart/ui`) en el ítem «Carrito» del panel y en el botón de la barra superior mobile (solo con sesión); cuenta unidades.
 - **Compartido**: `SelectorCantidad` ahora vive en `src/shared/ui/selector-cantidad/` (etiquetas parametrizables).
+
+## Checkout y confirmación del pedido (C-19)
+
+- **Rutas** (solo `CLIENT`, fuera de `RUTAS`/`ACCESO_RUTAS`: no son secciones de navegación; helpers en `shared/config/routes.ts`): `/finalizar-compra` (`FinalizarCompraPage`), `/finalizar-compra/pedido/:pedidoId` (`PedidoCreadoPage`) y `/finalizar-compra/pedido/:pedidoId/pago` (página provisoria con dueño `C-20`: punto de traspaso al pago con tarjeta).
+- **Checkout** (`src/pages/finalizar-compra/`: página con TanStack Form, `PasoEntrega` sobre `SelectorDireccion`, `PasoFormaPago`, `CampoNotas`, `ResumenPedido`, `AvisoErrorPedido`, `armarPedido`): un único `POST /pedidos/`; botón «Creando pedido…» y campos deshabilitados mientras viaja (el backend no es idempotente). Al crear: navega a la confirmación (con `state.totalEstimado`), vacía el carrito y avisa con un toast. Ante un rechazo conserva carrito y elecciones; con el carrito vacío vuelve a `/carrito`.
+- **Entidad `src/entities/pedido/`**: tipos del contrato, `FORMAS_PAGO` (catálogo local: el backend no lista formas de pago), `COSTO_ENVIO`/`DESCUENTO` (DD-10, `[PENDIENTE DE DECISIÓN: PA-11/PA-13]`; el envío se muestra también con retiro), `itemsDesdeCarrito`, `totalEstimado`, `clasificarErrorCreacion` (único lugar que decide por el texto de `detail`, excepción documentada a «decidir por `code`»), `pedidoQueries` (`todas()` = `['pedidos']`, `detalle(id)`), `useCrearPedido` (siembra `detalle(id)` e invalida `['pedidos']`), `BadgeEstado` y `EtiquetaFormaPago`.
+- **Confirmación** (`src/pages/pedido-creado/`): lee el pedido de la caché sembrada al crear (sin GET extra) o, al recargar, de `GET /pedidos/{id}`; 404/403 → «No encontramos este pedido». EFECTIVO/TRANSFERENCIA: pasos de confirmación manual (DD-22), sin acción de pago; MERCADOPAGO `PENDIENTE`: «Pagar $ X con tarjeta». Aviso «Los precios se actualizaron» si el total del servidor difiere del estimado.
+- **Compartido nuevo**: `shared/lib/importe.ts` (`aCentavos`, `formatearCentavos`, `sumarImportes`, usados por el carrito y el pedido), `useDireccionPorId` en `entities/direccion` y seis íconos (`tarjeta`, `efectivo`, `transferencia`, `reloj`, `info`, `exito`).
+- **Tests**: `src/test/msw/pedidos.ts` (estado en memoria con respuesta de creación configurable) y `montarCheckout` en `src/test/render-checkout.ts`.
 
 ## Productos y stock (C-17b)
 

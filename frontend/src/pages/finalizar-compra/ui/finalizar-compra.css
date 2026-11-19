@@ -1,0 +1,46 @@
+/* Página Finalizar compra: reglas aprobadas en los mockups de C-19 (design-system Revision 2). Solo tokens. */
+@layer components {
+  .checkout{display:grid;gap:var(--space-5);grid-template-columns:minmax(0,1fr) 360px;align-items:start}
+  .steps{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
+  .steps-campos{display:flex;flex-direction:column;gap:var(--space-4);border:0;margin:0;padding:0;min-width:0}
+  .step{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+  .step.is-invalid{border-color:var(--color-danger);box-shadow:inset 4px 0 0 var(--color-danger)}
+  .step-num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--color-primary);color:#fff;font-weight:800;font-size:var(--text-sm);margin-right:var(--space-2);flex:none}
+  .step h2{font-size:var(--text-lg);display:flex;align-items:center}
+  .step .step-opt{font-family:var(--font-sans);font-weight:400;color:var(--color-text-muted);font-size:var(--text-sm);margin-left:var(--space-2)}
+  .steps-campos:disabled .sel,.steps-campos:disabled .nota-toggle{opacity:.6}
+  fieldset.sel:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-md)}
+  .pay-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
+  .pay-opts .opt{grid-template-columns:auto 1fr;align-items:center;min-height:64px}
+  .pay-opts .opt .pay-lbl .ico{width:22px;height:22px}
+  .pay-opts .opt.is-checked .pay-lbl .ico{color:var(--color-primary)}
+  .pay-opts .opt small{display:block;font-weight:400;color:var(--color-text-muted);font-size:var(--text-xs)}
+  .info-box{display:flex;gap:var(--space-3);align-items:flex-start;background:var(--color-info-bg);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-size:var(--text-sm)}
+  .info-box > .ico{width:20px;height:20px;flex:none;color:var(--color-info);margin-top:1px}
+  .info-box strong{display:block;color:var(--color-info)}
+  .info-box.warn{background:var(--color-warning-bg)}
+  .info-box.warn > .ico,.info-box.warn strong{color:var(--color-warning)}
+  .field-err{display:flex;align-items:center;gap:6px;color:var(--color-danger);font-weight:700;font-size:var(--text-sm);margin:0}
+  .field-err .ico{width:18px;height:18px}
+  .nota-toggle{align-self:flex-start;background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--color-primary-hover);cursor:pointer;display:inline-flex;align-items:center;gap:var(--space-2);min-height:var(--tap-min)}
+  .nota-toggle:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
+  .nota-toggle .ico{width:18px;height:18px}
+  .sum-items{list-style:none;margin:0 0 var(--space-2);padding:0 0 var(--space-3);border-bottom:1px solid var(--color-border);display:flex;flex-direction:column;gap:var(--space-3)}
+  .sum-items li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--space-2);align-items:baseline;font-size:var(--text-sm)}
+  .sum-items .q{font-weight:800;color:var(--color-text-muted)}
+  .sum-items .n{font-weight:700;overflow-wrap:anywhere}
+  .sum-items .n small{display:block;font-weight:600;color:var(--color-text-muted)}
+  .summary .line .muted-tag{font-size:var(--text-xs)}
+  .sum-action{margin-top:var(--space-3)}
+  .form-alert{outline:none}
+  /* Foco programático (tabindex=-1, fuera del orden de Tab): :focus y no :focus-visible, que tras un clic no aplica. */
+  .form-alert:focus{box-shadow:var(--focus-ring)}
+  .form-alert > .ico{width:22px;height:22px;flex:none;margin-top:1px}
+  .form-alert .alert-actions{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-2)}
+  .form-alert .alert-actions .ico{width:18px;height:18px}
+  @media (max-width:1023.98px){.checkout{grid-template-columns:1fr}}
+  @media (max-width:719.98px){
+    .pay-opts{grid-template-columns:1fr}
+    .step{padding:var(--space-4)}
+  }
+}

@@ -3,12 +3,9 @@ import { useEffect, useId, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { RUTAS } from '@/shared/config';
 import { claseBoton, Icon } from '@/shared/ui';
-import { direccionQueries } from '../api';
+import { direccionQueries, TAMANO_LISTA_COMPLETA } from '../api';
 import { direccionPorDefecto } from '../model';
 import { ResumenDireccion } from './resumen-direccion';
-
-/** Máximo de direcciones que el backend entrega por página: el selector pide una sola (R2). */
-const TAMANO_SELECTOR = 100;
 
 export interface SelectorDireccionProps {
   /** Dirección elegida: id, `null` = retiro en el local, `undefined` = todavía sin elegir. */
@@ -27,7 +24,7 @@ export interface SelectorDireccionProps {
  */
 export function SelectorDireccion({ valor, onCambiar, permitirRetiro = true, leyenda = '¿Dónde lo recibís?' }: SelectorDireccionProps) {
   const nombre = useId();
-  const consulta = useQuery(direccionQueries.lista({ page: 1, size: TAMANO_SELECTOR }));
+  const consulta = useQuery(direccionQueries.lista({ page: 1, size: TAMANO_LISTA_COMPLETA }));
   const { data } = consulta;
   const onCambiarRef = useRef(onCambiar);
   // La última `onCambiar`, sin que un callback nuevo en cada render repita la preselección.

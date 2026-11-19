@@ -9,6 +9,7 @@
 @import "../../entities/categoria/ui/categoria.css";
 @import "../../entities/direccion/ui/direccion.css";
 @import "../../entities/producto/ui/producto.css";
+@import "../../entities/pedido/ui/pedido.css";
 @import "../../pages/direcciones/ui/direcciones.css";
 @import "../../pages/admin-categorias/ui/admin-categorias.css";
 @import "../../pages/admin-ingredientes/ui/admin-ingredientes.css";
@@ -16,6 +17,8 @@
 @import "../../pages/catalogo/ui/catalogo.css";
 @import "../../pages/producto/ui/producto.css";
 @import "../../pages/carrito/ui/carrito.css";
+@import "../../pages/finalizar-compra/ui/finalizar-compra.css";
+@import "../../pages/pedido-creado/ui/pedido-creado.css";
 
 @tailwind base;
 @tailwind components;

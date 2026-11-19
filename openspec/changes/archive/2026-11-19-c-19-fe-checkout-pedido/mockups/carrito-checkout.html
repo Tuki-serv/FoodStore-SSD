@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-19 - Carrito con «Finalizar compra» (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="carrito">
+<script>
+/* Parámetros: ?rol=admin (usuario sin rol CLIENT: sin CTA, con aviso). ?nav=collapsed | drawer (de mockup.js). */
+(function () {
+  var admin = new URLSearchParams(location.search).get('rol') === 'admin';
+  if (admin) document.body.setAttribute('data-roles', 'ADMIN');
+  window.CFG = { pageClass: 'page-wide', banner: 'Mockup C-19 · Carrito con salida al checkout · ' + (admin ? 'ADMIN (sin rol CLIENT): sin «Finalizar compra»' : 'CLIENT: «Finalizar compra»') + ' · Revision 2 · pendiente de aprobación · fotos (TBD)' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="checkout.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico;
+  var admin = document.body.getAttribute('data-roles') === 'ADMIN';
+
+  function entrada(l) {
+    var pers = M.textoPers(l);
+    var acc = l.nombre + (pers ? ' ' + pers.toLowerCase() : '');
+    var media = l.t === null
+      ? '<div class="ph none" role="img" aria-label="Sin imagen de ' + l.nombre + '">' + ico('i-plato') + '</div>'
+      : '<div class="ph ' + l.t + '" role="img" aria-label="' + l.nombre + ' (foto TBD)">' + ico('i-plato') + '</div>';
+    var sub = M.deCent(M.aCent(l.precio) * l.cant);
+    return '<li class="cartitem">' +
+      '<div class="thumb">' + media + '</div>' +
+      '<div class="meta"><a href="#/catalogo/' + l.pid + '">' + l.nombre + '</a>' +
+        (pers ? '<span class="opts">' + pers + '</span>' : '') +
+        '<span class="unit">' + M.precio(l.precio) + ' c/u</span></div>' +
+      '<div class="qty" role="group" aria-label="Cantidad de ' + acc + '">' +
+        '<button type="button" aria-label="Restar una unidad de ' + acc + '"' + (l.cant === 1 ? ' disabled' : '') + '>' + ico('i-menos') + '</button>' +
+        '<output aria-live="polite">' + l.cant + '</output>' +
+        '<button type="button" aria-label="Sumar una unidad de ' + acc + '">' + ico('i-mas') + '</button></div>' +
+      '<div class="sub"><span class="price">' + M.precio(sub) + '</span></div>' +
+      '<button class="btn btn-ghost remove" type="button" aria-label="Quitar ' + acc + '">' + ico('i-basura') + '<span class="txt">Quitar</span></button>' +
+    '</li>';
+  }
+
+  var cta = admin
+    ? '<p class="cta-muted">' + ico('i-info') + '<span>Solo las cuentas de cliente pueden hacer pedidos.</span></p>'
+    : '<a class="btn btn-primary btn-block cart-cta" href="finalizar-compra.html">Finalizar compra</a>';
+
+  M.llenar('contenido',
+    '<div class="page-head-row"><div class="page-head"><h1>Carrito</h1>' +
+      '<p>' + M.unidades + ' unidades en ' + M.lineas.length + ' líneas</p></div>' +
+      '<button class="btn btn-ghost" type="button" style="color:var(--color-danger)">' + ico('i-basura') + 'Vaciar carrito</button></div>' +
+    '<div class="cart">' +
+      '<div><ul class="cart-list" aria-label="Productos del carrito">' + M.lineas.map(entrada).join('') + '</ul>' +
+        '<div class="cart-foot"><a href="#/catalogo">' + ico('i-volver') + 'Seguir comprando</a></div></div>' +
+      '<aside class="summary" aria-labelledby="res-t"><h2 id="res-t">Resumen</h2>' +
+        '<div class="line"><span>Unidades</span><span>' + M.unidades + '</span></div>' +
+        '<div class="total"><span>Total</span><span>' + M.precio(M.deCent(M.totalCent)) + '</span></div>' +
+        '<p class="sum-note">' + ico('i-alerta') + '<span>Se suma un costo de envío de $ 50. Los precios finales se confirman al crear el pedido.</span></p>' +
+        cta + '</aside>' +
+    '</div>');
+})();
+</script>
+</body>
+</html>

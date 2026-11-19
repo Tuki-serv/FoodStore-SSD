@@ -79,7 +79,7 @@ describe('página Carrito', () => {
     montar();
     await titulo();
 
-    expect(screen.getByText('El envío y los precios finales se confirman al crear el pedido.')).toBeInTheDocument();
+    expect(screen.getByText('Se suma un costo de envío de $ 50. Los precios finales se confirman al crear el pedido.')).toBeInTheDocument();
   });
 });
 

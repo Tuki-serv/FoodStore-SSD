@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { almacenamientoSeguro } from '@/shared/lib';
+import { almacenamientoSeguro, aCentavos, formatearCentavos } from '@/shared/lib';
 
 /** Línea del carrito: producto + ingredientes excluidos. El precio es el decimal del backend como string (`"1250.50"`). */
 export interface LineaCarrito {
@@ -37,8 +37,6 @@ export interface CartState {
 
 export const CLAVE_CART_STORAGE = 'foodstore.cart';
 
-const REGEX_DECIMAL = /^(\d+)(?:\.(\d{1,2}))?$/;
-
 /** Excluidos sin repetir por id y ordenados por id. */
 function normalizarExcluidos(excluidos: readonly IngredienteExcluido[]): IngredienteExcluido[] {
   const porId = new Map<number, IngredienteExcluido>();
@@ -56,13 +54,6 @@ export function claveLinea(productoId: number, personalizacion: readonly number[
 const claveDe = (linea: LineaCarrito): string => claveLinea(linea.productoId, linea.personalizacion);
 
 const esEnteroPositivo = (valor: number): boolean => Number.isInteger(valor) && valor >= 1;
-
-/** Centavos de un decimal con hasta 2 decimales; `null` si no es un importe válido. */
-function aCentavos(decimal: string): number | null {
-  const coincidencia = REGEX_DECIMAL.exec(decimal);
-  if (coincidencia === null) return null;
-  return Number(coincidencia[1]) * 100 + Number((coincidencia[2] ?? '').padEnd(2, '0'));
-}
 
 function esLineaValida(valor: unknown): valor is LineaCarrito {
   if (typeof valor !== 'object' || valor === null) return false;
@@ -141,8 +132,6 @@ export const useCartStore = create<CartState>()(
 export function subtotalLinea(linea: Pick<LineaCarrito, 'precioUnitario' | 'cantidad'>): string {
   return formatearCentavos((aCentavos(linea.precioUnitario) ?? 0) * linea.cantidad);
 }
-
-const formatearCentavos = (centavos: number): string => `${Math.floor(centavos / 100)}.${String(centavos % 100).padStart(2, '0')}`;
 
 export const selectLineas = (estado: CartState): LineaCarrito[] => estado.lineas;
 export const selectTotalItems = (estado: CartState): number => estado.lineas.reduce((total, linea) => total + linea.cantidad, 0);
