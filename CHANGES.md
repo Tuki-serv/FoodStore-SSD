@@ -480,6 +480,14 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/07_flujos_principales.md` §Catálogo
   - `openspec/changes/c-16a-backend-catalogo-filtros/design.md` (decisiones DU-1..DU-3 y contrato de los filtros)
 
+### [C-16b+] `fe-catalogo-filtros-arriba` (ajuste visual post-roadmap)
+- **Estado**: `[x]` cerrado (2026-11-19). Verify: visual passed. Archivado en `openspec/changes/archive/2026-11-19-fe-catalogo-filtros-arriba/`; spec principal `frontend-catalog` ampliada. Ajuste extra **fuera de los 32 changes planificados**; no cuenta en los totales ni renumera nada.
+- **Scope**: el catálogo público deja la columna lateral de filtros (desde 1024 px) y usa la barra superior en todos los anchos; en escritorio suma la fila de subcategorías, «Precio ▾» (popover) y «Solo con stock» en línea. Mobile y el modelo de filtros en la URL sin cambios.
+- **Dependencias**: `C-16b`
+- **Governance**: BAJO
+- **UI**: `[UI-MOCKUP]` mockups en `openspec/changes/fe-catalogo-filtros-arriba/mockups/` (aprobación pendiente).
+- **Leer antes**: `openspec/changes/archive/2026-11-18-c-16b-fe-catalogo-publico/design.md`, spec `openspec/specs/frontend-catalog/spec.md`
+
 ### [C-17a] `fe-admin-categorias-ingredientes`
 - **Estado**: `[x]` cerrado (2026-11-18). Verify: PASS (frontend 685/685 tests, lint y typecheck limpios). Verify visual: passed tras corregir los botones compactos y el resaltado de «Es alérgeno»; diferencias menores anotadas en el design. Archivado en `openspec/changes/archive/2026-11-18-c-17a-fe-admin-categorias-ingredientes/`; spec principal nueva `openspec/specs/frontend-admin-catalog/spec.md`.
 - **Scope**:
@@ -724,7 +732,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 17 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 23** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-25a). **Pendientes obligatorios: 6** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 23** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-25a). **Pendientes obligatorios: 6** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (propuesto).
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

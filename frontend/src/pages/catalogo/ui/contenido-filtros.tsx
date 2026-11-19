@@ -2,8 +2,8 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { useId } from 'react';
 import { ArbolCategorias, type CategoriaNodo } from '@/entities/categoria';
 import type { ApiError } from '@/shared/api';
-import { claseBoton, Icon } from '@/shared/ui';
 import type { FiltrosUrl } from '../model';
+import { AvisoArbol } from './aviso-arbol';
 import { FiltroStock } from './filtro-stock';
 import { FormularioPrecio } from './formulario-precio';
 
@@ -17,19 +17,7 @@ export interface ContenidoFiltrosProps {
 
 function SeccionCategorias({ arbol, seleccionada, onElegir }: { arbol: UseQueryResult<CategoriaNodo[], ApiError>; seleccionada: number | null; onElegir: (id: number | null) => void }) {
   if (arbol.data !== undefined) return <ArbolCategorias arbol={arbol.data} seleccionada={seleccionada} onElegir={onElegir} />;
-  if (arbol.isError) {
-    return (
-      <div className="tree-error" role="alert">
-        <Icon name="alerta" className="h-[20px] w-[20px]" />
-        <div>
-          No pudimos cargar las categorías
-          <button type="button" className={claseBoton('secundario', { compacto: true })} onClick={() => void arbol.refetch()}>
-            Reintentar
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (arbol.isError) return <AvisoArbol arbol={arbol} />;
   return (
     <div aria-busy="true" role="status" aria-label="Cargando categorías" className="grid gap-2">
       {[0, 1, 2, 3].map((indice) => (

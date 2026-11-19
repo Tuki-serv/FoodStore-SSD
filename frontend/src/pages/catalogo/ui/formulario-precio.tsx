@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Campo, claseBoton } from '@/shared/ui';
 import { validarRangoPrecio } from '../model';
 
@@ -6,13 +6,16 @@ export interface FormularioPrecioProps {
   min: number | undefined;
   max: number | undefined;
   onAplicar: (min: number | undefined, max: number | undefined) => void;
+  /** Texto breve junto a «Aplicar» (y su descripción accesible); sin él, «Aplicar» ocupa todo el ancho. */
+  ayuda?: string;
 }
 
 /**
  * «Precio mínimo» / «Precio máximo» en pesos enteros: se aplican con «Aplicar» (o Enter), no al tipear, para no pedir por
  * cada dígito. Los errores se muestran junto al campo y el rango inválido no se aplica.
  */
-export function FormularioPrecio({ min, max, onAplicar }: FormularioPrecioProps) {
+export function FormularioPrecio({ min, max, onAplicar, ayuda }: FormularioPrecioProps) {
+  const idAyuda = useId();
   const [textoMin, setTextoMin] = useState(min === undefined ? '' : String(min));
   const [textoMax, setTextoMax] = useState(max === undefined ? '' : String(max));
   const [errores, setErrores] = useState<{ min?: string; max?: string }>({});
@@ -46,9 +49,20 @@ export function FormularioPrecio({ min, max, onAplicar }: FormularioPrecioProps)
           </div>
         )}
       </Campo>
-      <button type="submit" className={`${claseBoton('secundario', { compacto: true })} range-aplicar`}>
-        Aplicar
-      </button>
+      {ayuda === undefined ? (
+        <button type="submit" className={`${claseBoton('secundario', { compacto: true })} range-aplicar`}>
+          Aplicar
+        </button>
+      ) : (
+        <div className="range-acciones">
+          <span className="range-ayuda" id={idAyuda}>
+            {ayuda}
+          </span>
+          <button type="submit" className={claseBoton('secundario', { compacto: true })} aria-describedby={idAyuda}>
+            Aplicar
+          </button>
+        </div>
+      )}
     </form>
   );
 }

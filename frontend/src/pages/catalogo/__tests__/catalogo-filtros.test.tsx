@@ -18,54 +18,96 @@ const cuarenta = Array.from({ length: 40 }, (_, i) => productoDto({ id: i + 1, n
 
 afterEach(() => vi.useRealTimers());
 
-describe('árbol de categorías', () => {
-  it('elegir «Hamburguesas» pide la categoría y sus descendientes, marca la actual y escribe categoria=1 en la URL', async () => {
-    const { estado, router, usuario } = montarCatalogo('/catalogo');
-    const nav = await screen.findByRole('navigation', { name: 'Categorías' });
+const raicesDeLaBarra = () => screen.findByRole('group', { name: 'Categorías principales' });
 
-    await usuario.click(within(nav).getByRole('button', { name: 'Hamburguesas' }));
+describe('categorías en la barra superior (escritorio)', () => {
+  it('a 1440 px no hay región «Filtros» ni botón «Filtros»: la grilla ocupa todo el ancho', async () => {
+    montarCatalogo('/catalogo');
+    await raicesDeLaBarra();
+
+    expect(screen.queryByRole('complementary', { name: 'Filtros' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Filtros/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Categorías' })).not.toBeInTheDocument();
+  });
+
+  it('elegir «Hamburguesas» pide la categoría y sus descendientes, la marca y escribe categoria=1 en la URL', async () => {
+    const { estado, router, usuario } = montarCatalogo('/catalogo');
+    const raices = await raicesDeLaBarra();
+
+    await usuario.click(within(raices).getByRole('button', { name: 'Hamburguesas' }));
 
     await esperarPedido(estado, `${BASE}&categoria_ids=1&categoria_ids=4&categoria_ids=5`);
     expect(ubicacion(router)).toBe('/catalogo?categoria=1');
-    expect(within(nav).getByRole('button', { name: 'Hamburguesas' })).toHaveAttribute('aria-current', 'true');
+    expect(within(raices).getByRole('button', { name: 'Hamburguesas' })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByText('4 productos')).toBeInTheDocument();
     expect(nombresVisibles()).toEqual(['Hamburguesa Clásica', 'Burger BBQ Bacon', 'Burger Vegana', 'Burger Sin TACC']);
   });
 
-  it('elegir una subcategoría («Veganas») pide solo la suya', async () => {
-    const { estado, usuario } = montarCatalogo('/catalogo');
-    const nav = await screen.findByRole('navigation', { name: 'Categorías' });
+  it('la segunda fila solo aparece con una raíz que tiene hijos y lista «Todas», «Sin TACC» y «Veganas»', async () => {
+    const { usuario } = montarCatalogo('/catalogo');
+    const raices = await raicesDeLaBarra();
+    expect(screen.queryByRole('group', { name: /^Subcategorías de/ })).not.toBeInTheDocument();
 
-    await usuario.click(within(nav).getByRole('button', { name: 'Veganas' }));
+    await usuario.click(within(raices).getByRole('button', { name: 'Hamburguesas' }));
+
+    const subs = await screen.findByRole('group', { name: 'Subcategorías de Hamburguesas' });
+    expect(within(subs).getAllByRole('button').map((boton) => boton.textContent)).toEqual(['Todas', 'Sin TACC', 'Veganas']);
+    expect(within(subs).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
+    await usuario.click(within(raices).getByRole('button', { name: 'Postres' }));
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Subcategorías de Hamburguesas' })).not.toBeInTheDocument());
+  });
+
+  it('elegir «Veganas» desde la segunda fila pide solo la suya y «Hamburguesas» sigue marcada', async () => {
+    const { estado, usuario } = montarCatalogo('/catalogo?categoria=1');
+    const raices = await raicesDeLaBarra();
+    const subs = await screen.findByRole('group', { name: 'Subcategorías de Hamburguesas' });
+
+    await usuario.click(within(subs).getByRole('button', { name: 'Veganas' }));
 
     await esperarPedido(estado, `${BASE}&categoria_ids=4`);
+    expect(within(subs).getByRole('button', { name: 'Veganas' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(subs).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(raices).getByRole('button', { name: 'Hamburguesas' })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByText('1 producto')).toBeInTheDocument();
+  });
+
+  it('«Todas» de la segunda fila vuelve a la raíz (categoria=1)', async () => {
+    const { estado, router, usuario } = montarCatalogo('/catalogo?categoria=4');
+    const subs = await screen.findByRole('group', { name: 'Subcategorías de Hamburguesas' });
+    await screen.findByText('1 producto');
+
+    await usuario.click(within(subs).getByRole('button', { name: 'Todas' }));
+
+    await esperarPedido(estado, `${BASE}&categoria_ids=1&categoria_ids=4&categoria_ids=5`);
+    expect(ubicacion(router)).toBe('/catalogo?categoria=1');
+    expect(within(subs).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('volver a «Todas» quita categoria_ids del pedido y categoria de la URL', async () => {
     const { estado, router, usuario } = montarCatalogo('/catalogo?categoria=1');
-    const nav = await screen.findByRole('navigation', { name: 'Categorías' });
+    const raices = await raicesDeLaBarra();
     await screen.findByText('4 productos');
 
-    await usuario.click(within(nav).getByRole('button', { name: 'Todas' }));
+    await usuario.click(within(raices).getByRole('button', { name: 'Todas' }));
 
     await waitFor(() => expect(ultima(estado)).toBe(BASE));
     expect(ubicacion(router)).toBe('/catalogo');
-    expect(within(nav).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-current', 'true');
+    expect(within(raices).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('group', { name: /^Subcategorías de/ })).not.toBeInTheDocument();
   });
 
-  it('si el árbol responde 503 el listado se sigue mostrando y en su lugar hay un aviso con «Reintentar»', async () => {
+  it('si el árbol responde 503 el listado se sigue mostrando y en la barra hay un aviso con «Reintentar»', async () => {
     const { estado, usuario } = montarCatalogo('/catalogo');
     server.use(http.get(`${API}/categorias/arbol`, () => new HttpResponse(null, { status: 503 })));
 
     expect(await screen.findByText('No pudimos cargar las categorías')).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Hamburguesa Clásica' })).toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: 'Categorías' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Categorías principales' })).not.toBeInTheDocument();
 
     server.use(...handlersCatalogo(estado));
     await usuario.click(screen.getByRole('button', { name: 'Reintentar' }));
 
-    expect(await screen.findByRole('navigation', { name: 'Categorías' })).toBeInTheDocument();
+    expect(await raicesDeLaBarra()).toBeInTheDocument();
     expect(screen.queryByText('No pudimos cargar las categorías')).not.toBeInTheDocument();
   });
 });
@@ -140,10 +182,29 @@ describe('búsqueda por nombre', () => {
   });
 });
 
-describe('rango de precio', () => {
-  it('mínimo 1000 y máximo 2000 con «Aplicar» pide precio_min=1000&precio_max=2000 y escribe min y max en la URL', async () => {
-    const { estado, router, usuario } = montarCatalogo('/catalogo');
+const abrirPrecio = async (usuario: ReturnType<typeof userEvent.setup>) => {
+  await screen.findByRole('link', { name: 'Hamburguesa Clásica' });
+  await usuario.click(screen.getByRole('button', { name: /^Precio/ }));
+  return screen.findByRole('dialog', { name: 'Precio' });
+};
+
+describe('rango de precio (panel «Precio»)', () => {
+  it('el panel está cerrado al entrar y «Precio» anuncia aria-expanded; al abrir el foco va a «Precio mínimo»', async () => {
+    const { usuario } = montarCatalogo('/catalogo');
     await screen.findByRole('link', { name: 'Hamburguesa Clásica' });
+    const boton = screen.getByRole('button', { name: 'Precio' });
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('dialog', { name: 'Precio' })).not.toBeInTheDocument();
+
+    await abrirPrecio(usuario);
+
+    expect(boton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('textbox', { name: 'Precio mínimo' })).toHaveFocus();
+  });
+
+  it('mínimo 1000 y máximo 2000 con «Aplicar» pide precio_min=1000&precio_max=2000, escribe min y max, cierra el panel y devuelve el foco a «Precio»', async () => {
+    const { estado, router, usuario } = montarCatalogo('/catalogo');
+    await abrirPrecio(usuario);
 
     await usuario.type(screen.getByRole('textbox', { name: 'Precio mínimo' }), '1000');
     await usuario.type(screen.getByRole('textbox', { name: 'Precio máximo' }), '2000');
@@ -152,20 +213,95 @@ describe('rango de precio', () => {
     await esperarPedido(estado, `${BASE}&precio_min=1000&precio_max=2000`);
     expect(ubicacion(router)).toBe('/catalogo?min=1000&max=2000');
     expect(await screen.findByText('4 productos')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Precio' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Precio/ })).toHaveFocus();
+  });
+
+  it('el panel muestra la ayuda «Pesos enteros. Enter también aplica.» junto a «Aplicar», que la anuncia como descripción', async () => {
+    const { usuario } = montarCatalogo('/catalogo');
+    const panel = await abrirPrecio(usuario);
+
+    expect(within(panel).getByText('Pesos enteros. Enter también aplica.')).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: 'Aplicar' })).toHaveAccessibleDescription('Pesos enteros. Enter también aplica.');
+  });
+
+  it('Enter en «Precio máximo» aplica el rango y cierra el panel, como promete la ayuda', async () => {
+    const { estado, router, usuario } = montarCatalogo('/catalogo');
+    await abrirPrecio(usuario);
+
+    await usuario.type(screen.getByRole('textbox', { name: 'Precio máximo' }), '1800{Enter}');
+
+    await esperarPedido(estado, `${BASE}&precio_max=1800`);
+    expect(ubicacion(router)).toBe('/catalogo?max=1800');
+    expect(screen.queryByRole('dialog', { name: 'Precio' })).not.toBeInTheDocument();
+  });
+
+  it('con rango aplicado el botón lo resume («Precio: $ 1.000 – $ 2.000»); con un solo extremo, «Desde» o «Hasta»', async () => {
+    const { router } = montarCatalogo('/catalogo?min=1000&max=2000');
+    await screen.findByText('4 productos');
+    expect(screen.getByRole('button', { name: 'Precio: $ 1.000 – $ 2.000' })).toBeInTheDocument();
+
+    await act(() => router.navigate('/catalogo?min=1000'));
+    expect(await screen.findByRole('button', { name: 'Precio: Desde $ 1.000' })).toBeInTheDocument();
+    await act(() => router.navigate('/catalogo?max=2000'));
+    expect(await screen.findByRole('button', { name: 'Precio: Hasta $ 2.000' })).toBeInTheDocument();
+  });
+
+  it('al reabrir el panel con un rango aplicado, los campos muestran ese rango', async () => {
+    const { usuario } = montarCatalogo('/catalogo?min=1000&max=2000');
+    await screen.findByText('4 productos');
+    await usuario.click(screen.getByRole('button', { name: /^Precio/ }));
+
+    expect(await screen.findByRole('textbox', { name: 'Precio mínimo' })).toHaveValue('1000');
+    expect(screen.getByRole('textbox', { name: 'Precio máximo' })).toHaveValue('2000');
   });
 
   it('Enter en un campo también aplica el rango', async () => {
     const { estado, usuario } = montarCatalogo('/catalogo');
-    await screen.findByRole('link', { name: 'Hamburguesa Clásica' });
+    await abrirPrecio(usuario);
 
     await usuario.type(screen.getByRole('textbox', { name: 'Precio máximo' }), '800{Enter}');
 
     await esperarPedido(estado, `${BASE}&precio_max=800`);
+    expect(screen.queryByRole('dialog', { name: 'Precio' })).not.toBeInTheDocument();
   });
 
-  it('mínimo 3000 y máximo 1000: muestra «El mínimo no puede superar al máximo» junto al máximo y no hace ningún pedido nuevo', async () => {
+  it('Escape cierra el panel sin aplicar y devuelve el foco a «Precio»', async () => {
     const { estado, router, usuario } = montarCatalogo('/catalogo');
-    await screen.findByRole('link', { name: 'Hamburguesa Clásica' });
+    await abrirPrecio(usuario);
+    const pedidosAntes = busquedasDeLista(estado).length;
+    await usuario.type(screen.getByRole('textbox', { name: 'Precio mínimo' }), '500');
+
+    await usuario.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog', { name: 'Precio' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Precio' })).toHaveFocus();
+    expect(busquedasDeLista(estado)).toHaveLength(pedidosAntes);
+    expect(ubicacion(router)).toBe('/catalogo');
+  });
+
+  it('un clic afuera cierra el panel sin aplicar', async () => {
+    const { router, usuario } = montarCatalogo('/catalogo');
+    await abrirPrecio(usuario);
+
+    await usuario.click(screen.getByRole('heading', { name: 'Catálogo' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Precio' })).not.toBeInTheDocument();
+    expect(ubicacion(router)).toBe('/catalogo');
+  });
+
+  it('pulsar «Precio» con el panel abierto lo cierra', async () => {
+    const { usuario } = montarCatalogo('/catalogo');
+    await abrirPrecio(usuario);
+
+    await usuario.click(screen.getByRole('button', { name: /^Precio/ }));
+
+    expect(screen.queryByRole('dialog', { name: 'Precio' })).not.toBeInTheDocument();
+  });
+
+  it('mínimo 3000 y máximo 1000: muestra «El mínimo no puede superar al máximo» junto al máximo, el panel sigue abierto y no hay pedido nuevo', async () => {
+    const { estado, router, usuario } = montarCatalogo('/catalogo');
+    await abrirPrecio(usuario);
     const pedidosAntes = busquedasDeLista(estado).length;
 
     await usuario.type(screen.getByRole('textbox', { name: 'Precio mínimo' }), '3000');
@@ -173,6 +309,7 @@ describe('rango de precio', () => {
     await usuario.click(screen.getByRole('button', { name: 'Aplicar' }));
 
     expect(screen.getByText('El mínimo no puede superar al máximo')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Precio' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Precio máximo' })).toHaveAccessibleDescription('El mínimo no puede superar al máximo');
     expect(screen.getByRole('textbox', { name: 'Precio máximo' })).toBeInvalid();
     expect(busquedasDeLista(estado)).toHaveLength(pedidosAntes);
@@ -181,7 +318,7 @@ describe('rango de precio', () => {
 
   it('un valor con coma («1,5») muestra «Ingresá un número entero» y no se aplica', async () => {
     const { estado, usuario } = montarCatalogo('/catalogo');
-    await screen.findByRole('link', { name: 'Hamburguesa Clásica' });
+    await abrirPrecio(usuario);
     const pedidosAntes = busquedasDeLista(estado).length;
 
     await usuario.type(screen.getByRole('textbox', { name: 'Precio mínimo' }), '1,5');
@@ -193,7 +330,7 @@ describe('rango de precio', () => {
 
   it('corregir el valor y aplicar de nuevo quita el error', async () => {
     const { estado, usuario } = montarCatalogo('/catalogo');
-    await screen.findByRole('link', { name: 'Hamburguesa Clásica' });
+    await abrirPrecio(usuario);
     const minimo = screen.getByRole('textbox', { name: 'Precio mínimo' });
     await usuario.type(minimo, 'abc');
     await usuario.click(screen.getByRole('button', { name: 'Aplicar' }));
@@ -205,6 +342,13 @@ describe('rango de precio', () => {
 
     expect(screen.queryByText('Ingresá un número entero')).not.toBeInTheDocument();
     await esperarPedido(estado, `${BASE}&precio_min=1700`);
+  });
+
+  it('con el panel abierto no tiene violaciones de accesibilidad', async () => {
+    const { usuario } = montarCatalogo('/catalogo');
+    await abrirPrecio(usuario);
+
+    await esperarSinViolacionesA11y(screen.getByRole('main'));
   });
 });
 

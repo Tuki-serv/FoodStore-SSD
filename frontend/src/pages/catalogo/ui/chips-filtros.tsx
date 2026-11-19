@@ -16,7 +16,7 @@ export interface ChipsFiltrosProps {
 const pesos = (valor: number): string => formatearPrecio(String(valor));
 
 /** Texto del chip de rango: «$ 1.000 – $ 2.000», «Desde $ 1.000» o «Hasta $ 2.000». */
-function textoPrecio(min: number | undefined, max: number | undefined): string {
+export function textoPrecio(min: number | undefined, max: number | undefined): string {
   if (min !== undefined && max !== undefined) return `${pesos(min)} – ${pesos(max)}`;
   return min !== undefined ? `Desde ${pesos(min)}` : `Hasta ${pesos(max ?? 0)}`;
 }
