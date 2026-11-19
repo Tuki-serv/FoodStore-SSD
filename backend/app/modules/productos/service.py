@@ -41,6 +41,49 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         for pid in imagenes_a_borrar:
             eliminar_imagen(pid)
 
+    def _validar_unidad_venta(self, unidad_venta_id: Optional[int]) -> None:
+        """404 si la unidad de venta no existe (nunca llega a la FK como 500)."""
+        if unidad_venta_id is not None and not self.uow.unidad_medida.get_by_id(unidad_venta_id):
+            raise AppError.http(404, f"Unidad de medida con ID {unidad_venta_id} no encontrada")
+
+    def _vincular_categorias(self, producto_id: int, categoria_ids: list[int]) -> None:
+        """Crea los vínculos con las categorías (la primera es la principal); 404 si alguna no existe o está eliminada."""
+        for i, cat_id in enumerate(categoria_ids):
+            cat = self.uow.categorias.get_by_id(cat_id)
+            if not cat or getattr(cat, "deleted_at", None) is not None:
+                raise AppError.http(404, f"Categoría con ID {cat_id} no encontrada o eliminada")
+            self.uow.producto_categorias.add(
+                ProductoCategoria(producto_id=producto_id, categoria_id=cat_id, es_principal=(i == 0))
+            )
+
+    def _vincular_ingrediente(self, producto_id: int, data: ProductoIngredienteCreate) -> ProductoIngrediente:
+        """Crea o actualiza el vínculo producto-ingrediente con sus cuatro valores; 404 si el ingrediente o la unidad no existen."""
+        ingrediente = self.uow.ingredientes.get_by_id(data.ingrediente_id)
+        if not ingrediente or getattr(ingrediente, "deleted_at", None) is not None:
+            raise AppError.http(404, f"Ingrediente con ID {data.ingrediente_id} no encontrado o eliminado")
+
+        unidad = self.uow.unidad_medida.get_by_id(data.unidad_medida_id)
+        if not unidad or getattr(unidad, "deleted_at", None) is not None:
+            raise AppError.http(404, f"Unidad de medida con ID {data.unidad_medida_id} no encontrada")
+
+        relacion = self.uow.producto_ingredientes.get(producto_id, data.ingrediente_id)
+        if relacion:
+            relacion.cantidad = data.cantidad
+            relacion.unidad_medida_id = data.unidad_medida_id
+            relacion.es_removible = data.es_removible
+            self.uow.producto_ingredientes.update(relacion)
+            return relacion
+
+        nueva = ProductoIngrediente(
+            producto_id=producto_id,
+            ingrediente_id=data.ingrediente_id,
+            cantidad=data.cantidad,
+            unidad_medida_id=data.unidad_medida_id,
+            es_removible=data.es_removible,
+        )
+        self.uow.producto_ingredientes.add(nueva)
+        return nueva
+
     @staticmethod
     def _ingredientes_de(producto: Producto) -> list[ProductoIngredienteRead]:
         """Ingredientes no eliminados del producto (links precargados), con su configuración en la receta."""
@@ -207,39 +250,16 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         with self.uow:
             self._validar_unicos(data.model_dump(include=set(Producto._unique_fields)))
 
+            self._validar_unidad_venta(data.unidad_venta_id)
+
             data_dict = data.model_dump(
                 exclude={"categoria_ids", "ingredientes"})
             nuevo_producto = Producto(**data_dict)
             self.repo.add(nuevo_producto)
 
-            for i, cat_id in enumerate(data.categoria_ids):
-                cat = self.uow.categorias.get_by_id(cat_id)
-                if not cat or getattr(cat, "deleted_at", None) is not None:
-                    raise AppError.http(404, f"Categoría con ID {cat_id} no encontrada o eliminada")
-
-                link = ProductoCategoria(
-                    producto_id=cast(int, nuevo_producto.id),
-                    categoria_id=cat_id,
-                    es_principal=(i == 0)
-                )
-                self.uow.producto_categorias.add(link)
-
-            if data.ingredientes:
-                for ing_input in data.ingredientes:
-                    ing = self.uow.ingredientes.get_by_id(
-                        ing_input.ingrediente_id)
-                    if not ing or getattr(ing, "deleted_at", None) is not None:
-                        raise AppError.http(
-                            404,
-                            f"Ingrediente con ID {ing_input.ingrediente_id} no encontrado o eliminado",
-                        )
-
-                    link_ing = ProductoIngrediente(
-                        producto_id=cast(int, nuevo_producto.id),
-                        ingrediente_id=ing_input.ingrediente_id,
-                        es_removible=ing_input.es_removible
-                    )
-                    self.uow.producto_ingredientes.add(link_ing)
+            self._vincular_categorias(cast(int, nuevo_producto.id), data.categoria_ids)
+            for ing_input in data.ingredientes or []:
+                self._vincular_ingrediente(cast(int, nuevo_producto.id), ing_input)
 
             return self._to_read_full(nuevo_producto)
 
@@ -252,11 +272,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
             patch = data.model_dump(exclude_unset=True, exclude={
                                     "categoria_ids", "ingredientes"})
 
-            if "unidad_venta_id" in patch and patch["unidad_venta_id"] is not None:
-                unidad = self.uow.unidad_medida.get_by_id(
-                    patch["unidad_venta_id"])
-                if not unidad:
-                    raise AppError.http(404, f"Unidad de medida con ID {patch['unidad_venta_id']} no encontrada")
+            self._validar_unidad_venta(patch.get("unidad_venta_id"))
 
             self._validar_unicos(patch, excluir_id=producto_id)
 
@@ -274,14 +290,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                 for vc in viejas_cats:
                     self.uow.producto_categorias.delete(vc)
 
-                for i, cat_id in enumerate(data.categoria_ids):
-                    cat = self.uow.categorias.get_by_id(cat_id)
-                    if not cat or getattr(cat, "deleted_at", None) is not None:
-                        raise AppError.http(404, f"Categoría con ID {cat_id} no encontrada")
-
-                    link = ProductoCategoria(
-                        producto_id=producto_id, categoria_id=cat_id, es_principal=(i == 0))
-                    self.uow.producto_categorias.add(link)
+                self._vincular_categorias(producto_id, data.categoria_ids)
 
             if data.ingredientes is not None:
                 viejos_ings = self.uow.producto_ingredientes.list_by_producto(
@@ -290,17 +299,7 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
                     self.uow.producto_ingredientes.delete(vi)
 
                 for ing_input in data.ingredientes:
-                    ing = self.uow.ingredientes.get_by_id(
-                        ing_input.ingrediente_id)
-                    if not ing or getattr(ing, "deleted_at", None) is not None:
-                        raise AppError.http(404, f"Ingrediente con ID {ing_input.ingrediente_id} no encontrado")
-
-                    link_ing = ProductoIngrediente(
-                        producto_id=producto_id,
-                        ingrediente_id=ing_input.ingrediente_id,
-                        es_removible=ing_input.es_removible
-                    )
-                    self.uow.producto_ingredientes.add(link_ing)
+                    self._vincular_ingrediente(producto_id, ing_input)
 
             read = self._to_read_full(producto)
             public_ids_nuevos = list(producto.imagenes_public_id or [])
@@ -354,34 +353,8 @@ class ProductoService(base_service[Producto, ProductoCreate, ProductoUpdate, Pro
         with self.uow as uow:
             producto = self._get_or_404(producto_id)
 
+            self._vincular_ingrediente(cast(int, producto.id), data)
             ingrediente = uow.ingredientes.get_by_id(data.ingrediente_id)
-            if not ingrediente or getattr(ingrediente, "deleted_at", None) is not None:
-                raise AppError.http(404, "Ingrediente no encontrado")
-
-            unidad = uow.unidad_medida.get_by_id(data.unidad_medida_id)
-            if not unidad or getattr(unidad, "deleted_at", None) is not None:
-                raise AppError.http(404, "Unidad de medida no encontrada")
-
-            # Buscamos si ya existe la relación (para no duplicar la PK compuesta)
-            relacion = uow.producto_ingredientes.get(
-                producto.id, data.ingrediente_id)
-
-            if relacion:
-                # Si la relacion ya existia, la actualizamos
-                relacion.cantidad = data.cantidad
-                relacion.unidad_medida_id = data.unidad_medida_id
-                relacion.es_removible = data.es_removible
-                uow.producto_ingredientes.update(relacion)
-            else:
-                # Si no existe, creamos la relacion
-                nueva_relacion = ProductoIngrediente(
-                    producto_id=producto.id,
-                    ingrediente_id=data.ingrediente_id,
-                    cantidad=data.cantidad,
-                    unidad_medida_id=data.unidad_medida_id,
-                    es_removible=data.es_removible
-                )
-                uow.producto_ingredientes.add(nueva_relacion)
 
             return ProductoIngredienteRead(
                 id=cast(int, ingrediente.id),

@@ -92,7 +92,7 @@ frontend/
     │   ├── router/            # routes.tsx (árbol único), route-map.ts, RequiereAcceso (guards), destino.ts, future.ts
     │   ├── layouts/app-shell/ # AppShell, ShellConSesion, Sidebar, Topbar, NavSections, app-shell.css, model/navigation.ts
     │   └── styles/index.css   # importa design-system/tokens.css y las directivas de Tailwind
-    ├── pages/                 # placeholder/, not-found/, error/, forbidden/ (Sin permiso), direcciones/ (C-15), catalogo/ y producto/ (C-16b), admin-categorias/ y admin-ingredientes/ (C-17a) (una carpeta por slice)
+    ├── pages/                 # placeholder/, not-found/, error/, forbidden/ (Sin permiso), direcciones/ (C-15), catalogo/ y producto/ (C-16b), admin-productos/ (C-17b), admin-categorias/ y admin-ingredientes/ (C-17a) (una carpeta por slice)
     ├── features/
     │   └── agregar-al-carrito/ # ui/ (BotonAgregarAlCarrito) — C-16b
     ├── entities/

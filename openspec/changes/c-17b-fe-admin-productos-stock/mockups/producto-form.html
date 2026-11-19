@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17b - Formulario de producto (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-current="productos">
+<main class="page wide" id="main">
+  <a class="back-link" href="#/admin/productos"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Volver a Productos y stock</a>
+  <section class="form-card wide" aria-labelledby="form-titulo">
+    <h2 id="form-titulo" tabindex="-1">Nuevo producto</h2>
+    <div class="form-alert" role="alert" id="alerta-general" hidden>
+      <svg class="ico" aria-hidden="true"><use href="#i-alerta"/></svg>
+      <div>Revisá los datos marcados<p>No enviamos nada todavía: corregí los campos con error y volvé a guardar.</p></div>
+    </div>
+    <form novalidate>
+      <div class="form-grid">
+        <div class="field c-4">
+          <div class="label-row"><label for="nombre">Nombre</label><span class="counter" id="nombre-cont">0/150</span></div>
+          <input id="nombre" class="input" maxlength="170" value="Burger Doble">
+          <span id="nombre-err" class="err" hidden></span>
+        </div>
+        <div class="field c-2">
+          <label for="precio">Precio</label>
+          <div class="input-money"><span>$</span><input id="precio" class="input" inputmode="decimal" value="2500"></div>
+          <span id="precio-err" class="err" hidden></span>
+        </div>
+        <div class="field c-6">
+          <label for="descripcion">Descripción <small>(opcional)</small></label>
+          <textarea id="descripcion" class="input" rows="2">Doble medallón, doble cheddar.</textarea>
+        </div>
+        <div class="field c-2" id="campo-stock">
+          <label for="stock">Stock inicial</label>
+          <input id="stock" class="input" type="number" inputmode="numeric" min="0" step="1" value="10">
+        </div>
+        <div class="field c-4" id="campo-disp">
+          <span class="field-label" aria-hidden="true">&nbsp;</span>
+          <label class="switch"><span>Disponible para la venta<small>Si lo apagás, se crea oculto del catálogo.</small></span><input type="checkbox" role="switch" checked></label>
+        </div>
+        <div class="c-6 ro-note" id="nota-inventario" hidden>
+          <svg class="ico" aria-hidden="true"><use href="#i-alerta"/></svg>
+          <div>Stock y disponibilidad<br><span>Se cambian desde la lista de productos (también puede hacerlo el rol Stock).</span></div>
+        </div>
+      </div>
+
+      <div class="fsec" style="margin-top:var(--space-4)">
+        <div class="fsec-head"><h3>Categorías</h3><p>Marcá una o más. La principal es la que se muestra en la tarjeta del catálogo.</p></div>
+        <div class="catgrid">
+          <div class="field">
+            <span class="field-label" id="cats-lbl"><strong>Categorías del producto</strong></span>
+            <div id="cats"></div>
+            <span id="cats-err" class="err" hidden></span>
+          </div>
+          <div class="field">
+            <label for="principal">Categoría principal</label>
+            <select id="principal" class="input"></select>
+            <span class="hint">Solo ofrece las categorías marcadas.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="fsec" style="margin-top:var(--space-4)">
+        <div class="fsec-head"><h3>Ingredientes</h3><p>«Se puede quitar» permite que el cliente lo saque al personalizar su pedido. La unidad se propone con la del ingrediente.</p></div>
+        <div id="ings"></div>
+        <button class="btn btn-secondary btn-sm btn-add" type="button"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Agregar ingrediente</button>
+      </div>
+
+      <div class="form-actions" style="margin-top:var(--space-4)">
+        <button class="btn btn-ghost" type="button">Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="btn-guardar">Crear producto</button>
+      </div>
+    </form>
+  </section>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: alta de «Burger Doble» lista para crear (4 ingredientes, 2 removibles).
+   ?modo=errores: validación local (nombre vacío, precio con 3 decimales, sin categorías, ingrediente repetido).
+   ?modo=editar: «Burger Vegana» (sin stock ni disponibilidad: se editan en la lista). ?modo=duplicado: 409 en «Nombre». */
+(function () {
+  var M = MOCK, modo = M.modo, $ = function (id) { return document.getElementById(id); };
+  function err(campo, texto) {
+    var el = $(campo); el.setAttribute('aria-invalid', 'true'); el.setAttribute('aria-describedby', campo + '-err');
+    $(campo + '-err').hidden = false; $(campo + '-err').textContent = texto;
+  }
+  function categorias(marcadas, principal) {
+    M.llenar('cats', M.casillasCategorias(marcadas));
+    document.querySelector('.catpick').setAttribute('aria-labelledby', 'cats-lbl');
+    $('principal').innerHTML = marcadas.length ? marcadas.map(function (c) { return '<option' + (c === principal ? ' selected' : '') + '>' + c + '</option>'; }).join('') : '<option>Marcá una categoría primero</option>';
+    if (!marcadas.length) $('principal').disabled = true;
+  }
+  function inventario(visible) { $('campo-stock').hidden = !visible; $('campo-disp').hidden = !visible; $('nota-inventario').hidden = visible; }
+
+  if (modo === 'editar') {
+    M.banner('Mockup C-17b · Editar «Burger Vegana»');
+    $('form-titulo').textContent = 'Editar «Burger Vegana»';
+    $('nombre').value = 'Burger Vegana'; $('precio').value = '1900'; $('descripcion').value = 'Plant-based sin culpa.';
+    inventario(false);
+    categorias(['Hamburguesas', 'Veganas'], 'Hamburguesas');
+    M.llenar('ings', M.filasIngProducto([['Pan Brioche', '1', false], ['Medallón Vegano', '1', false], ['Queso Vegano', '1', true], ['Lechuga', '1', true], ['Tomate', '1', true]]));
+    $('btn-guardar').textContent = 'Guardar cambios';
+    M.nota('precio cambiado de 1800 a 1900 → PUT solo con precio_base · si cambia la lista de ingredientes se envía completa (el servidor la reemplaza)');
+  } else if (modo === 'errores') {
+    M.banner('Mockup C-17b · Nuevo producto: errores de validación (no se envía nada)');
+    $('alerta-general').hidden = false;
+    $('nombre').value = ''; err('nombre', 'Ingresá un nombre.');
+    $('precio').value = '12,345'; err('precio', 'Ingresá un precio desde 0 con hasta 2 decimales.');
+    categorias([], '');
+    document.querySelector('.catpick').setAttribute('aria-invalid', 'true');
+    $('cats-err').hidden = false; $('cats-err').textContent = 'Elegí al menos una categoría.';
+    M.llenar('ings', M.filasIngProducto([['Tomate', '2', true], ['Tomate', '1', false, 'Este ingrediente ya está en la lista.']]));
+    M.nota('se valida al guardar y después campo por campo · el foco va al primer campo con error');
+  } else if (modo === 'duplicado') {
+    M.banner('Mockup C-17b · Nuevo producto: el nombre ya existe (409)');
+    $('nombre').value = 'Hamburguesa Clásica'; err('nombre', 'Ya existe un producto con ese nombre.');
+    $('precio').value = '1600';
+    categorias(['Hamburguesas'], 'Hamburguesas');
+    M.llenar('ings', M.filasIngProducto([['Pan Brioche', '1', false], ['Carne Vacuna 250g', '1', false]]));
+    M.nota('respuesta 409 DUPLICATE_VALUE con field «nombre»: lo escrito se conserva · 404/422 o sin conexión: alerta general arriba');
+  } else {
+    M.banner('Mockup C-17b · Nuevo producto «Burger Doble» listo para crear');
+    categorias(['Hamburguesas'], 'Hamburguesas');
+    M.llenar('ings', M.filasIngProducto([['Pan Brioche', '1', false], ['Carne Vacuna 250g', '2', false], ['Queso Cheddar', '2', true], ['Tomate', '2', true]]));
+    M.nota('un solo POST /productos/ con categorías (principal primero) e ingredientes (cantidad, unidad, es_removible)');
+  }
+  $('nombre-cont').textContent = $('nombre').value.length + '/150';
+})();
+</script>
+</body>
+</html>

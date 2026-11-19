@@ -2,7 +2,14 @@ import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { esperarSinViolacionesA11y } from '@/test/axe';
-import { handlersAdminCatalogo, pedidosAdmin, pedidosDeEscritura } from '@/test/msw/admin-catalogo';
+import {
+  crearEstadoAdminCatalogo,
+  handlersAdminCatalogo,
+  ingredientesSeed,
+  pedidosAdmin,
+  pedidosDeEscritura,
+  type IngredienteDto,
+} from '@/test/msw/admin-catalogo';
 import { API, server } from '@/test/msw/server';
 import { montarAdmin } from '@/test/render-admin';
 
@@ -174,17 +181,31 @@ describe('formulario de ingrediente: edición', () => {
     expect(await screen.findByText('Ya existe un ingrediente con ese nombre.')).toBeInTheDocument();
   });
 
-  it('si el servidor no informa la unidad, el selector queda en «Sin cambios» y no se envía unidad si no se toca', async () => {
-    const app = montarAdmin('/admin/ingredientes');
-    app.estado.ingredientes = app.estado.ingredientes.map(({ unidad_medida_id: _omitida, ...resto }) => (void _omitida, resto) as (typeof app.estado.ingredientes)[number]);
-    await app.usuario.click(await screen.findByRole('button', { name: 'Editar Mayonesa' }));
+  it('la edición preelige la unidad actual («Gramo (g)») y no ofrece «Sin cambios»', async () => {
+    const estado = crearEstadoAdminCatalogo();
+    estado.ingredientes.push({ ...(ingredientesSeed[0] as IngredienteDto), id: 50, nombre: 'Maní', es_alergeno: true, unidad_medida_id: 2, productos: [] });
+    const app = montarAdmin('/admin/ingredientes', { estado });
+    await app.usuario.click(await screen.findByRole('button', { name: 'Editar Maní' }));
 
-    expect(await screen.findByLabelText('Unidad de medida')).toHaveDisplayValue('Sin cambios');
-    await app.usuario.click(screen.getByRole('checkbox', { name: ES_ALERGENO }));
+    const unidad = await screen.findByLabelText('Unidad de medida');
+
+    expect(unidad).toHaveDisplayValue('Gramo (g)');
+    expect(within(unidad).queryByRole('option', { name: 'Sin cambios' })).not.toBeInTheDocument();
+    expect(within(unidad).getAllByRole('option')).toHaveLength(7);
+  });
+
+  it('cambiar la unidad de «Maní» a «Kilogramo (kg)» envía solo el unidad_medida_id y la fila lo muestra', async () => {
+    const estado = crearEstadoAdminCatalogo();
+    estado.ingredientes.push({ ...(ingredientesSeed[0] as IngredienteDto), id: 50, nombre: 'Maní', es_alergeno: true, unidad_medida_id: 2, productos: [] });
+    const app = montarAdmin('/admin/ingredientes', { estado });
+    await app.usuario.click(await screen.findByRole('button', { name: 'Editar Maní' }));
+
+    await app.usuario.selectOptions(await screen.findByLabelText('Unidad de medida'), 'Kilogramo (kg)');
     await app.usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
-    await screen.findByText('Ingrediente actualizado');
-    expect(pedidosAdmin(app.estado, 'PATCH', '/ingredientes/12')[0]?.cuerpo).toEqual({ es_alergeno: false });
+    expect(await screen.findByText('Ingrediente actualizado')).toBeInTheDocument();
+    expect(pedidosAdmin(app.estado, 'PATCH', '/ingredientes/50')[0]?.cuerpo).toEqual({ unidad_medida_id: 1 });
+    expect(await screen.findByRole('group', { name: 'Maní' })).toHaveTextContent('Kilogramo (kg)');
   });
 });
 

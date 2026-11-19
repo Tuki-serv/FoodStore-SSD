@@ -2,6 +2,7 @@ from typing import cast, Optional
 from sqlmodel import Session
 
 from app.core.cloudinary.service import eliminar_imagen
+from app.core.errors import AppError
 from app.core.enums import EstadoFiltro, restringir_estado
 from app.core.pagination import PageParams
 from app.core.schemas import PaginatedResponse
@@ -39,11 +40,20 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
             descripcion=ingrediente.descripcion,
             imagen_url=ingrediente.imagen_url,
             imagen_public_id=ingrediente.imagen_public_id,
+            unidad_medida_id=ingrediente.unidad_medida_id,
             productos=productos,
         )
 
+    def _validar_unidad(self, unidad_medida_id: Optional[int]) -> None:
+        """404 si la unidad no existe o está eliminada (nunca llega a la FK como 500)."""
+        if unidad_medida_id is None:
+            return
+        unidad = self.uow.unidades_medida.get_by_id(unidad_medida_id)
+        if unidad is None or unidad.deleted_at is not None:
+            raise AppError.http(404, f"Unidad de medida con ID {unidad_medida_id} no encontrada")
+
     # ── Overrides del Service Genérico ───────────────────────────────────────
-    
+
     # def get_all_ingredientes(self, offset: int = 0, limit: int = 20, is_alergeno: Optional[bool] = None, estado: EstadoFiltro = EstadoFiltro.ACTIVO ):
     #     with self.uow:
     #         items = self.repo.get_all_filtered(estado, is_alergeno, offset, limit)
@@ -74,6 +84,7 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
     def create(self, item_in: IngredienteCreate) -> IngredienteRead:
         with self.uow:
             self._validar_unicos(item_in.model_dump())
+            self._validar_unidad(item_in.unidad_medida_id)
             nuevo_item = super().create(item_in) 
             return IngredienteRead.model_validate(nuevo_item)
         
@@ -84,6 +95,7 @@ class IngredienteService(base_service[Ingrediente, IngredienteCreate, Ingredient
             public_id_viejo = item_db.imagen_public_id
 
             self._validar_unicos(item_in.model_dump(exclude_unset=True), excluir_id=item_id)
+            self._validar_unidad(item_in.unidad_medida_id)
 
             item_actualizado = self._apply_update_fields(item_db, item_in)
             self.repo.update(item_actualizado)

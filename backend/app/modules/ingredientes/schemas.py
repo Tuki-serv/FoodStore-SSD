@@ -1,4 +1,5 @@
 from typing import Optional
+from pydantic import field_validator
 from sqlmodel import SQLModel, Field
 
 
@@ -39,12 +40,22 @@ class IngredienteUpdate(SQLModel):
     imagen_public_id: Optional[str] = Field(
         default=None, description="Public ID de la imagen en Cloudinary"
     )
+    unidad_medida_id: Optional[int] = Field(default=None, description="ID de la unidad de medida")
+
+    @field_validator("unidad_medida_id")
+    @classmethod
+    def _unidad_no_nula(cls, valor: Optional[int]) -> Optional[int]:
+        """Omitirla la conserva; enviarla en null no tiene sentido (la columna es NOT NULL)."""
+        if valor is None:
+            raise ValueError("unidad_medida_id no puede ser nulo")
+        return valor
 
 
 # ─── Response schemas ────────────────────────────────────────────────────────────────────
 
 class IngredienteRead(IngredienteBase):
     id: int = Field(..., description="ID del ingrediente")
+    unidad_medida_id: int = Field(..., description="ID de la unidad de medida del ingrediente")
 
 
 class IngredienteBasicRead(SQLModel):

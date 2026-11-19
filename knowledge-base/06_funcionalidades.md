@@ -61,14 +61,16 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 
 ### US-010 — Gestión de productos (ADMIN)
 - [ ] Crear con precio, stock inicial, categorías e ingredientes; validar que existan; editar; soft delete; cambiar `disponible` (`PATCH /{id}/disponibilidad` con `{"disponible": bool}`, ADMIN y STOCK; ver US-012)
+- [x] Frontend (C-17b): `/admin/productos` (ADMIN y STOCK) con listado paginado (incluye no disponibles), búsqueda, filtro por categoría y disponibilidad en la URL, formulario de alta/edición en un solo pedido (categorías con principal e ingredientes con cantidad, unidad y `es_removible`; la edición envía solo lo que cambió) y baja con confirmación
 **Reglas**: RN-PR-01..06
 
 ### US-011 — Gestión de ingredientes y alérgenos
 - [ ] CRUD de ingredientes con `es_alergeno` y unidad de medida; asociar a productos con `es_removible`, cantidad y unidad
-- [x] Frontend (C-17a): `/admin/ingredientes` (ADMIN) con listado paginado, filtro de alérgenos en la URL, alta, edición y baja con aviso de los productos que lo usan (la asociación a productos llega en C-17b)
+- [x] Frontend (C-17a): `/admin/ingredientes` (ADMIN) con listado paginado, filtro de alérgenos en la URL, alta, edición y baja con aviso de los productos que lo usan (la asociación a productos se hace desde el formulario de producto, C-17b)
 
 ### US-012 — Gestión de stock (STOCK)
 - [ ] Actualizar `stock_cantidad` con `PATCH /productos/{id}/stock` (`{"stock_cantidad": n}`, seteo absoluto, `n >= 0`) y `disponible` con `PATCH /productos/{id}/disponibilidad` (`{"disponible": bool}`); ambos idempotentes, ADMIN y STOCK
+- [x] Frontend (C-17b): stock y disponibilidad se editan en la fila de `/admin/productos` (campo con «Guardar» e interruptor no optimista); el rol `STOCK` no ve alta, edición ni baja
 
 ### US-013 — Subida de imágenes (ADMIN)
 - [ ] Subir/eliminar imágenes en Cloudinary; guardar `imagen_url` + `public_id`

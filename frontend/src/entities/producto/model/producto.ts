@@ -85,3 +85,25 @@ export function aProductoParaCarrito(producto: Producto): DatosParaCarrito {
     imagenUrl: imagenPrincipal(producto),
   };
 }
+
+/** Ingrediente de un producto en el cuerpo de `POST`/`PUT /productos/` (`ProductoIngredienteInput`); `cantidad` decimal como string. */
+export interface IngredienteDeProductoDatos {
+  ingrediente_id: number;
+  cantidad: string;
+  unidad_medida_id: number;
+  es_removible: boolean;
+}
+
+/** Cuerpo de `POST /productos/` (`ProductoCreate`): decimales como string; la primera categoría queda como principal. */
+export interface ProductoDatos {
+  nombre: string;
+  descripcion: string | null;
+  precio_base: string;
+  stock_cantidad: number;
+  disponible: boolean;
+  categoria_ids: number[];
+  ingredientes: IngredienteDeProductoDatos[];
+}
+
+/** Cuerpo de `PUT /productos/{id}` (parcial): `categoria_ids` e `ingredientes`, si vienen, reemplazan las asociaciones. */
+export type ProductoCambios = Partial<Pick<ProductoDatos, 'nombre' | 'descripcion' | 'precio_base' | 'categoria_ids' | 'ingredientes'>>;

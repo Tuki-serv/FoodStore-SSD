@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17b - Eliminar producto (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-current="productos">
+<main class="page wide" id="main" aria-hidden="true">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Productos y stock</h1>
+      <p>Cargá productos con sus categorías e ingredientes y mantené el stock y la disponibilidad al día.</p>
+    </div>
+    <button class="btn btn-primary" type="button"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nuevo producto</button>
+  </div>
+  <div id="contenido"></div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: confirmar la baja de «Limonada Natural». ?estado=error: falló el pedido (el diálogo sigue abierto). */
+(function () {
+  var M = MOCK, ico = M.ico;
+  M.llenar('contenido', M.listaProductos(M.PRODUCTOS));
+  var cuerpo = '<h2 id="dlg-titulo">¿Eliminar «Limonada Natural»?</h2>' +
+    '<p>Deja de verse en el catálogo y ya no se puede pedir. Los pedidos anteriores la conservan. Podés volver a crear un producto con el mismo nombre más adelante.</p>';
+  if (M.estado === 'error') {
+    M.banner('Mockup C-17b · Eliminar producto: falló el pedido');
+    M.dialogo(cuerpo + '<div class="warn is-danger" role="alert">' + ico('i-alerta') + '<span>No pudimos eliminar el producto<small>No pudimos conectar con el servidor. Probá de nuevo.</small></span></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Reintentar</button></div>');
+  } else {
+    M.banner('Mockup C-17b · Eliminar «Limonada Natural»');
+    M.dialogo(cuerpo + '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Eliminar</button></div>');
+  }
+})();
+</script>
+</body>
+</html>

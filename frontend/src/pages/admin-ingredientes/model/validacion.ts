@@ -46,16 +46,13 @@ export function cambiosIngrediente(inicial: ValoresIngrediente, actual: ValoresI
   return cambios;
 }
 
-/**
- * Valores de partida: vacíos con la unidad por defecto (alta) o los del ingrediente (edición).
- * Si el servidor no informa la unidad del ingrediente, queda en `''` (sin unidad conocida).
- */
+/** Valores de partida: vacíos con la unidad por defecto (alta) o los del ingrediente (edición, con su unidad actual). */
 export function valoresInicialesIngrediente(unidadPorDefecto: string, ingrediente?: Ingrediente): ValoresIngrediente {
   if (ingrediente === undefined) return { nombre: '', descripcion: '', unidad_medida_id: unidadPorDefecto, es_alergeno: false };
   return {
     nombre: ingrediente.nombre,
     descripcion: ingrediente.descripcion ?? '',
-    unidad_medida_id: ingrediente.unidad_medida_id == null ? '' : String(ingrediente.unidad_medida_id),
+    unidad_medida_id: String(ingrediente.unidad_medida_id),
     es_alergeno: ingrediente.es_alergeno,
   };
 }

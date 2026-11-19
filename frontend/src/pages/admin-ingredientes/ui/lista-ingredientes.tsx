@@ -4,7 +4,7 @@ import { claseBoton, Icon } from '@/shared/ui';
 
 export interface ListaIngredientesProps {
   ingredientes: readonly Ingrediente[];
-  /** Unidades del servidor, para nombrar la de cada ingrediente cuando el servidor la informa. */
+  /** Unidades del servidor, para nombrar la de cada ingrediente. */
   unidades: readonly UnidadMedida[];
   /** Ingrediente recién creado: la fila se resalta un momento. */
   nuevoId: number | null;

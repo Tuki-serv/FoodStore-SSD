@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17b - Ingredientes con unidad (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-current="ingredientes">
+<main class="page" id="main"></main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Seguimiento de C-17a con el arreglo de backend (unidad del ingrediente).
+   Sin parámetro: listado con la unidad siempre visible («Maní» en gramos). ?modo=editar: edición de «Maní» con «Gramo (g)» preelegida. */
+(function () {
+  var M = MOCK, ico = M.ico, main = document.getElementById('main');
+  var USO = { 'Pan Brioche': 3, 'Pan Sin TACC': 1, 'Carne Vacuna 250g': 3, 'Medallón Vegano': 1, 'Queso Cheddar': 3, 'Queso Vegano': 1, 'Lechuga': 3, 'Tomate': 3, 'Cebolla Caramelizada': 1, 'Bacon Crocante': 1, 'Salsa BBQ': 1, 'Mayonesa': 1, 'Maní': 0 };
+  if (M.modo === 'editar') {
+    M.banner('Mockup C-17b · Editar ingrediente «Maní»: la unidad actual viene elegida');
+    main.innerHTML = '<a class="back-link" href="#/admin/ingredientes">' + ico('i-volver') + 'Volver a Ingredientes</a>' +
+      '<section class="form-card" aria-labelledby="form-titulo"><h2 id="form-titulo" tabindex="-1">Editar «Maní»</h2>' +
+      '<form class="form-grid" novalidate>' +
+        '<div class="field c-4"><div class="label-row"><label for="nombre">Nombre</label><span class="counter">4/100</span></div><input id="nombre" class="input" value="Maní"></div>' +
+        '<div class="field c-2"><label for="unidad">Unidad de medida</label><select id="unidad" class="input">' + M.opcionesUnidad('Gramo (g)') + '</select></div>' +
+        '<div class="field c-6"><label for="descripcion">Descripción <small>(opcional)</small></label><textarea id="descripcion" class="input" rows="2">Tostado, sin sal</textarea></div>' +
+        '<div class="field c-6"><label class="check is-on"><input type="checkbox" checked><span>Es alérgeno<small>Se destaca en el detalle de cada producto que lo lleve, para avisar a quien compra.</small></span></label></div>' +
+        '<div class="form-actions c-6"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-primary" type="submit">Guardar cambios</button></div>' +
+      '</form></section><p id="nota"></p>';
+    M.nota('antes (C-17a) el selector decía «Sin cambios» porque la API no devolvía la unidad · cambiar a «Kilogramo (kg)» envía PATCH solo con unidad_medida_id');
+    return;
+  }
+  M.banner('Mockup C-17b · Ingredientes: la unidad llega del servidor y se muestra siempre');
+  var filas = M.INGREDIENTES.map(function (i) {
+    var n = USO[i[0]];
+    return '<li class="irow"><div class="iname"><div class="iname-top"><strong>' + i[0] + '</strong>' +
+      (i[1] ? '<span class="badge b-alergeno">' + ico('i-alergeno') + 'Alérgeno</span>' : '') + '</div></div>' +
+      '<div class="imeta"><span class="iunit">' + i[2] + '</span><span class="iuse">' + (n ? 'Usado en <strong>' + n + '</strong> ' + (n === 1 ? 'producto' : 'productos') : 'Sin productos') + '</span></div>' +
+      '<div class="crow-actions"><button class="btn btn-ghost btn-sm" type="button" aria-label="Editar ' + i[0] + '">' + ico('i-editar') + '<span class="lbl">Editar</span></button>' +
+      '<button class="btn btn-ghost btn-sm btn-del" type="button" aria-label="Eliminar ' + i[0] + '">' + ico('i-basura') + '<span class="lbl">Eliminar</span></button></div></li>';
+  }).join('');
+  main.innerHTML = '<div class="page-head-row"><div class="page-head"><h1>Ingredientes</h1><p>Cargá los ingredientes y marcá los alérgenos: se destacan en el detalle de cada producto.</p></div>' +
+    '<button class="btn btn-primary" type="button">' + ico('i-mas') + 'Nuevo ingrediente</button></div>' +
+    '<p class="admin-summary" role="status"><strong>13 ingredientes</strong></p>' +
+    '<ul class="ilist" aria-label="Ingredientes"><li class="irow ihead" aria-hidden="true"><span>Ingrediente</span><span>Unidad</span><span>Uso</span><span></span></li>' + filas + '</ul><p id="nota"></p>';
+  M.nota('mismo listado de C-17a (filtro y paginación sin cambios); solo cambia que la columna «Unidad» ya nunca queda vacía');
+})();
+</script>
+</body>
+</html>

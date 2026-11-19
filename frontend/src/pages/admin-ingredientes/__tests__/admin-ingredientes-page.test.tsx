@@ -47,15 +47,13 @@ describe('AdminIngredientesPage: listado del seed', () => {
     expect(screen.getByRole('button', { name: 'Nuevo ingrediente' })).toBeInTheDocument();
   });
 
-  it('si el servidor no informa la unidad del ingrediente (contrato actual del backend) la fila funciona sin mostrarla', async () => {
+  it('cada fila muestra la unidad con nombre y símbolo', async () => {
     const estado = crearEstadoAdminCatalogo();
-    estado.ingredientes = estado.ingredientes.map(({ unidad_medida_id: _omitida, ...resto }) => (void _omitida, resto) as IngredienteDto);
+    estado.ingredientes.push({ ...(ingredientesSeed[0] as IngredienteDto), id: 50, nombre: 'Harina', unidad_medida_id: 2, productos: [] });
     montarAdmin('/admin/ingredientes', { estado });
 
-    const pan = await screen.findByRole('group', { name: 'Pan Brioche' });
-
-    expect(pan).toHaveTextContent('Usado en 3 productos');
-    expect(pan).not.toHaveTextContent('Unidad (u)');
+    expect(await screen.findByRole('group', { name: 'Pan Brioche' })).toHaveTextContent('Unidad (u)');
+    expect(screen.getByRole('group', { name: 'Harina' })).toHaveTextContent('Gramo (g)');
   });
 });
 
