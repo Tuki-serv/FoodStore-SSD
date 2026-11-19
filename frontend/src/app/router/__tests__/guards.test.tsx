@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { abrirSesion } from '@/entities/session';
 import { apiClient } from '@/shared/api';
 import { handlerMe } from '@/test/msw/auth';
+import { crearEstadoCatalogo, handlersCatalogo, productoDto } from '@/test/msw/catalogo';
 import { API, server } from '@/test/msw/server';
 import { renderApp } from '@/test/render-app';
 
@@ -156,6 +157,12 @@ describe('rutas solo para visitantes sin sesión', () => {
   });
 
   it('vuelve al catálogo con sus filtros y página (/catalogo?categoria=2&page=2)', async () => {
+    // Con el catálogo base la categoría 2 entra en una sola página: el catálogo corregiría `page=2` (fuera de rango) a la 1
+    // y la URL esperada duraría un instante (test intermitente bajo carga). 15 bebidas = 2 páginas reales.
+    const bebidas = Array.from({ length: 15 }, (_, i) =>
+      productoDto({ id: i + 1, nombre: `Bebida ${i + 1}`, categorias: [{ id: 2, nombre: 'Bebidas', es_principal: true }] }),
+    );
+    server.use(...handlersCatalogo(crearEstadoCatalogo(bebidas)));
     const { router } = renderApp('/catalogo?categoria=2&page=2');
     await titulo('Catálogo');
     await act(() => router.navigate('/ingresar', { state: { desde: { pathname: '/catalogo', search: '?categoria=2&page=2', hash: '' } } }));
@@ -165,6 +172,9 @@ describe('rutas solo para visitantes sin sesión', () => {
     await act(() => abrirSesion('A9'));
 
     await waitFor(() => expect(ubicacion(router)).toBe('/catalogo?categoria=2&page=2'));
+    // La página 2 existe: se muestra y la URL no se corrige.
+    expect(await screen.findByRole('link', { name: 'Bebida 13' })).toBeInTheDocument();
+    expect(ubicacion(router)).toBe('/catalogo?categoria=2&page=2');
   });
 
   it('conserva query y hash del detalle recordado (/catalogo/7?x=1#a)', async () => {
