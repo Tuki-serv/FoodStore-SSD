@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { textoPersonalizacion } from '@/entities/cart';
+import { pagoQueries } from '@/entities/payment';
 import { BadgeEstado, EtiquetaFormaPago, esConfirmacionManual, pedidoQueries, type PedidoDetalle } from '@/entities/pedido';
 import { formatearPrecio } from '@/entities/producto';
 import { aCentavos } from '@/shared/lib';
 import { RUTAS } from '@/shared/config';
 import { claseBoton, EstadoError, Icon } from '@/shared/ui';
 import { EntregaPedido } from './entrega-pedido';
+import { LineaEstadoPago, PagoEnConfirmacion } from './estado-pago';
 import { PasosConfirmacionManual } from './pasos-confirmacion-manual';
 import { TraspasoPago } from './traspaso-pago';
 
@@ -17,6 +19,14 @@ function totalEstimadoDe(estado: unknown): string | null {
   if (typeof estado !== 'object' || estado === null) return null;
   const { totalEstimado } = estado as { totalEstimado?: unknown };
   return typeof totalEstimado === 'string' ? totalEstimado : null;
+}
+
+/** Subtítulo de la cabecera: qué falta según el pago (solo `MERCADOPAGO` pendiente de cobro). */
+function textoCabecera(esperandoPago: boolean, estadoPago: string | null): string {
+  if (!esperandoPago) return 'Lo vas a poder seguir desde «Mis pedidos».';
+  if (estadoPago === 'pendiente') return 'Estamos esperando la confirmación de Mercado Pago.';
+  if (estadoPago === 'aprobado' || estadoPago === 'a_devolver') return 'Lo vas a poder seguir desde «Mis pedidos».';
+  return 'Falta un paso: pagalo con tarjeta para que se confirme.';
 }
 
 function PedidoNoEncontrado() {
@@ -47,6 +57,13 @@ function Contenido({ pedido, totalEstimado }: { pedido: PedidoDetalle; totalEsti
   const pendiente = pedido.estado_codigo === 'PENDIENTE';
   const pagaConTarjeta = pedido.forma_pago_codigo === 'MERCADOPAGO';
   const preciosCambiaron = totalEstimado !== null && aCentavos(totalEstimado) !== aCentavos(pedido.total);
+  // Último intento de pago (US-026): solo para tarjeta; sin polling, la página de pago es la que sigue el pendiente.
+  const consultaPago = useQuery({ ...pagoQueries.estado(pedido.id), enabled: pagaConTarjeta });
+  const pago = consultaPago.data;
+  const estadoPago = pago?.estado ?? null;
+  const pagoEnCurso = estadoPago === 'pendiente' || estadoPago === 'aprobado' || estadoPago === 'a_devolver';
+  const consultandoPago = pagaConTarjeta && consultaPago.isPending;
+  const ofrecerPago = pagaConTarjeta && pendiente && !consultandoPago && !pagoEnCurso;
 
   return (
     <div className={CONTENEDOR}>
@@ -57,7 +74,7 @@ function Contenido({ pedido, totalEstimado }: { pedido: PedidoDetalle; totalEsti
           </span>
           <div>
             <h1>{`Pedido #${pedido.id} recibido`}</h1>
-            <p>{pagaConTarjeta && pendiente ? 'Falta un paso: pagalo con tarjeta para que se confirme.' : 'Lo vas a poder seguir desde «Mis pedidos».'}</p>
+            <p>{textoCabecera(pagaConTarjeta && pendiente, estadoPago)}</p>
           </div>
         </div>
         {preciosCambiaron ? (
@@ -71,7 +88,8 @@ function Contenido({ pedido, totalEstimado }: { pedido: PedidoDetalle; totalEsti
         ) : null}
         <div className="done-grid">
           <div className="done-col">
-            {pagaConTarjeta && pendiente ? <TraspasoPago pedidoId={pedido.id} total={pedido.total} /> : null}
+            {ofrecerPago ? <TraspasoPago pedidoId={pedido.id} total={pedido.total} reintento={estadoPago === 'rechazado'} /> : null}
+            {pagaConTarjeta && pendiente && estadoPago === 'pendiente' ? <PagoEnConfirmacion pedidoId={pedido.id} /> : null}
             {esConfirmacionManual(pedido.forma_pago_codigo) && pendiente ? <PasosConfirmacionManual formaPago={pedido.forma_pago_codigo} /> : null}
             <section className="pcard" aria-labelledby="detalle-titulo">
               <h2 id="detalle-titulo">Detalle</h2>
@@ -80,6 +98,7 @@ function Contenido({ pedido, totalEstimado }: { pedido: PedidoDetalle; totalEsti
                 <dd>
                   <BadgeEstado codigo={pedido.estado_codigo} />
                 </dd>
+                {pago !== undefined && pago.estado !== null ? <LineaEstadoPago pago={{ ...pago, estado: pago.estado }} /> : null}
                 <dt>Entrega</dt>
                 <dd>
                   <EntregaPedido direccionId={pedido.direccion_id} />

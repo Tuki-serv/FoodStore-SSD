@@ -4,12 +4,15 @@ import { Link, useParams } from 'react-router-dom';
 import { pedidoQueries, type PedidoDetalle } from '@/entities/pedido';
 import {
   clasificarErrorPago,
+  intervaloSeguimiento,
   motivoRechazo,
   pagoQueries,
+  TOPE_SEGUIMIENTO_MS,
   vistaPago,
   usePaymentStore,
   type EstadoPagoPedido,
   type RespuestaCrearPago,
+  type VistaPago,
 } from '@/entities/payment';
 import { formatearPrecio } from '@/entities/producto';
 import { FormularioTarjeta } from '@/features/pagar-con-tarjeta';
@@ -19,6 +22,7 @@ import { claseBoton, EstadoError, Icon } from '@/shared/ui';
 import { ResumenPago } from './resumen-pago';
 import {
   AvisoErrorPago,
+  AvisoTransicion,
   CabeceraPago,
   CONTENEDOR,
   EnlaceVerPedido,
@@ -26,8 +30,10 @@ import {
   MotivoRechazo,
   PagoADevolver,
   PagoAprobado,
+  PagoDemorando,
   PagoPendiente,
   TarjetaPago,
+  VerificandoPago,
 } from './vistas-pago';
 
 /** Fallos de `crear` que reemplazan al formulario por un aviso (el resto se resuelve con la caché o no es un aviso). */
@@ -79,8 +85,16 @@ export function PagoPedidoPage() {
   const idValido = Number.isInteger(id) && id > 0;
   const cliente = useQueryClient();
   const consultaPedido = useQuery({ ...pedidoQueries.detalle(id), enabled: idValido });
-  // Solo observa la caché: la llena la respuesta de `crear` o la consulta que sigue a un 409 (C-20b la habilitará al montar).
-  const consultaPago = useQuery({ ...pagoQueries.estado(id), enabled: false });
+  const pedido: PedidoDetalle | undefined = consultaPedido.data;
+  const pagaConTarjeta = pedido?.forma_pago_codigo === 'MERCADOPAGO';
+  // Seguimiento acotado: pasados 2 min con el pago todavía pendiente se deja de consultar (D2).
+  const [agotado, setAgotado] = useState(false);
+  const consultaPago = useQuery({
+    ...pagoQueries.estado(id),
+    enabled: pagaConTarjeta,
+    refetchInterval: (consulta) => intervaloSeguimiento(consulta.state.data?.estado, agotado),
+    refetchIntervalInBackground: false,
+  });
   const numeroOperacion = usePaymentStore((estado) => (estado.pedidoId === id ? estado.mpPaymentId : null));
   const [errorCobro, setErrorCobro] = useState<ErrorCobro | null>(null);
   const [reintento, setReintento] = useState(false);
@@ -121,10 +135,41 @@ export function PagoPedidoPage() {
     [cliente, id],
   );
 
-  const pedido: PedidoDetalle | undefined = consultaPedido.data;
   const vistaBase = pedido === undefined ? null : vistaPago(pedido, consultaPago.data ?? null);
   const vista = vistaBase === 'rechazado' && reintento ? 'formulario' : vistaBase;
-  const claveVista = vista === null ? null : `${vista}:${errorCobro ?? ''}`;
+  const demorando = vista === 'pendiente' && agotado;
+  const claveVista = vista === null ? null : `${vista}:${errorCobro ?? ''}:${demorando ? 'demora' : ''}`;
+
+  // Aviso al pasar de pendiente a un resultado (ajuste de estado durante el render, sin efecto).
+  const [vistaAnterior, setVistaAnterior] = useState<VistaPago | null>(null);
+  const [transicion, setTransicion] = useState<'aprobado' | 'rechazado' | null>(null);
+  if (vista !== vistaAnterior) {
+    setVistaAnterior(vista);
+    setTransicion(vistaAnterior === 'pendiente' && (vista === 'aprobado' || vista === 'rechazado') ? vista : null);
+  }
+
+  // Tope de espera: mientras la vista es pendiente corre el reloj de 2 min; al salir de pendiente se reinicia.
+  const pendiente = vista === 'pendiente';
+  useEffect(() => {
+    if (!pendiente) return undefined;
+    const reloj = setTimeout(() => setAgotado(true), TOPE_SEGUIMIENTO_MS);
+    return () => {
+      clearTimeout(reloj);
+      setAgotado(false);
+    };
+  }, [pendiente]);
+
+  // Al llegar el resultado de un pendiente (aprobado, rechazado o a_devolver) el pedido cambió en el servidor.
+  const veniaPendiente = useRef(false);
+  useEffect(() => {
+    if (vista === 'pendiente') veniaPendiente.current = true;
+    else if (vista !== null) {
+      if (veniaPendiente.current && (vista === 'aprobado' || vista === 'a-devolver' || vista === 'rechazado')) {
+        void cliente.invalidateQueries({ queryKey: pedidoQueries.todas() });
+      }
+      veniaPendiente.current = false;
+    }
+  }, [vista, cliente]);
 
   // Cada cambio de vista (no la primera) mueve el foco al título del resultado.
   useEffect(() => {
@@ -154,21 +199,6 @@ export function PagoPedidoPage() {
   }
   if (errorCobro === 'no-encontrado') return <PedidoNoEncontrado foco={foco} />;
 
-  if (vista === 'no-tarjeta') {
-    return (
-      <EstadoUnico icono="efectivo" titulo="Este pedido no se paga con tarjeta" texto={`El pedido #${pedido.id} se paga en efectivo o por transferencia y lo confirma el local.`} foco={foco}>
-        <EnlaceVerPedido pedidoId={pedido.id} />
-      </EstadoUnico>
-    );
-  }
-  if (vista === 'no-pagable') {
-    return (
-      <EstadoUnico icono="info" titulo="Este pedido ya no se puede pagar" texto={`El pedido #${pedido.id} ya no está pendiente de pago.`} foco={foco}>
-        <EnlaceVerPedido pedidoId={pedido.id} />
-      </EstadoUnico>
-    );
-  }
-
   const total = formatearPrecio(pedido.total);
   const cabeceraPagar = (
     <CabeceraPago
@@ -184,11 +214,58 @@ export function PagoPedidoPage() {
     />
   );
 
+  // Antes de saber si ya hay un pago no se monta el formulario (D1).
+  if (pagaConTarjeta && consultaPago.data === undefined) {
+    return (
+      <div className={CONTENEDOR}>
+        <div className="done">
+          {cabeceraPagar}
+          <div className="done-grid">
+            <div className="done-col">
+              <TarjetaPago titulo="Pagá con tarjeta">
+                {consultaPago.isError ? (
+                  <AvisoErrorPago
+                    titulo="No pudimos conectarnos. Revisá tu conexión e intentá de nuevo."
+                    texto={`No mostramos el formulario hasta saber si ya hay un pago. Tu pedido #${pedido.id} sigue pendiente.`}
+                    reintentar={() => void consultaPago.refetch()}
+                  />
+                ) : (
+                  <VerificandoPago />
+                )}
+              </TarjetaPago>
+            </div>
+            <ResumenPago pedido={pedido} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (vista === 'no-tarjeta') {
+    return (
+      <EstadoUnico icono="efectivo" titulo="Este pedido no se paga con tarjeta" texto={`El pedido #${pedido.id} se paga en efectivo o por transferencia y lo confirma el local.`} foco={foco}>
+        <EnlaceVerPedido pedidoId={pedido.id} />
+      </EstadoUnico>
+    );
+  }
+  if (vista === 'no-pagable') {
+    return (
+      <EstadoUnico icono="info" titulo="Este pedido ya no se puede pagar" texto={`El pedido #${pedido.id} ya no está pendiente de pago.`} foco={foco}>
+        <EnlaceVerPedido pedidoId={pedido.id} />
+      </EstadoUnico>
+    );
+  }
+
   let cabecera = cabeceraPagar;
   let cuerpo: React.ReactNode;
   if (vista === 'aprobado') {
     cabecera = <CabeceraPago tono="ok" icono="exito" titulo="¡Pago aprobado!" texto={`Mercado Pago aprobó el pago y tu pedido #${pedido.id} quedó confirmado.`} foco={foco} />;
-    cuerpo = <PagoAprobado pedido={pedido} numeroOperacion={numeroOperacion} />;
+    cuerpo = (
+      <>
+        {transicion === 'aprobado' ? <AvisoTransicion tono="ok" icono="exito" texto="Mercado Pago confirmó tu pago." /> : null}
+        <PagoAprobado pedido={pedido} numeroOperacion={numeroOperacion} />
+      </>
+    );
   } else if (vista === 'a-devolver') {
     cabecera = (
       <CabeceraPago
@@ -200,6 +277,11 @@ export function PagoPedidoPage() {
       />
     );
     cuerpo = <PagoADevolver pedido={pedido} />;
+  } else if (vista === 'pendiente' && demorando) {
+    cabecera = (
+      <CabeceraPago tono="wait" icono="reloj" titulo="La confirmación está demorando" texto={`Todavía no recibimos la confirmación de Mercado Pago para el pedido #${pedido.id}.`} foco={foco} />
+    );
+    cuerpo = <PagoDemorando pedido={pedido} actualizando={consultaPago.isFetching} onActualizar={() => void consultaPago.refetch()} />;
   } else if (vista === 'pendiente') {
     cabecera = (
       <CabeceraPago tono="wait" icono="reloj" titulo="Estamos esperando la confirmación de Mercado Pago" texto={`Tu pedido #${pedido.id} se confirma cuando Mercado Pago apruebe el pago.`} foco={foco} />
@@ -217,6 +299,7 @@ export function PagoPedidoPage() {
     );
     cuerpo = (
       <TarjetaPago titulo="Pagá con tarjeta">
+        {transicion === 'rechazado' ? <AvisoTransicion tono="warn" icono="alerta" texto="Mercado Pago no aprobó el pago." /> : null}
         <MotivoRechazo motivo={motivoRechazo(consultaPago.data?.mp_status_detail)} />
         <div className="pay-actions">
           <button type="button" className={claseBoton('primario')} onClick={() => setReintento(true)}>

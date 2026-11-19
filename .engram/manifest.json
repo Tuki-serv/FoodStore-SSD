@@ -296,6 +296,14 @@
       "sessions": 1,
       "memories": 3,
       "prompts": 0
+    },
+    {
+      "id": "c247332a",
+      "created_by": "jacop",
+      "created_at": "2026-11-19T19:50:41.5519453Z",
+      "sessions": 1,
+      "memories": 3,
+      "prompts": 0
     }
   ]
 }

@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 import { Link } from 'react-router-dom';
+import { INTERVALO_SEGUIMIENTO_MS, TOPE_SEGUIMIENTO_MS } from '@/entities/payment';
 import { formatearPrecio } from '@/entities/producto';
 import type { PedidoDetalle } from '@/entities/pedido';
 import { rutaPedidoCreado, RUTAS } from '@/shared/config';
@@ -70,20 +71,76 @@ export function EstadoUnico({ icono, titulo, texto, foco, children }: { icono: I
   );
 }
 
+const SEGUNDOS = INTERVALO_SEGUIMIENTO_MS / 1000;
+const MINUTOS = TOPE_SEGUIMIENTO_MS / 60000;
+
+const NO_PAGUES_DE_NUEVO = (
+  <div className="info-box" role="status">
+    <Icon name="info" />
+    <div>
+      <strong>No lo pagues de nuevo</strong>
+      Si el pago se aprueba, el pedido se confirma solo.
+    </div>
+  </div>
+);
+
+/** Mientras se consulta el último intento al abrir la página: sin formulario hasta saber si ya hay un pago. */
+export function VerificandoPago() {
+  return (
+    <div className="mp-load" role="status" aria-label="Verificando el estado de tu pago">
+      <span className="spinner" aria-hidden="true" />
+      <span>Verificando el estado de tu pago…</span>
+    </div>
+  );
+}
+
+/** Aviso de que el pago cambió mientras se esperaba (pendiente → aprobado / rechazado). */
+export function AvisoTransicion({ tono, icono, texto }: { tono: 'ok' | 'warn'; icono: IconName; texto: string }) {
+  return (
+    <div className={`info-box ${tono}`} role="status">
+      <Icon name={icono} />
+      <div>
+        <strong>{texto}</strong>
+      </div>
+    </div>
+  );
+}
+
 export function PagoPendiente({ pedido }: { pedido: PedidoDetalle }) {
   return (
     <TarjetaPago titulo="Pago en proceso">
-      <p>
-        Mercado Pago todavía no confirmó el pago. Esta pantalla no se actualiza sola: podés ver el estado de tu pedido desde «Ver mi pedido».
-      </p>
+      <div className="track" role="status" aria-label="Seguimiento del pago">
+        <span className="spinner" aria-hidden="true" />
+        <div>
+          <strong>Verificando el pago…</strong>
+          <span>{`Esta pantalla se actualiza sola cada ${SEGUNDOS} segundos. No hace falta recargar.`}</span>
+        </div>
+      </div>
+      {NO_PAGUES_DE_NUEVO}
+      <div className="pay-actions">
+        <EnlaceVerPedido pedidoId={pedido.id} />
+      </div>
+    </TarjetaPago>
+  );
+}
+
+/** Tope de espera: dejó de consultar solo; el cliente puede actualizar a mano o volver más tarde. */
+export function PagoDemorando({ pedido, actualizando, onActualizar }: { pedido: PedidoDetalle; actualizando: boolean; onActualizar: () => void }) {
+  return (
+    <TarjetaPago titulo="Pago sin confirmar">
+      <p>{`Dejamos de consultar automáticamente después de ${MINUTOS} minutos. Puede ser que Mercado Pago tarde un poco más: si el pago se aprueba, el pedido se confirma solo.`}</p>
       <div className="info-box" role="status">
         <Icon name="info" />
         <div>
           <strong>No lo pagues de nuevo</strong>
-          Si el pago se aprueba, el pedido se confirma solo.
+          Podés actualizar el estado o volver más tarde. Si el pago se aprueba, el pedido se confirma solo.
         </div>
       </div>
       <div className="pay-actions">
+        <button type="button" className={claseBoton('primario')} disabled={actualizando} onClick={onActualizar}>
+          <Icon name="reloj" />
+          Actualizar
+        </button>
         <EnlaceVerPedido pedidoId={pedido.id} />
       </div>
     </TarjetaPago>

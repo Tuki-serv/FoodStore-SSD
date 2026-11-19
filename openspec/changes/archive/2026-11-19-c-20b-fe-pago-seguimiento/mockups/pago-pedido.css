@@ -1,0 +1,57 @@
+/* Mockups C-20a: estilos propios de la página de pago. Solo tokens de design-system/tokens.css,
+   salvo el recuadro .mp-brick, que simula lo que dibuja Mercado Pago (colores de MP, fuera de nuestro sistema). */
+.pay-head{display:flex;gap:var(--space-4);align-items:center}
+.pay-head .badge-ico{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--color-primary-soft);color:var(--color-primary-hover)}
+.pay-head .badge-ico svg.ico{width:30px;height:30px}
+.pay-head h1{font-size:var(--text-2xl)}
+.pay-head p{color:var(--color-text-muted)}
+.pay-head.ok .badge-ico{background:var(--color-success-bg);color:var(--color-success)}
+.pay-head.bad .badge-ico,.pay-head.err .badge-ico{background:var(--color-danger-bg);color:var(--color-danger)}
+.pay-head.warn .badge-ico,.pay-head.wait .badge-ico{background:var(--color-warning-bg);color:var(--color-warning)}
+.b-confirmado{color:var(--state-confirmado-fg);background:var(--state-confirmado-bg)}
+.b-aprobado{color:var(--state-entregado-fg);background:var(--state-entregado-bg)}
+.col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+.sec-note{color:var(--color-text-muted);font-size:var(--text-sm)}
+.secure{display:flex;gap:var(--space-2);align-items:center;font-size:var(--text-sm);color:var(--color-text-muted)}
+.secure svg.ico{width:18px;height:18px}
+.reason{display:flex;gap:var(--space-3);align-items:flex-start;background:var(--color-danger-bg);color:var(--color-danger);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-weight:700;outline:none}
+.reason:focus-visible{box-shadow:var(--focus-ring)}
+.reason svg.ico{width:22px;height:22px;flex:none;margin-top:1px}
+.reason p{color:var(--color-text);font-weight:400}
+.reason strong{display:block}
+/* Recuadro del brick: lo renderiza Mercado Pago, no Food Store */
+.mp-wrap{position:relative;border:2px dashed var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5) var(--space-4) var(--space-4)}
+.mp-tag{position:absolute;top:-12px;left:var(--space-4);background:var(--color-warning-bg);color:var(--color-warning);font-size:var(--text-xs);font-weight:700;padding:2px 10px;border-radius:var(--radius-pill)}
+.mp-brick{background:#fff;font-family:Arial,Helvetica,sans-serif;color:#333;display:grid;gap:14px}
+.mp-brick label{display:block;font-size:12px;color:#666;margin-bottom:4px}
+.mp-f{border:1px solid #c9c9c9;border-radius:6px;height:44px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:15px;color:#999;background:#fff}
+.mp-f b{font-weight:400;color:#bbb;font-size:12px}
+.mp-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mp-doc{display:grid;grid-template-columns:110px 1fr;gap:12px}
+.mp-btn{height:48px;border-radius:6px;background:#009ee3;color:#fff;display:grid;place-items:center;font-weight:700;font-size:16px;border:0}
+.mp-btn.is-busy{background:#8fcdee}
+.mp-foot{font-size:11px;color:#888;text-align:center}
+.mp-load{display:flex;flex-direction:column;gap:var(--space-3);align-items:center;padding:var(--space-6) 0;color:var(--color-text-muted)}
+.mp-skel{display:grid;gap:14px;width:100%}
+.mp-skel .skel{height:44px;border-radius:6px}
+.mp-busy{position:relative}
+.mp-busy .mp-veil{position:absolute;inset:0;background:rgba(255,255,255,.75);border-radius:var(--radius-md);display:flex;flex-direction:column;gap:var(--space-2);align-items:center;justify-content:center;font-weight:700;color:var(--color-text)}
+.pay-actions{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.switcher{border-top:1px dashed var(--color-border);padding-top:var(--space-4);font-size:var(--text-sm);color:var(--color-text-muted)}
+.switcher a{display:inline-block;margin:2px 4px 2px 0;padding:2px 10px;border:1px solid var(--color-border);border-radius:var(--radius-pill);text-decoration:none;color:var(--color-text);background:var(--color-surface)}
+.switcher a[aria-current=true]{background:var(--color-primary-soft);border-color:var(--color-primary);font-weight:700}
+.switcher b{display:block;margin:var(--space-2) 0 2px}
+@media (max-width:719.98px){.pay-head{align-items:flex-start}.pay-head .badge-ico{width:44px;height:44px}.pay-head .badge-ico svg.ico{width:24px;height:24px}.mp-row{grid-template-columns:1fr}.pay-actions .btn{width:100%}}
+.mp-veil .veil-box{background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:var(--shadow-md);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-2);align-items:center;text-align:center}
+.state .badge-ico{width:56px;height:56px;border-radius:50%;display:grid;place-items:center}
+.state .badge-ico svg.ico{width:28px;height:28px;color:inherit;stroke-width:2}
+/* C-20b */
+.track{display:flex;gap:var(--space-3);align-items:center}
+.track strong{display:block}
+.track span:not(.spinner){color:var(--color-text-muted);font-size:var(--text-sm)}
+.info-box.ok{background:var(--color-success-bg)}
+.info-box.ok > svg.ico,.info-box.ok strong{color:var(--color-success)}
+.b-rechazado{color:var(--state-cancelado-fg);background:var(--state-cancelado-bg)}
+.pay-line{display:flex;flex-direction:column;gap:var(--space-2);align-items:flex-start}
+.reason-inline{display:flex;gap:var(--space-2);align-items:center;color:var(--color-danger);font-weight:700;font-size:var(--text-sm)}
+.reason-inline svg.ico{width:18px;height:18px;flex:none}

@@ -35,7 +35,7 @@ En `pages/pedido-creado`, solo para pedidos `MERCADOPAGO`, se consulta `pagoQuer
 | Último intento | Línea | CTA «Pagar $ X con tarjeta» |
 |---|---|---|
 | sin intentos | — | sí (si el pedido está `PENDIENTE`) |
-| `rechazado` | «Último intento de pago: rechazado» + `motivoRechazo(detalle)` | sí (si `PENDIENTE`) |
+| `rechazado` | «Último intento de pago: rechazado» + `motivoRechazo(detalle)` | sí (si `PENDIENTE`), con el texto «Reintentar el pago de $ X» (mockup aprobado) |
 | `pendiente` | «Pago en confirmación» | no |
 | `aprobado` | «Pago aprobado» | no |
 | `a_devolver` | «Pago aprobado, a devolver» | no |
@@ -58,8 +58,8 @@ Sin migraciones ni cambios de backend ni dependencias. Rollback: deshabilitar la
 
 ## Open Questions
 
-- **OQ-2** Polling de pendiente: ¿5 s durante 2 min (defecto) u otros valores?
-- **OQ-7** ¿Mostrar el estado del pago (`mp_status_detail` legible) también en la confirmación `/finalizar-compra/pedido/:id` para pedidos `MERCADOPAGO` (US-026)? Defecto: sí, una línea según D3 y el CTA «Pagar» se mantiene mientras el pedido siga `PENDIENTE` y el pago no esté `pendiente` ni `aprobado`.
+- **OQ-2** (respondida 2026-11-19, por el usuario: se confirma el defecto) Polling de pendiente: ¿5 s durante 2 min (defecto) u otros valores?
+- **OQ-7** (respondida 2026-11-19, por el usuario: sí, se confirma el defecto) ¿Mostrar el estado del pago (`mp_status_detail` legible) también en la confirmación `/finalizar-compra/pedido/:id` para pedidos `MERCADOPAGO` (US-026)? Defecto: sí, una línea según D3 y el CTA «Pagar» se mantiene mientras el pedido siga `PENDIENTE` y el pago no esté `pendiente` ni `aprobado`.
 
 (OQ-1, OQ-3, OQ-4, OQ-5 y OQ-6 se respondieron en C-20a el 2026-11-19.)
 
@@ -67,8 +67,9 @@ Sin migraciones ni cambios de backend ni dependencias. Rollback: deshabilitar la
 
 - Design system revision: 2
 - Decision: yes (2026-11-19)
-- Mockups: pendiente
-- Approval: pending
-- Preview: pendiente
+- Mockups: `openspec/changes/c-20b-fe-pago-seguimiento/mockups/` (`pago-pedido.html`, `pedido-creado-pago.html`)
+- Approval: approved (2026-11-19, by user)
+- Preview: rendered (2026-11-19, headless Microsoft Edge desde `file://`, 1440x900 y 390x844; capturas en `mockups/previews/`)
+- Visual verify: passed with differences (2026-11-19, built-in browser con backend y frontend reales; capturas en `mockups/verify/`). Revisado en vivo: recarga de un pendiente (pedido #5, CONT) → seguimiento con consulta cada ~5 s; tope de espera → «La confirmación está demorando», la consulta se detiene y «Actualizar» hace una sola consulta; recarga de un aprobado (pedido #4) → «¡Pago aprobado!»; confirmación con línea de pago «Pago aprobado» (#4) y «Pago en confirmación» + «Ver el estado del pago» (#5) a 1440x900 y 390x844 sin scroll horizontal; pedido en EFECTIVO (#3) sin línea de pago ni consulta a /pagos. Sin errores de consola del backend. **Diferencia menor**: la recarga del aprobado no muestra el N.º de operación (`PAY…`) del mockup porque `GET /pagos/{pedido_id}` no devuelve `mp_payment_id` (requiere cambio de backend, fuera de alcance). El tope se disparó algo después de 2 min de reloj porque la pestaña estuvo en segundo plano (el navegador frena los timers). No probado en vivo: transiciones pendiente→aprobado/rechazado (requieren webhook con ngrok, 6.1), recarga de un rechazado; cubiertos por tests.
 
 Pantallas y estados a cubrir (cada uno a 1440x900 y 390x844): página de pago cargando el estado del pago (recarga), pendiente con seguimiento (esperando), «La confirmación está demorando» con «Actualizar», y la confirmación del pedido con cada línea de D3 (rechazado con motivo + CTA, pago en confirmación sin CTA, pago aprobado, a devolver). Los estados de la página de pago ya aprobados en C-20a se reutilizan sin cambios.
