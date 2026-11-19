@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-18 - Contador del carrito (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<script>
+/* ?carrito=vacio: sin número en ningún lado (el ítem y el botón se ven igual que hoy). */
+window.CFG = { shell: false, count: new URLSearchParams(location.search).get('carrito') === 'vacio' ? 0 : 3 };
+</script>
+<div class="banner" id="banner"></div>
+<main class="page page-wide" id="main">
+  <div class="page-head"><h1>Contador del carrito en la navegación</h1>
+    <p id="intro"></p></div>
+  <div class="spec" id="spec"></div>
+</main>
+<script src="../../../../design-system/brand.js"></script>
+<script src="carrito.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var n = window.MOCK_COUNT, ico = MOCK.ico;
+  var vacio = n === 0;
+  document.getElementById('banner').textContent = 'Mockup C-18 · Contador del carrito (' + (vacio ? 'carrito vacío: sin número' : '3 unidades: 2 hamburguesas + 1 gaseosa') + ') · CLIENT · Revision 2 · pendiente de aprobación';
+  document.getElementById('intro').textContent = vacio
+    ? 'Con el carrito vacío no se dibuja ningún número: el ítem «Carrito» y el botón de la barra superior quedan como están hoy.'
+    : 'Se cuentan unidades (2 hamburguesas + 1 gaseosa = 3), no líneas. Aparece solo con sesión y al menos una unidad.';
+  var label = n ? 'Carrito, ' + n + (n === 1 ? ' producto' : ' productos') : 'Carrito';
+  var badge = n ? '<span class="count" aria-hidden="true">' + n + '</span>' : '';
+
+  function item(icon, text, current, withLabel) {
+    return '<li><a class="nav-item"' + (current ? ' aria-current="page"' : '') + ' href="#"' + (withLabel ? ' aria-label="' + label + '"' : '') + (withLabel === 'title' ? '' : '') + '>' +
+      ico(icon) + '<span class="nav-label">' + text + '</span>' + (withLabel ? badge : '') + '</a></li>';
+  }
+  function panel(collapsed) {
+    var nav = '<ul class="nav-list">' + item('i-catalogo', 'Catálogo', false) + item('i-carrito', 'Carrito', false, true) + item('i-pedidos', 'Mis pedidos', false) +
+      item('i-direcciones', 'Direcciones', false) + item('i-cuenta', 'Mi cuenta', false) + '</ul>';
+    return '<aside class="sidebar' + (collapsed ? ' is-collapsed' : '') + '" aria-label="Panel ' + (collapsed ? 'colapsado' : 'expandido') + '">' +
+      '<div class="sidebar-head"><img class="sidebar-logo" src="../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">' +
+      '<span class="icon-btn" aria-hidden="true">' + ico('i-panel') + '</span></div>' +
+      '<nav class="sidebar-nav" aria-label="Principal">' + nav + '</nav></aside>';
+  }
+  var topbar = '<header class="topbar"><span class="icon-btn" aria-hidden="true">' + ico('i-menu') + '</span>' +
+    '<img src="../../../../design-system/assets/logo.svg" alt="Food Store (logo provisional)">' +
+    '<a class="icon-btn" href="#" aria-label="' + label + '">' + ico('i-carrito') + badge + '</a></header>';
+
+  document.getElementById('spec').innerHTML =
+    '<figure><div class="frame narrow">' + panel(false) + '</div><figcaption><strong>Panel lateral expandido (≥ 1024 px)</strong>Número junto a la etiqueta, a la derecha. Nombre accesible del enlace: «' + label + '».</figcaption></figure>' +
+    '<figure><div class="frame narrow">' + panel(true) + '</div><figcaption><strong>Panel lateral colapsado</strong>El número pasa a un badge sobre el ícono.</figcaption></figure>' +
+    '<figure class="wide"><div class="frame phone">' + topbar + '</div><figcaption><strong>Barra superior mobile (&lt; 1024 px)</strong>Botón de carrito a la derecha, con el mismo número. Solo con sesión.</figcaption></figure>';
+})();
+</script>
+</body>
+</html>

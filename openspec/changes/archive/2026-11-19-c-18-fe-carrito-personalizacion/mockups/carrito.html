@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-18 - Carrito (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="carrito">
+<script>
+/* Parámetros: ?estado=vaciar (diálogo de confirmación) | quitado (toast tras quitar la línea sin personalizar) | sin-nombres (línea migrada de la v1).
+   ?nav=collapsed | drawer (panel lateral, de mockup.js). */
+(function () {
+  var e = new URLSearchParams(location.search).get('estado');
+  var t = { vaciar: 'Diálogo «¿Vaciar el carrito?»', quitado: 'Toast «Quitado del carrito» (línea sin personalizar quitada)', 'sin-nombres': 'Línea migrada de la v1: «Sin 2 ingredientes»' };
+  window.CFG = { pageClass: 'page-wide', banner: 'Mockup C-18 · Carrito · ' + (t[e] || 'varias líneas, una personalizada') + ' · CLIENT · Revision 2 · pendiente de aprobación · fotos (TBD)' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="carrito.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, est = M.estado;
+  var lineas = M.lineas.map(function (l) { return Object.assign({}, l); });
+  if (est === 'sin-nombres') { lineas[0].excl = []; lineas[0].sinNombres = 2; }
+
+  function entrada(l) {
+    var nombre = l.nombre.replace('*', '');
+    var pers = M.textoPers(l);
+    var acc = nombre + (pers ? ' ' + pers.toLowerCase() : '');
+    var media = l.t === null
+      ? '<div class="ph none" role="img" aria-label="Sin imagen de ' + nombre + '">' + ico('i-plato') + '</div>'
+      : '<div class="ph ' + l.t + '" role="img" aria-label="' + nombre + ' (foto TBD)">' + ico('i-plato') + '</div>';
+    var sub = M.deCent(M.aCent(l.precio) * l.cant);
+    return '<li class="cartitem">' +
+      '<div class="thumb">' + media + '</div>' +
+      '<div class="meta"><a href="producto-personalizar.html">' + nombre + '</a>' +
+        (pers ? '<span class="opts">' + pers + '</span>' : '') +
+        '<span class="unit">' + M.precio(l.precio) + ' c/u</span></div>' +
+      '<div class="qty" role="group" aria-label="Cantidad de ' + acc + '">' +
+        '<button type="button" aria-label="Restar una unidad de ' + acc + '"' + (l.cant === 1 ? ' disabled' : '') + '>' + ico('i-menos') + '</button>' +
+        '<output aria-live="polite">' + l.cant + '</output>' +
+        '<button type="button" aria-label="Sumar una unidad de ' + acc + '">' + ico('i-mas') + '</button></div>' +
+      '<div class="sub"><span class="price">' + M.precio(sub) + '</span></div>' +
+      '<button class="btn btn-ghost remove" type="button" aria-label="Quitar ' + acc + '">' + ico('i-basura') + '<span class="txt">Quitar</span></button>' +
+    '</li>';
+  }
+
+  M.llenar('contenido',
+    '<div class="page-head-row"><div class="page-head"><h1>Carrito</h1>' +
+      '<p>' + M.unidades + (M.unidades === 1 ? ' unidad' : ' unidades') + ' en ' + lineas.length + (lineas.length === 1 ? ' línea' : ' líneas') + '</p></div>' +
+      '<button class="btn btn-ghost" type="button" style="color:var(--color-danger)">' + ico('i-basura') + 'Vaciar carrito</button></div>' +
+    '<div class="cart">' +
+      '<div><ul class="cart-list" aria-label="Productos del carrito">' + lineas.map(entrada).join('') + '</ul>' +
+        '<div class="cart-foot"><a href="catalogo.html">' + ico('i-volver') + 'Seguir comprando</a></div></div>' +
+      '<aside class="summary" aria-labelledby="res-t"><h2 id="res-t">Resumen</h2>' +
+        '<div class="line"><span>Unidades</span><span>' + M.unidades + '</span></div>' +
+        '<div class="total"><span>Total</span><span>' + M.precio(M.deCent(M.totalCent)) + '</span></div>' +
+        '<p class="sum-note">El envío y los precios finales se confirman al crear el pedido.</p></aside>' +
+    '</div>');
+
+  if (est === 'vaciar') {
+    M.dialogo('<h2 id="dlg-titulo">¿Vaciar el carrito?</h2>' +
+      '<p>Se van a quitar los ' + M.unidades + ' productos del carrito. Esta acción no se puede deshacer.</p>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Vaciar</button></div>');
+  } else if (est === 'quitado') {
+    M.toast('info', 'Quitado del carrito', 'Hamburguesa Clásica');
+  }
+})();
+</script>
+</body>
+</html>

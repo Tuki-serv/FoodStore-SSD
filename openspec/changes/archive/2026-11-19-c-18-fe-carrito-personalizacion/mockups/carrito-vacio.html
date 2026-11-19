@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-18 - Carrito vacío (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="carrito">
+<script>
+window.CFG = { pageClass: 'page-wide', banner: 'Mockup C-18 · Carrito vacío · sin resumen ni «Vaciar carrito», sin contador en la navegación · CLIENT · Revision 2 · pendiente de aprobación' };
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="carrito.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK;
+  M.llenar('contenido',
+    '<div class="page-head"><h1>Carrito</h1></div>' +
+    '<div class="nf"><section class="state" aria-labelledby="vacio-t" style="max-width:560px;width:100%;border-style:solid;margin:var(--space-5) auto 0">' +
+      '<span class="badge-ico" aria-hidden="true" style="width:64px;height:64px;border-radius:50%;background:var(--color-primary-soft);color:var(--color-primary);display:grid;place-items:center">' + M.ico('i-carrito') + '</span>' +
+      '<h2 id="vacio-t" style="font-size:var(--text-2xl)">Tu carrito está vacío</h2>' +
+      '<p>Cuando agregues productos, los vas a ver acá con su personalización y el total.</p>' +
+      '<div class="actions"><a class="btn btn-primary" href="catalogo.html">Ver catálogo</a></div></section></div>');
+})();
+</script>
+</body>
+</html>
