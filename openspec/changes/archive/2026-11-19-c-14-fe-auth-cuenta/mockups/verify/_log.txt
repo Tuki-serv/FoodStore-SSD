@@ -1,0 +1,40 @@
+[desktop] 401 POST http://localhost:8000/api/v1/auth/refresh
+[desktop] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[desktop] 401 POST http://localhost:8000/api/v1/auth/login
+[desktop] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[desktop] 401 POST http://localhost:8000/api/v1/auth/refresh
+[desktop] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[desktop] mixed-case login OK -> http://localhost:5173/catalogo
+[desktop] 401 POST http://localhost:8000/api/v1/auth/refresh
+[desktop] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[desktop] 409 POST http://localhost:8000/api/v1/auth/register
+[desktop] console.error: Failed to load resource: the server responded with a status of 409 (Conflict)
+[desktop] 401 POST http://localhost:8000/api/v1/auth/refresh
+[desktop] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[desktop] 401 POST http://localhost:8000/api/v1/auth/refresh
+[desktop] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[desktop] cerrar todas -> http://localhost:5173/catalogo
+[desktop] 401 POST http://localhost:8000/api/v1/auth/refresh
+[desktop] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[mobile] 401 POST http://localhost:8000/api/v1/auth/refresh
+[mobile] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[mobile] 401 POST http://localhost:8000/api/v1/auth/login
+[mobile] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[mobile] 401 POST http://localhost:8000/api/v1/auth/refresh
+[mobile] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[mobile] mixed-case login OK -> http://localhost:5173/catalogo
+[mobile] 401 POST http://localhost:8000/api/v1/auth/refresh
+[mobile] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[mobile] 409 POST http://localhost:8000/api/v1/auth/register
+[mobile] console.error: Failed to load resource: the server responded with a status of 409 (Conflict)
+[mobile] 401 POST http://localhost:8000/api/v1/auth/refresh
+[mobile] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[mobile] FAILED https://via.placeholder.com/400x300?text=Clasica net::ERR_ABORTED
+[mobile] FAILED https://via.placeholder.com/400x300?text=BBQ net::ERR_ABORTED
+[mobile] FAILED https://via.placeholder.com/400x300?text=Vegana net::ERR_ABORTED
+[mobile] FAILED https://via.placeholder.com/400x300?text=SinTACC net::ERR_ABORTED
+[mobile] 401 POST http://localhost:8000/api/v1/auth/refresh
+[mobile] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+[mobile] cerrar todas -> http://localhost:5173/catalogo
+[mobile] 401 POST http://localhost:8000/api/v1/auth/refresh
+[mobile] console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)

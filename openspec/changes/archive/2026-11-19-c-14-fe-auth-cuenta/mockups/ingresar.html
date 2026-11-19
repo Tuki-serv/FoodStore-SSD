@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-14 - Ingresar (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-current="ingresar">
+<script>
+/* Parámetros:
+   ?estado=errores (validación: email mal formado + contraseña vacía) | credenciales (401) | bloqueo (429 con Retry-After 840)
+          | enviando («Ingresando…») | cuenta-creada (registro 201 + login fallido, DU-1) | red (sin respuesta)
+   ?nav=collapsed | drawer (de mockup.js). */
+(function () {
+  var e = new URLSearchParams(location.search).get('estado');
+  var t = { errores: 'Validación', credenciales: '401 credenciales incorrectas', bloqueo: '429 bloqueo (Retry-After 840 s)', enviando: 'Enviando: «Ingresando…»',
+    'cuenta-creada': 'Cuenta creada, login automático fallido (DU-1)', red: 'Sin conexión' };
+  window.CFG = { pageClass: 'page-auth', banner: 'Mockup C-14 · /ingresar · ' + (t[e] || 'vacío') + ' · sin sesión · Revision 2 · pendiente de aprobación' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="cuenta.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, e = M.estado;
+  var enviando = e === 'enviando', bloqueado = e === 'bloqueo';
+
+  var email = { errores: 'ana@', credenciales: 'ana@example.com', bloqueo: 'ana@example.com', enviando: 'ana@example.com', 'cuenta-creada': 'ana@example.com', red: 'ana@example.com' }[e] || '';
+  var pass = (e === 'enviando' || e === 'red') ? 'secreta123' : '';
+
+  var aviso = '';
+  if (e === 'credenciales') aviso = M.alerta('Email o contraseña incorrectos.', 'Revisá los datos e intentá de nuevo.');
+  if (e === 'red') aviso = M.alerta('No pudimos conectar con el servidor.', 'Revisá tu conexión e intentá de nuevo.');
+  if (bloqueado) aviso = '<div class="notice" role="alert">' + ico('i-reloj') + '<div>Demasiados intentos.<p>Por seguridad bloqueamos el ingreso desde esta conexión. Probá de nuevo en 14 minutos.</p></div></div>';
+  if (e === 'cuenta-creada') aviso = '<div class="ok-box" role="status">' + ico('i-ok') + '<div>Tu cuenta se creó.<p>Ingresá para continuar.</p></div></div>';
+
+  var form =
+    '<form class="auth-form" novalidate>' +
+      aviso +
+      M.campo({ id: 'email', label: 'Email', type: 'email', auto: 'email', valor: email, placeholder: 'nombre@ejemplo.com', disabled: enviando,
+        error: e === 'errores' ? 'Ingresá un email válido' : null }) +
+      M.campo({ id: 'password', label: 'Contraseña', type: 'password', auto: 'current-password', valor: pass, disabled: enviando,
+        error: e === 'errores' ? 'Ingresá tu contraseña' : null }) +
+      M.boton('Ingresar', enviando, 'Ingresando…', bloqueado) +
+    '</form>';
+
+  M.llenar('contenido',
+    '<section class="auth-card" aria-labelledby="titulo">' +
+      '<div class="auth-head"><h1 id="titulo">Ingresar</h1><p>Entrá con tu email para hacer pedidos y seguir su estado.</p></div>' +
+      form +
+      '<p class="auth-foot">¿No tenés cuenta? <a href="registrarse.html">Registrate</a></p>' +
+    '</section>' +
+    (bloqueado ? '<p><span class="note">Anotación · «Ingresar» queda deshabilitado hasta que pasen los 840 s de Retry-After; al recargar, decide el backend</span></p>' : '') +
+    (e === 'cuenta-creada' ? '<p><span class="note">Anotación · email precargado desde el registro; el foco va a «Contraseña»</span></p>' : ''));
+})();
+</script>
+</body>
+</html>
