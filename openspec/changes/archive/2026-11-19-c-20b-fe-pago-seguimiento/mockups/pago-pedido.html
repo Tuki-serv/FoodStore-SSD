@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-20b - Seguimiento del pago (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="pago-pedido.css">
+</head>
+<body data-roles="CLIENT" data-current="">
+<script>
+/* Parámetros: ?estado=
+   Al abrir/recargar: cargando-estado | conexion-estado | recarga-aprobado | recarga-rechazado | recarga-pendiente
+   Seguimiento: pendiente | pendiente-aprobado | pendiente-rechazado | pendiente-a-devolver | demorando
+   ?nav=collapsed | drawer (de mockup.js). El resto de estados de la página de pago (formulario, errores) son los de C-20a. */
+(function () {
+  var q = new URLSearchParams(location.search), e = q.get('estado') || 'pendiente';
+  window.CFG = { count: 0, pageClass: 'page-wide', banner: 'Mockup C-20b · /finalizar-compra/pedido/58/pago · estado «' + e + '» · CLIENT · Revision 2 · pendiente de aprobación' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="checkout.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, est = M.params.get('estado') || 'pendiente';
+  var id = 58;
+  /* OQ-2 (confirmada 2026-11-19): consulta cada 5 s hasta 2 min. Valores editables acá. */
+  var INTERVALO_S = 5, TOPE_MIN = 2;
+  var MOTIVO = 'La tarjeta no tiene fondos suficientes.';
+
+  var items = [
+    { n: 'Hamburguesa Clásica', c: 1, p: '1500.00', pers: 'Sin cebolla, sin tomate' },
+    { n: 'Papas fritas', c: 1, p: '1300.00', pers: null }
+  ];
+  var lista = items.map(function (i) {
+    return '<li><span class="q">' + i.c + ' ×</span><span class="n">' + i.n + (i.pers ? '<small>' + i.pers + '</small>' : '') + '</span><span>' + M.precio(i.p) + '</span></li>';
+  }).join('');
+  function resumen(badge) {
+    return '<aside class="summary" aria-labelledby="res-t"><h2 id="res-t">Pedido #' + id + '</h2>' +
+      '<div class="line"><span>Estado</span><span>' + badge + '</span></div>' +
+      '<ul class="sum-items" aria-label="Productos del pedido">' + lista + '</ul>' +
+      '<div class="line"><span>Subtotal</span><span>$ 2.800</span></div><div class="line"><span>Costo de envío</span><span>$ 50</span></div><div class="line"><span>Descuento</span><span>$ 0</span></div>' +
+      '<div class="total"><span>Total</span><span>$ 2.850</span></div></aside>';
+  }
+  var B_PEND = '<span class="badge b-pendiente">Pendiente</span>', B_CONF = '<span class="badge b-confirmado">Confirmado</span>', B_CANC = '<span class="badge b-cancelado">Cancelado</span>';
+  function cabecera(cls, icono, titulo, texto) {
+    return '<div class="pay-head ' + cls + '"><span class="badge-ico">' + ico(icono) + '</span><div><h1 tabindex="-1">' + titulo + '</h1>' + (texto ? '<p>' + texto + '</p>' : '') + '</div></div>';
+  }
+  function pagina(head, izq, der) {
+    return '<div class="done">' + head + '<div class="done-grid"><div class="col">' + izq + '</div>' + der + '</div></div>';
+  }
+  function tarjeta(titulo, cuerpo) {
+    return '<section class="card" aria-labelledby="c-t"><h2 id="c-t">' + titulo + '</h2>' + cuerpo + '</section>';
+  }
+  function alerta(titulo, texto, acciones) {
+    return '<div class="form-alert" role="alert" tabindex="-1">' + ico('i-alerta') + '<div><strong>' + titulo + '</strong>' + (texto ? '<p>' + texto + '</p>' : '') +
+      '<div class="alert-actions">' + acciones + '</div></div></div>';
+  }
+  function aviso(cls, icono, t) { return '<div class="info-box ' + cls + '" role="status">' + ico(icono) + '<div><strong>' + t + '</strong></div></div>'; }
+  var verPedido = '<a class="btn btn-secondary" href="#/finalizar-compra/pedido/58">' + ico('i-pedidos') + 'Ver mi pedido</a>';
+  var seguir = '<a class="btn btn-ghost" href="#/catalogo">Seguir comprando</a>';
+  var titPagar = 'Pagá con tarjeta';
+  var headPagar = cabecera('', 'i-tarjeta', 'Pagar pedido #58', 'Total a pagar: <b>$ 2.850</b>. El pedido queda confirmado cuando Mercado Pago aprueba el pago.');
+  var noPagar = '<div class="info-box" role="status">' + ico('i-info') + '<div><strong>No lo pagues de nuevo</strong>Si el pago se aprueba, el pedido se confirma solo.</div></div>';
+
+  function aprobado(extra) {
+    return pagina(cabecera('ok', 'i-ok', '¡Pago aprobado!', 'Mercado Pago aprobó el pago y tu pedido #58 quedó confirmado.'),
+      (extra || '') + tarjeta('Pago', '<dl class="kv"><dt>Estado del pago</dt><dd><span class="badge b-aprobado">Aprobado</span></dd><dt>Monto</dt><dd>$ 2.850</dd><dt>Medio</dt><dd><span class="pay-lbl">' + ico('i-tarjeta') + 'Tarjeta (Mercado Pago)</span></dd><dt>N.º de operación</dt><dd>PAY01HZX7K2Q9</dd></dl>' +
+        '<div class="pay-actions">' + verPedido + seguir + '</div>'), resumen(B_CONF));
+  }
+  function rechazado(extra) {
+    var razon = '<div class="reason" role="alert" tabindex="-1">' + ico('i-alerta') + '<div><strong>Motivo</strong><p>' + MOTIVO + '</p></div></div>';
+    return pagina(cabecera('bad', 'i-alerta', 'El pago fue rechazado', 'No se cobró nada. Tu pedido #58 sigue pendiente y podés intentar de nuevo con otra tarjeta.'),
+      tarjeta(titPagar, (extra || '') + razon + '<div class="pay-actions"><button class="btn btn-primary" type="button">' + ico('i-tarjeta') + 'Intentar de nuevo</button></div>' +
+        '<p class="sec-note">Al intentar de nuevo se vuelve a cargar el formulario de Mercado Pago, vacío.</p>'), resumen(B_PEND));
+  }
+  function pendiente() {
+    return pagina(cabecera('wait', 'i-reloj', 'Estamos esperando la confirmación de Mercado Pago', 'Tu pedido #58 se confirma cuando Mercado Pago apruebe el pago.'),
+      tarjeta('Pago en proceso',
+        '<div class="track" role="status"><span class="spinner" aria-hidden="true"></span><div><strong>Verificando el pago…</strong><span>Esta pantalla se actualiza sola cada ' + INTERVALO_S + ' segundos. No hace falta recargar.</span></div></div>' +
+        '<p class="sec-note">Región en vivo (lectores de pantalla): «Esperando la confirmación de Mercado Pago».</p>' + noPagar +
+        '<div class="pay-actions">' + verPedido + '</div>'), resumen(B_PEND));
+  }
+
+  var out = '';
+  switch (est) {
+    case 'cargando-estado':
+      out = pagina(headPagar, tarjeta(titPagar, '<div class="mp-load" role="status"><span class="spinner" aria-hidden="true"></span><span>Verificando el estado de tu pago…</span><div class="mp-skel" aria-hidden="true"><div class="skel"></div><div class="skel"></div></div></div>'), resumen(B_PEND)); break;
+    case 'conexion-estado':
+      out = pagina(headPagar, tarjeta(titPagar, alerta('No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.', 'No mostramos el formulario hasta saber si ya hay un pago. Tu pedido #58 sigue pendiente.', '<button class="btn btn-primary btn-sm" type="button">Reintentar</button>')), resumen(B_PEND)); break;
+    case 'recarga-aprobado': out = aprobado(''); break;
+    case 'recarga-rechazado': out = rechazado(''); break;
+    case 'recarga-pendiente': case 'pendiente': out = pendiente(); break;
+    case 'pendiente-aprobado': out = aprobado(aviso('ok', 'i-ok', 'Mercado Pago confirmó tu pago.')); break;
+    case 'pendiente-rechazado': out = rechazado(aviso('warn', 'i-alerta', 'Mercado Pago no aprobó el pago.')); break;
+    case 'pendiente-a-devolver':
+      out = pagina(cabecera('warn', 'i-alerta', 'Tu pago se aprobó, pero no pudimos confirmar el pedido', 'Algún producto se quedó sin stock mientras se procesaba el pago, así que el pedido #58 se canceló.'),
+        tarjeta('¿Qué pasa con tu dinero?', '<p>Te devolvemos los $ 2.850. La devolución la gestiona el equipo del local de forma manual, por eso puede demorar unos días.</p>' +
+          '<div class="info-box" role="status">' + ico('i-info') + '<div><strong>No tenés que hacer nada</strong>No vuelvas a pagar este pedido: ya no se puede cobrar.</div></div>' +
+          '<div class="pay-actions">' + verPedido + seguir + '</div>'), resumen(B_CANC)); break;
+    case 'demorando':
+      out = pagina(cabecera('wait', 'i-reloj', 'La confirmación está demorando', 'Todavía no recibimos la confirmación de Mercado Pago para el pedido #58.'),
+        tarjeta('Pago sin confirmar', '<p>Dejamos de consultar automáticamente después de ' + TOPE_MIN + ' minutos. Puede ser que Mercado Pago tarde un poco más: si el pago se aprueba, el pedido se confirma solo.</p>' + noPagar.replace('Si el pago', 'Podés actualizar el estado o volver más tarde. Si el pago') +
+          '<div class="pay-actions"><button class="btn btn-primary" type="button">' + ico('i-reloj') + 'Actualizar</button>' + verPedido + '</div>'), resumen(B_PEND)); break;
+  }
+
+  var LINKS = [
+    ['Al abrir o recargar la página', [['cargando-estado', 'Cargando el estado'], ['conexion-estado', 'Error de red'], ['recarga-aprobado', 'Recarga: aprobado'], ['recarga-rechazado', 'Recarga: rechazado'], ['recarga-pendiente', 'Recarga: pendiente']]],
+    ['Seguimiento del pendiente', [['pendiente', 'Pendiente (se actualiza solo)'], ['pendiente-aprobado', '→ Aprobado'], ['pendiente-rechazado', '→ Rechazado'], ['pendiente-a-devolver', '→ Sin stock (a_devolver)'], ['demorando', 'Tope de espera']]]
+  ];
+  var sw = '<nav class="switcher" aria-label="Estados del mockup"><strong>Estados del mockup (C-20b)</strong>' + LINKS.map(function (g) {
+    return '<b>' + g[0] + '</b>' + g[1].map(function (l) { return '<a href="?estado=' + l[0] + '"' + (l[0] === est ? ' aria-current="true"' : '') + '>' + l[1] + '</a>'; }).join('');
+  }).join('') + '<b>Confirmación del pedido</b><a href="pedido-creado-pago.html">Línea de pago (pedido-creado-pago.html)</a></nav>';
+  M.llenar('contenido', out + sw);
+})();
+</script>
+</body>
+</html>

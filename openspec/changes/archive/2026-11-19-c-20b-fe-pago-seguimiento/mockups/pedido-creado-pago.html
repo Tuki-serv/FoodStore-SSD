@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-20b - Confirmación del pedido con estado del pago (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="pago-pedido.css">
+</head>
+<body data-roles="CLIENT" data-current="">
+<script>
+/* Parámetros: ?pago=sin-intentos (por defecto, pendiente de pago) | en-confirmacion | aprobado | rechazado | a-devolver
+   Solo pedidos MERCADOPAGO (OQ-7 confirmada 2026-11-19). EFECTIVO/TRANSFERENCIA no cambian (ver C-19). */
+(function () {
+  var p = new URLSearchParams(location.search).get('pago') || 'sin-intentos';
+  window.CFG = { count: 0, pageClass: 'page-wide', banner: 'Mockup C-20b · /finalizar-compra/pedido/58 · pago «' + p + '» · MERCADOPAGO · CLIENT · Revision 2 · pendiente de aprobación' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="checkout.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, pago = M.params.get('pago') || 'sin-intentos';
+  var id = 58, TOTAL = '$ 3.850';
+  var MOTIVO = 'La tarjeta no tiene fondos suficientes.';
+  var items = [
+    { n: 'Hamburguesa Clásica', c: 2, p: '3000.00', pers: 'Sin cebolla, sin tomate' },
+    { n: 'Coca-Cola 500ml', c: 1, p: '800.00', pers: null }
+  ];
+  var lista = items.map(function (i) {
+    return '<li><span class="q">' + i.c + ' ×</span><span class="n">' + i.n + (i.pers ? '<small>' + i.pers + '</small>' : '') + '</span><span>' + M.precio(i.p) + '</span></li>';
+  }).join('');
+
+  /* Estado del pedido según el pago */
+  var BADGE = { aprobado: ['b-confirmado', 'Confirmado'], 'a-devolver': ['b-cancelado', 'Cancelado'] }[pago] || ['b-pendiente', 'Pendiente'];
+  var pagable = pago === 'sin-intentos' || pago === 'rechazado';
+
+  var lineas = {
+    'sin-intentos': '',
+    'en-confirmacion': '<span class="badge b-pendiente">En confirmación</span><span class="sec-note">Mercado Pago todavía no confirmó el pago. Seguilo desde la página de pago.</span>',
+    aprobado: '<span class="badge b-aprobado">Aprobado</span>',
+    rechazado: '<span class="badge b-rechazado">Rechazado</span>',
+    'a-devolver': '<span class="badge b-aprobado">Aprobado, a devolver</span><span class="sec-note">Te devolvemos el dinero porque no había stock.</span>'
+  };
+  var filaPago = pago === 'sin-intentos' ? '' : '<dt>Pago</dt><dd><div class="pay-line" role="status">' + lineas[pago] + '</div></dd>';
+  var rowsPago = pago === 'sin-intentos' ? '' : '<dt>Último intento de pago</dt>';
+  /* Texto de la línea (D3) */
+  var TXT = { 'en-confirmacion': 'Pago en confirmación', aprobado: 'Pago aprobado', rechazado: 'Último intento de pago: rechazado', 'a-devolver': 'Pago aprobado, a devolver' };
+  var lineaPago = pago === 'sin-intentos' ? '' :
+    '<dt>Pago</dt><dd><div class="pay-line"><span><strong>' + TXT[pago] + '</strong></span>' +
+    (pago === 'rechazado' ? '<span class="reason-inline">' + ico('i-alerta') + MOTIVO + '</span>' : '') +
+    (pago === 'en-confirmacion' ? '<span class="sec-note">Mercado Pago todavía no confirmó el pago. Seguilo desde la página de pago.</span>' : '') +
+    (pago === 'a-devolver' ? '<span class="sec-note">Algún producto se quedó sin stock: el pedido se canceló y te devolvemos el dinero.</span>' : '') + '</div></dd>';
+
+  var textos = {
+    'sin-intentos': 'Falta un paso: pagalo con tarjeta para que se confirme.',
+    rechazado: 'Falta un paso: pagalo con tarjeta para que se confirme.',
+    'en-confirmacion': 'Estamos esperando la confirmación de Mercado Pago.',
+    aprobado: 'Lo vas a poder seguir desde «Mis pedidos».',
+    'a-devolver': 'Lo vas a poder seguir desde «Mis pedidos».'
+  };
+  var head = '<div class="done-head"><span class="badge-ico">' + ico('i-ok') + '</span><div><h1>Pedido #' + id + ' recibido</h1><p>' + textos[pago] + '</p></div></div>';
+
+  var cta = '';
+  if (pagable) {
+    cta = '<section class="card handoff" aria-labelledby="pago-t"><h2 id="pago-t">' + (pago === 'rechazado' ? 'Intentá de nuevo' : 'Falta el pago') + '</h2>' +
+      '<p>' + (pago === 'rechazado' ? 'El último intento no se cobró. El pedido sigue <b>pendiente</b>: podés pagarlo con otra tarjeta.' : 'El pedido queda <b>pendiente</b> hasta que Mercado Pago apruebe el pago. Vas a cargar la tarjeta en un formulario seguro: no guardamos sus datos.') + '</p>' +
+      '<a class="btn btn-primary btn-block" href="pago-pedido.html?estado=recarga-rechazado">' + ico('i-tarjeta') + (pago === 'rechazado' ? 'Reintentar el pago de ' : 'Pagar ') + TOTAL + (pago === 'rechazado' ? '' : ' con tarjeta') + '</a></section>';
+  } else if (pago === 'en-confirmacion') {
+    cta = '<section class="card" aria-labelledby="pago-t"><h2 id="pago-t">Pago en confirmación</h2><p>No lo pagues de nuevo: si Mercado Pago aprueba el pago, el pedido se confirma solo.</p>' +
+      '<a class="btn btn-secondary" href="pago-pedido.html?estado=pendiente">' + ico('i-reloj') + 'Ver el estado del pago</a></section>';
+  }
+
+  var LINKS = [['sin-intentos', 'Pendiente de pago (sin intentos)'], ['en-confirmacion', 'Pago en confirmación'], ['aprobado', 'Aprobado'], ['rechazado', 'Rechazado (motivo + reintentar)'], ['a-devolver', 'Aprobado, a devolver']];
+  var sw = '<nav class="switcher" aria-label="Estados del mockup"><strong>Estado del pago (C-20b)</strong>' + LINKS.map(function (l) {
+    return '<a href="?pago=' + l[0] + '"' + (l[0] === pago ? ' aria-current="true"' : '') + '>' + l[1] + '</a>';
+  }).join('') + '<b>Página de pago</b><a href="pago-pedido.html">pago-pedido.html</a></nav>';
+
+  M.llenar('contenido',
+    '<div class="done">' + head +
+    '<div class="done-grid"><div class="col">' + cta +
+      '<section class="card" aria-labelledby="det-t"><h2 id="det-t">Detalle</h2><dl class="kv">' +
+        '<dt>Estado</dt><dd><span class="badge ' + BADGE[0] + '">' + BADGE[1] + '</span></dd>' + lineaPago +
+        '<dt>Entrega</dt><dd><strong>Casa</strong><br>Av. San Martín 1234, piso 3, depto. B<br><span class="addr-sub">Mendoza, Mendoza · CP 5500</span></dd>' +
+        '<dt>Forma de pago</dt><dd><span class="pay-lbl">' + ico('i-tarjeta') + 'Tarjeta (Mercado Pago)</span></dd>' +
+      '</dl></section></div>' +
+      '<aside class="summary" aria-labelledby="res-t"><h2 id="res-t">Pedido #' + id + '</h2><ul class="sum-items" aria-label="Productos del pedido">' + lista + '</ul>' +
+        '<div class="line"><span>Subtotal</span><span>$ 3.800</span></div><div class="line"><span>Costo de envío</span><span>$ 50</span></div><div class="line"><span>Descuento</span><span>$ 0</span></div>' +
+        '<div class="total"><span>Total</span><span>' + TOTAL + '</span></div>' +
+        '<p class="sum-note">' + ico('i-alerta') + '<span>Si algún producto se agota antes de que se confirme, el pedido puede cancelarse por falta de stock.</span></p></aside></div>' +
+    '<div class="done-actions"><a class="btn btn-secondary" href="#/mis-pedidos">' + ico('i-pedidos') + 'Ver mis pedidos</a><a class="btn btn-ghost" href="#/catalogo">Seguir comprando</a></div>' + sw +
+    '</div>');
+})();
+</script>
+</body>
+</html>

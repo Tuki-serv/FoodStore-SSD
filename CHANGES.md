@@ -57,7 +57,7 @@ C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        │     └── C-18 ✓ fe-carrito-personalizacion
        │           └── C-19 ✓ fe-checkout-pedido (+C-10, C-11, C-15)
        │                 ├── C-20a ✓ fe-pago-tarjeta (+C-12)
-       │                 │     └── C-20b fe-pago-seguimiento
+       │                 │     └── C-20b ✓ fe-pago-seguimiento
        │                 └── C-21 fe-mis-pedidos-seguimiento (+C-11)
        ├── C-17a ✓ fe-admin-categorias-ingredientes (+C-08)
        │     └── C-17b ✓ fe-admin-productos-stock (+C-08)
@@ -111,7 +111,7 @@ GATE 5: C-13b ✓                                         ← FORK
   → C-23 fe-admin-usuarios-roles              [Agente A — si C-08 ✓]
 
 GATE 6: C-16b ✓ → C-18 ; C-18 + C-15 + C-10 ✓ → C-19 ; C-19 ✓ →
-  → C-20a ✓ fe-pago-tarjeta                     [Agente B — si C-12 ✓]; luego C-20b fe-pago-seguimiento
+  → C-20a ✓ fe-pago-tarjeta                     [Agente B — si C-12 ✓]; luego C-20b ✓ fe-pago-seguimiento
   → C-21 fe-mis-pedidos-seguimiento           [Agente C]
   → C-24 fe-dashboard-metricas                [Agente A — si C-22 ✓]
 
@@ -578,7 +578,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/05_reglas_de_negocio.md` §Pagos
 
 ### [C-20b] `fe-pago-seguimiento`
-- **Estado**: `[ ]` pendiente (propuesto 2026-11-19 en `openspec/changes/c-20b-fe-pago-seguimiento/`)
+- **Estado**: `[x]` cerrado (2026-11-19). Verify: tests y visual passed (seguimiento del pendiente, tope de 2 min, recarga y línea de pago en la confirmación). **Pendiente**: prueba del webhook con ngrok (tarea 6.1 diferida por el usuario) y mostrar el N.º de operación tras recargar (`GET /pagos/{pedido_id}` no devuelve `mp_payment_id`; requiere cambio de backend). Archivado en `openspec/changes/archive/2026-11-19-c-20b-fe-pago-seguimiento/`.
 - **Scope**:
   - US-025 reflejo de la confirmación por webhook: polling de `GET /pagos/{pedido_id}` mientras el pago está pendiente (5 s durante 2 min por defecto, OQ-2) con «La confirmación está demorando» + «Actualizar» al pasar el tope.
   - Reconstrucción de la vista de pago al recargar a partir del último intento en el servidor.
@@ -748,7 +748,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 18 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 24** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-25a). **Pendientes obligatorios: 6** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
+**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 25** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-25a). **Pendientes obligatorios: 5** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
