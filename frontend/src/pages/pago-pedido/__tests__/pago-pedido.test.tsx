@@ -27,7 +27,7 @@ describe('Página de pago · acceso y carga', () => {
     expect(screen.getByText(/Total a pagar:/)).toHaveTextContent('Total a pagar: $ 2.850.');
     expect(screen.getByRole('complementary', { name: 'Pedido #58' })).toBeInTheDocument();
     expect(estadoPedidos.consultas).toEqual([58]);
-    expect(estadoPagos.consultas).toEqual([]);
+    expect(estadoPagos.consultas).toEqual([58]);
   });
 
   it('con un identificador inválido muestra «No encontramos este pedido» sin pedir nada al backend', async () => {
@@ -109,7 +109,7 @@ describe('Página de pago · no corresponde pagar', () => {
 });
 
 describe('Página de pago · resultados inmediatos', () => {
-  it('aprobado: muestra «¡Pago aprobado!», el número de operación y los enlaces, sin redirigir ni pedir GET /pagos/58', async () => {
+  it('aprobado: muestra «¡Pago aprobado!», el número de operación y los enlaces, sin redirigir ni volver a pedir GET /pagos/58', async () => {
     const { estadoPagos, estadoPedidos, usuario, router, queryClient } = montarPago();
     queryClient.setQueryData(['pedidos', 'lista'], { items: [] });
     await usuario.click(await esperarFormulario());
@@ -120,7 +120,7 @@ describe('Página de pago · resultados inmediatos', () => {
     expect(screen.getByText('PAY01JX7')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Simular pago' })).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe(RUTA);
-    expect(estadoPagos.consultas).toEqual([]);
+    expect(estadoPagos.consultas).toEqual([58]);
     await waitFor(() => expect(estadoPedidos.consultas).toEqual([58, 58]));
     expect(queryClient.getQueryState(['pedidos', 'lista'])?.isInvalidated).toBe(true);
   });
@@ -143,7 +143,7 @@ describe('Página de pago · resultados inmediatos', () => {
     expect(await screen.findByRole('heading', { name: 'El pago fue rechazado', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('La tarjeta no tiene fondos suficientes.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Simular pago' })).not.toBeInTheDocument();
-    expect(estadoPagos.consultas).toEqual([]);
+    expect(estadoPagos.consultas).toEqual([58]);
 
     await usuario.click(screen.getByRole('button', { name: 'Intentar de nuevo' }));
     await usuario.click(await screen.findByRole('button', { name: 'Simular pago' }));
@@ -170,16 +170,16 @@ describe('Página de pago · resultados inmediatos', () => {
     expect(screen.getByRole('button', { name: 'Intentar de nuevo' })).toBeInTheDocument();
   });
 
-  it('pendiente: vista estática con «Ver mi pedido», sin formulario ni reintento', async () => {
+  it('pendiente: vista de seguimiento con «Ver mi pedido», sin formulario ni reintento', async () => {
     const { usuario, estadoPagos } = montarPago({ pagos: { resultados: [{ estado: 'pendiente' }] } });
     await usuario.click(await esperarFormulario());
 
     expect(await screen.findByRole('heading', { name: 'Estamos esperando la confirmación de Mercado Pago', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/Esta pantalla no se actualiza sola/)).toBeInTheDocument();
+    expect(screen.getByText(/Esta pantalla se actualiza sola cada 5 segundos/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ver mi pedido' })).toHaveAttribute('href', '/finalizar-compra/pedido/58');
     expect(screen.queryByRole('button', { name: 'Simular pago' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Intentar de nuevo' })).not.toBeInTheDocument();
-    expect(estadoPagos.consultas).toEqual([]);
+    expect(estadoPagos.consultas).toEqual([58]);
   });
 
   it('a_devolver: explica la devolución manual, sin formulario ni reintento', async () => {
@@ -200,22 +200,25 @@ describe('Página de pago · resultados inmediatos', () => {
 describe('Página de pago · errores al pagar', () => {
   it('409 con el pago ya aprobado: vuelve a pedir pedido y pago y muestra «¡Pago aprobado!»', async () => {
     const { estadoPagos, estadoPedidos, usuario } = montarPago({
-      pagos: { resultados: [{ status: 409, detail: 'El pedido ya tiene un pago aprobado o en proceso' }], estadoConsultado: { estado: 'aprobado', pago_id: 31 } },
+      pagos: { resultados: [{ status: 409, detail: 'El pedido ya tiene un pago aprobado o en proceso' }], estadoConsultado: { estado: null } },
     });
     const boton = await esperarFormulario();
+    estadoPagos.estadoConsultado = { estado: 'aprobado', pago_id: 31 };
     estadoPedidos.pedidos.set(58, pedidoAPagar({ estado_codigo: 'CONFIRMADO' }));
     await usuario.click(boton);
 
     expect(await screen.findByRole('heading', { name: '¡Pago aprobado!', level: 1 })).toBeInTheDocument();
-    expect(estadoPagos.consultas).toEqual([58]);
+    expect(estadoPagos.consultas).toEqual([58, 58]);
     await waitFor(() => expect(estadoPedidos.consultas).toEqual([58, 58]));
   });
 
   it('409 con el pago pendiente: muestra la vista pendiente', async () => {
-    const { usuario } = montarPago({
-      pagos: { resultados: [{ status: 409, detail: 'El pedido ya tiene un pago aprobado o en proceso' }], estadoConsultado: { estado: 'pendiente' } },
+    const { estadoPagos, usuario } = montarPago({
+      pagos: { resultados: [{ status: 409, detail: 'El pedido ya tiene un pago aprobado o en proceso' }], estadoConsultado: { estado: null } },
     });
-    await usuario.click(await esperarFormulario());
+    const boton = await esperarFormulario();
+    estadoPagos.estadoConsultado = { estado: 'pendiente' };
+    await usuario.click(boton);
 
     expect(await screen.findByRole('heading', { name: 'Estamos esperando la confirmación de Mercado Pago', level: 1 })).toBeInTheDocument();
   });

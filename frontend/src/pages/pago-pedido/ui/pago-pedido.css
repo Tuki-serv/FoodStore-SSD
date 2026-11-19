@@ -26,6 +26,12 @@
   .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--color-border);border-top-color:var(--color-primary);animation:pago-giro 0.8s linear infinite}
   @keyframes pago-giro{to{transform:rotate(360deg)}}
   @media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+  /* C-20b: seguimiento del pendiente y avisos de transición */
+  .track{display:flex;gap:var(--space-3);align-items:center}
+  .track strong{display:block}
+  .track span:not(.spinner){color:var(--color-text-muted);font-size:var(--text-sm)}
+  .info-box.ok{background:var(--color-success-bg)}
+  .info-box.ok > .ico,.info-box.ok strong{color:var(--color-success)}
   @media (max-width:719.98px){
     .pay-head{align-items:flex-start}
     .pay-head .badge-ico{width:44px;height:44px}

@@ -9,3 +9,4 @@ export { selectEstadoPago, selectPagoEnCurso, selectPedidoEnPago, usePaymentStor
 export type { EstadoPago, PaymentState, ResultadoPago } from './payment-store';
 export { vistaPago } from './vista-pago';
 export type { PedidoParaVista, VistaPago } from './vista-pago';
+export { INTERVALO_SEGUIMIENTO_MS, TOPE_SEGUIMIENTO_MS, intervaloSeguimiento } from './seguimiento-pago';

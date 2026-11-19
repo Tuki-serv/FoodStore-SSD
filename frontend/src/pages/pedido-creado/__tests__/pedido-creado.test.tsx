@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { esperarSinViolacionesA11y } from '@/test/axe';
-import { crearEstadoPagos, handlersPagos } from '@/test/msw/pagos';
+import { crearEstadoPagos, handlersPagos, type EstadoPagos } from '@/test/msw/pagos';
 import { detalleDto, pedidoDto } from '@/test/msw/pedidos';
 import { server } from '@/test/msw/server';
 import { esperarCheckout, montarCheckout } from '@/test/render-checkout';
@@ -23,10 +23,12 @@ const itemsPrueba = (pedidoId: number) => [
 ];
 
 /** Abre directamente la confirmación de un pedido que el servidor ya tiene (carrito vacío, sin estado de navegación). */
-function abrirPedido(parcial: Parameters<typeof pedidoDto>[0], ruta?: string) {
+function abrirPedido(parcial: Parameters<typeof pedidoDto>[0], ruta?: string, pagos?: Partial<EstadoPagos>) {
+  const estadoPagos = crearEstadoPagos(pagos);
+  server.use(...handlersPagos(estadoPagos));
   const app = montarCheckout({ lineas: [], ruta: ruta ?? `/finalizar-compra/pedido/${parcial.id}` });
   app.estadoPedidos.pedidos.set(parcial.id, pedidoDto({ items: itemsPrueba(parcial.id), ...parcial }));
-  return app;
+  return { ...app, estadoPagos };
 }
 
 const titulo = (id: number) => screen.findByRole('heading', { name: `Pedido #${id} recibido`, level: 1 });
@@ -161,12 +163,11 @@ describe('confirmación: transferencia', () => {
 });
 
 describe('confirmación: Mercado Pago (traspaso al pago)', () => {
-    server.use(...handlersPagos(crearEstadoPagos()));
   it('muestra «Falta el pago» y «Pagar $ 2.850 con tarjeta», que lleva a la ruta de pago del pedido', async () => {
     const { usuario, router } = abrirPedido({ id: 58, forma_pago_codigo: 'MERCADOPAGO', subtotal: '2800.00', total: '2850.00' });
     await titulo(58);
 
-    expect(principal().getByRole('heading', { name: 'Falta el pago' })).toBeInTheDocument();
+    expect(await principal().findByRole('heading', { name: 'Falta el pago' })).toBeInTheDocument();
     expect(principal().queryByText('¿Qué sigue?')).not.toBeInTheDocument();
 
     await usuario.click(principal().getByRole('link', { name: 'Pagar $ 2.850 con tarjeta' }));
@@ -179,12 +180,13 @@ describe('confirmación: Mercado Pago (traspaso al pago)', () => {
     abrirPedido({ id: 58, forma_pago_codigo: 'MERCADOPAGO', estado_codigo: 'CANCELADO' });
     await titulo(58);
 
-    expect(principal().getByText('Cancelado')).toBeInTheDocument();
+    expect(await principal().findByText('Cancelado')).toBeInTheDocument();
     expect(principal().queryByRole('link', { name: /Pagar/ })).not.toBeInTheDocument();
     expect(principal().queryByRole('heading', { name: 'Falta el pago' })).not.toBeInTheDocument();
   });
 
   it('el pedido creado con tarjeta desde el checkout ofrece pagar con el total del servidor', async () => {
+    server.use(...handlersPagos(crearEstadoPagos()));
     const { usuario } = montarCheckout();
     await esperarCheckout();
     await usuario.click(screen.getByRole('radio', { name: /Tarjeta \(Mercado Pago\)/ }));
@@ -193,6 +195,97 @@ describe('confirmación: Mercado Pago (traspaso al pago)', () => {
     await titulo(57);
 
     await waitFor(() => expect(principal().getByRole('link', { name: 'Pagar $ 3.850 con tarjeta' })).toHaveAttribute('href', '/finalizar-compra/pedido/57/pago'));
+  });
+});
+
+describe('confirmación: estado del pago (Mercado Pago)', () => {
+  const MP_PENDIENTE = { id: 58, forma_pago_codigo: 'MERCADOPAGO', subtotal: '2800.00', total: '2850.00' } as const;
+
+  it('último intento rechazado: muestra «Último intento de pago: rechazado», el motivo y el CTA para reintentar', async () => {
+    const { estadoPagos } = abrirPedido(MP_PENDIENTE, undefined, { estadoConsultado: { estado: 'rechazado', pago_id: 30, mp_status_detail: 'insufficient_amount' } });
+    await titulo(58);
+
+    expect(await principal().findByText('Último intento de pago: rechazado')).toBeInTheDocument();
+    expect(principal().getByText('La tarjeta no tiene fondos suficientes.')).toBeInTheDocument();
+    expect(principal().getByRole('link', { name: 'Reintentar el pago de $ 2.850' })).toHaveAttribute('href', '/finalizar-compra/pedido/58/pago');
+    expect(estadoPagos.consultas).toEqual([58]);
+  });
+
+  it('último intento rechazado con detalle desconocido muestra el motivo genérico', async () => {
+    abrirPedido(MP_PENDIENTE, undefined, { estadoConsultado: { estado: 'rechazado', mp_status_detail: 'algo_nuevo' } });
+    await titulo(58);
+
+    expect(await principal().findByText('Mercado Pago no aprobó el pago. Probá con otra tarjeta o medio.')).toBeInTheDocument();
+  });
+
+  it('pago pendiente: muestra «Pago en confirmación» y el enlace al estado del pago, sin CTA de pagar', async () => {
+    abrirPedido(MP_PENDIENTE, undefined, { estadoConsultado: { estado: 'pendiente', pago_id: 31 } });
+    await titulo(58);
+
+    expect(await principal().findByRole('heading', { name: 'Pago en confirmación' })).toBeInTheDocument();
+    expect(principal().getByText('Estamos esperando la confirmación de Mercado Pago.')).toBeInTheDocument();
+    expect(principal().getByRole('link', { name: 'Ver el estado del pago' })).toHaveAttribute('href', '/finalizar-compra/pedido/58/pago');
+    expect(principal().queryByRole('link', { name: /Pagar|Reintentar/ })).not.toBeInTheDocument();
+    expect(principal().queryByRole('heading', { name: 'Falta el pago' })).not.toBeInTheDocument();
+  });
+
+  it('pago aprobado con el pedido confirmado: muestra «Pago aprobado» sin CTA', async () => {
+    abrirPedido({ ...MP_PENDIENTE, estado_codigo: 'CONFIRMADO' }, undefined, { estadoConsultado: { estado: 'aprobado', pago_id: 31 } });
+    await titulo(58);
+
+    expect(await principal().findByText('Pago aprobado')).toBeInTheDocument();
+    expect(principal().getByText('Confirmado')).toBeInTheDocument();
+    expect(principal().queryByRole('link', { name: /Pagar|Reintentar/ })).not.toBeInTheDocument();
+  });
+
+  it('pago aprobado a devolver: muestra «Pago aprobado, a devolver» sin CTA', async () => {
+    abrirPedido({ ...MP_PENDIENTE, estado_codigo: 'CANCELADO' }, undefined, { estadoConsultado: { estado: 'a_devolver', pago_id: 31 } });
+    await titulo(58);
+
+    expect(await principal().findByText('Pago aprobado, a devolver')).toBeInTheDocument();
+    expect(principal().queryByRole('link', { name: /Pagar|Reintentar/ })).not.toBeInTheDocument();
+  });
+
+  it('sin intentos de pago: ninguna línea de estado y «Pagar $ 2.850 con tarjeta»', async () => {
+    const { estadoPagos } = abrirPedido(MP_PENDIENTE, undefined, { estadoConsultado: { estado: null } });
+    await titulo(58);
+
+    expect(await principal().findByRole('link', { name: 'Pagar $ 2.850 con tarjeta' })).toBeInTheDocument();
+    expect(principal().queryByText(/Último intento de pago|Pago en confirmación|Pago aprobado/)).not.toBeInTheDocument();
+    expect(estadoPagos.consultas).toEqual([58]);
+  });
+
+  it('mientras consulta el pago no ofrece pagar (evita mostrar y quitar el CTA)', async () => {
+    abrirPedido(MP_PENDIENTE, undefined, { estadoConsultado: { estado: 'pendiente' } });
+    await titulo(58);
+
+    expect(principal().queryByRole('link', { name: /Pagar/ })).not.toBeInTheDocument();
+    await principal().findByRole('heading', { name: 'Pago en confirmación' });
+  });
+
+  it('si la consulta del pago falla igual ofrece pagar, sin línea de estado', async () => {
+    abrirPedido(MP_PENDIENTE, undefined, { estadoConsultado: 'red' });
+    await titulo(58);
+
+    expect(await principal().findByRole('link', { name: 'Pagar $ 2.850 con tarjeta' })).toBeInTheDocument();
+    expect(principal().queryByText('Último intento de pago: rechazado')).not.toBeInTheDocument();
+  });
+
+  it.each(['EFECTIVO', 'TRANSFERENCIA'])('un pedido %s no consulta GET /pagos', async (forma) => {
+    const { estadoPagos } = abrirPedido({ id: 60, forma_pago_codigo: forma }, undefined, { estadoConsultado: { estado: 'rechazado' } });
+    await titulo(60);
+    await screen.findByText('Casa');
+
+    expect(estadoPagos.consultas).toEqual([]);
+    expect(principal().queryByText(/Último intento de pago/)).not.toBeInTheDocument();
+  });
+
+  it('la confirmación con pago rechazado no tiene violaciones de accesibilidad', async () => {
+    abrirPedido(MP_PENDIENTE, undefined, { estadoConsultado: { estado: 'rechazado', mp_status_detail: 'insufficient_amount' } });
+    await titulo(58);
+    await screen.findByText('Último intento de pago: rechazado');
+
+    await esperarSinViolacionesA11y(screen.getByRole('main'));
   });
 });
 
