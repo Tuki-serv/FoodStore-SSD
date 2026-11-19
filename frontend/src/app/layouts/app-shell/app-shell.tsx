@@ -24,6 +24,10 @@ export function AppShell({ roles = [], usuario, onCerrarSesion }: AppShellProps)
   const { toggleSidebarCollapsed, openSidebar, closeSidebar } = useUiStore.getState();
   const { pathname } = useLocation();
 
+  const secciones = seccionesParaRoles(roles);
+  // El acceso al carrito de la barra superior existe solo en mobile y si la navegación del rol incluye «Carrito» (hay sesión).
+  const mostrarCarrito = !esDesktop && secciones.some((seccion) => seccion.items.some((item) => item.id === 'carrito'));
+
   const colapsado = esDesktop && sidebarCollapsed;
   const drawerAbierto = !esDesktop && sidebarOpen;
 
@@ -85,7 +89,7 @@ export function AppShell({ roles = [], usuario, onCerrarSesion }: AppShellProps)
   return (
     <div className={clases}>
       <Sidebar
-        secciones={seccionesParaRoles(roles)}
+        secciones={secciones}
         usuario={usuario}
         colapsado={colapsado}
         onAlternarColapso={toggleSidebarCollapsed}
@@ -95,7 +99,7 @@ export function AppShell({ roles = [], usuario, onCerrarSesion }: AppShellProps)
       />
       <div className="scrim" onClick={closeSidebar} aria-hidden="true" data-testid="scrim" />
       <div className="shell-main">
-        <Topbar menuAbierto={drawerAbierto} onAbrirMenu={openSidebar} botonMenuRef={botonMenuRef} />
+        <Topbar menuAbierto={drawerAbierto} onAbrirMenu={openSidebar} botonMenuRef={botonMenuRef} mostrarCarrito={mostrarCarrito} />
         <main className="flex flex-1 flex-col">
           <Outlet />
         </main>

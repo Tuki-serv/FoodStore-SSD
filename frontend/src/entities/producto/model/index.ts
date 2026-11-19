@@ -5,6 +5,7 @@ export {
   estadoStock,
   formatearPrecio,
   imagenPrincipal,
+  ingredientesRemovibles,
   UMBRAL_POCAS_UNIDADES,
 } from './producto';
 export type {

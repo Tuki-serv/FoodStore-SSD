@@ -4,6 +4,7 @@
 @import "../../shared/ui/dialogo/dialogo.css";
 @import "../../shared/ui/campo/campo.css";
 @import "../../shared/ui/paginacion/paginacion.css";
+@import "../../shared/ui/selector-cantidad/selector-cantidad.css";
 @import "../../shared/ui/lista-admin/lista-admin.css";
 @import "../../entities/categoria/ui/categoria.css";
 @import "../../entities/direccion/ui/direccion.css";
@@ -14,6 +15,7 @@
 @import "../../pages/admin-productos/ui/admin-productos.css";
 @import "../../pages/catalogo/ui/catalogo.css";
 @import "../../pages/producto/ui/producto.css";
+@import "../../pages/carrito/ui/carrito.css";
 
 @tailwind base;
 @tailwind components;

@@ -4,6 +4,7 @@ import { ShellConSesion } from '@/app/layouts/app-shell';
 import { AdminCategoriasPage } from '@/pages/admin-categorias';
 import { AdminIngredientesPage } from '@/pages/admin-ingredientes';
 import { AdminProductosPage } from '@/pages/admin-productos';
+import { CarritoPage } from '@/pages/carrito';
 import { CatalogoPage } from '@/pages/catalogo';
 import { DireccionesPage } from '@/pages/direcciones';
 import { ErrorPage } from '@/pages/error';
@@ -18,6 +19,7 @@ import { MAPA_RUTAS } from './route-map';
 /** Pantallas reales por ruta: cada change visual agrega su línea; las rutas sin entrada usan `PlaceholderPage`. */
 const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
   [RUTAS.catalogo]: CatalogoPage,
+  [RUTAS.carrito]: CarritoPage,
   [RUTAS.direcciones]: DireccionesPage,
   [RUTAS.adminCategorias]: AdminCategoriasPage,
   [RUTAS.adminIngredientes]: AdminIngredientesPage,

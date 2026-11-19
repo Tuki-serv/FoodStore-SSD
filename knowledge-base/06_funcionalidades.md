@@ -82,12 +82,12 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 ## Épica 4: Carrito y Pedidos
 
 ### US-015 — Carrito persistente
-- [ ] Agregar/quitar/cambiar cantidad/personalizar ítems; persiste en localStorage y sobrevive a refresh, cierre de navegador y logout/login (CE-14) `[Pendiente-FE]`
-- [ ] Suscripción por slice a `cartStore` (rendimiento)
+- [x] Agregar/quitar/cambiar cantidad/personalizar ítems; persiste en localStorage y sobrevive a refresh, cierre de navegador y logout/login (CE-14) — página `/carrito` y contador en la navegación (C-18)
+- [x] Suscripción por slice a `cartStore` (rendimiento): `ContadorCarrito` y la barra superior se suscriben solo a `selectTotalItems`
 
 ### US-016 — Personalizar producto
 **Como** cliente **Quiero** excluir ingredientes removibles **Para** adaptar mi plato.
-- [ ] `personalizacion` = IDs de ingredientes removidos; se guarda también el nombre en snapshot
+- [x] `personalizacion` = IDs de ingredientes removidos; se guarda también el nombre en snapshot (`personalizacionNombres`, C-18; casillas «Sin X» en el detalle del producto)
 
 ### US-017 — Crear pedido (checkout)
 - [ ] Seleccionar dirección (o retiro en local) y forma de pago; el pedido se crea en PENDIENTE en una sola transacción con snapshots e historial inicial

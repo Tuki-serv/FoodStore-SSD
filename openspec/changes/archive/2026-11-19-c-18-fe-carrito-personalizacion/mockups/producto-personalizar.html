@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-18 - Personalizar producto (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<style>
+/* En mobile el toast sube para no tapar la barra de compra fija (~80 px). */
+@media (max-width:719.98px){.toasts{bottom:calc(var(--space-4) + 84px)}}
+</style>
+</head>
+<body data-roles="CLIENT" data-current="catalogo">
+<script>
+/* Sin parámetro: detalle con «Cebolla» marcada y 2 unidades. ?estado=agregado: tras pulsar «Agregar al carrito» (1 unidad); las casillas se mantienen (OQ-6) y el contador sube. */
+(function () {
+  var agregado = new URLSearchParams(location.search).get('estado') === 'agregado';
+  window.CFG = { pageClass: 'page-wide has-buy-bar', buyBar: true, count: agregado ? 3 : 2,
+    banner: 'Mockup C-18 · Detalle con «Personalizá tu pedido» · ' + (agregado ? 'toast «Agregado al carrito» (casillas se mantienen)' : 'una casilla marcada, 2 unidades') + ' · CLIENT · Revision 2 · pendiente de aprobación · foto (TBD)' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="carrito.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, agregado = M.estado === 'agregado';
+  var cant = agregado ? 1 : 2, unit = 1500;
+  /* [nombre, alérgeno, removible, marcada] */
+  var ingr = [['Pan Brioche', 1, 0, 0], ['Carne Vacuna 250g', 0, 0, 0], ['Queso Cheddar', 1, 1, 0], ['Cebolla', 0, 1, 1], ['Lechuga', 0, 1, 0], ['Tomate', 0, 1, 0], ['Mayonesa', 0, 1, 0]];
+  var rem = ingr.filter(function (i) { return i[2]; });
+  var alerg = ingr.filter(function (i) { return i[1]; }).map(function (i) { return i[0]; });
+
+  var compra = '<div class="qty" role="group" aria-label="Cantidad"><button type="button" aria-label="Restar una unidad"' + (cant === 1 ? ' disabled' : '') + '>' + ico('i-menos') + '</button><output aria-live="polite">' + cant + '</output>' +
+    '<button type="button" aria-label="Sumar una unidad">' + ico('i-mas') + '</button></div>' +
+    '<button class="btn btn-primary" type="button" aria-label="Agregar Hamburguesa Clásica al carrito">' + ico('i-carrito') + 'Agregar al carrito</button>';
+
+  var personalizar = '<fieldset class="custom"><legend>Personalizá tu pedido</legend>' +
+    '<p class="hint">Marcá lo que querés sacar. Si no marcás nada, va tal cual.</p>' +
+    '<div class="opts-grid">' + rem.map(function (i, k) {
+      return '<label class="opt' + (i[3] ? ' is-checked' : '') + '"><input type="checkbox"' + (i[3] ? ' checked' : '') + '>' +
+        '<span class="lbl">Sin ' + i[0] + (i[1] ? ' <span class="badge b-pendiente">Alérgeno</span>' : '') + '</span></label>';
+    }).join('') + '</div></fieldset>';
+
+  M.llenar('contenido',
+    '<a class="back-link" href="catalogo.html">' + ico('i-volver') + 'Volver al catálogo</a>' +
+    '<article class="pd">' +
+    '<div class="pd-media"><div class="ph" role="img" aria-label="Hamburguesa Clásica (foto TBD)">' + ico('i-plato') + '</div></div>' +
+    '<div class="pd-info">' +
+      '<div class="pd-cats"><a href="catalogo.html" class="is-main">Hamburguesas</a></div>' +
+      '<h1>Hamburguesa Clásica</h1>' +
+      '<div class="pd-price"><span class="price">$ 1.500</span><span class="badge b-pendiente">Quedan 3</span></div>' +
+      '<p class="pd-desc">La de siempre, perfecta de siempre. Medallón de carne vacuna, cheddar fundido y vegetales frescos en pan brioche.</p>' +
+      personalizar +
+      '<div class="buy inline">' + compra + '</div>' +
+      '<div class="allergen-note" role="note">' + ico('i-alerta') + '<div>Contiene alérgenos<p>' + alerg.join(', ') + '</p></div></div>' +
+      '<section class="ingr" aria-labelledby="ingr-t"><h2 id="ingr-t">Ingredientes</h2><ul>' +
+        ingr.map(function (i) { return '<li' + (i[1] ? ' class="is-allergen"' : '') + '>' + i[0] + (i[1] ? ' <span class="badge b-pendiente">Alérgeno</span>' : '') + '</li>'; }).join('') +
+      '</ul></section>' +
+    '</div></article>');
+  M.llenar('buy-bar', compra);
+  if (agregado) M.toast('success', 'Agregado al carrito', '1 × Hamburguesa Clásica, sin cebolla');
+})();
+</script>
+</body>
+</html>

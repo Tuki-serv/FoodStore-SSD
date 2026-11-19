@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { alergenos, estadoStock, ImagenProducto, imagenPrincipal, MarcaStock, Precio, type Producto } from '@/entities/producto';
-import { BotonAgregarAlCarrito } from '@/features/agregar-al-carrito';
+import {
+  alergenos,
+  estadoStock,
+  ImagenProducto,
+  imagenPrincipal,
+  ingredientesRemovibles,
+  MarcaStock,
+  Precio,
+  type Producto,
+} from '@/entities/producto';
+import { BotonAgregarAlCarrito, SelectorPersonalizacion } from '@/features/agregar-al-carrito';
 import { RUTAS } from '@/shared/config';
 import { useMediaQuery } from '@/shared/lib';
-import { Icon } from '@/shared/ui';
-import { SelectorCantidad } from './selector-cantidad';
+import { Icon, SelectorCantidad } from '@/shared/ui';
 
 /** Mobile: la compra va en una barra fija abajo; desde este ancho, en un bloque junto a la información. */
 const CONSULTA_MOBILE = '(max-width: 719.98px)';
@@ -17,14 +25,23 @@ const categoriasOrdenadas = (producto: Producto) => [...producto.categorias].sor
 export function DetalleProducto({ producto }: { producto: Producto }) {
   const esMobile = useMediaQuery(CONSULTA_MOBILE);
   const [cantidad, setCantidad] = useState(1);
+  const [excluidos, setExcluidos] = useState<ReadonlySet<number>>(new Set());
   const agotado = estadoStock(producto.stock_cantidad) === 'agotado';
   const conAlergenos = alergenos(producto);
+  const removibles = ingredientesRemovibles(producto);
+  const alternar = (id: number): void =>
+    setExcluidos((actuales) => {
+      const siguientes = new Set(actuales);
+      if (!siguientes.delete(id)) siguientes.add(id);
+      return siguientes;
+    });
+  const elegidos = removibles.filter((ingrediente) => excluidos.has(ingrediente.id)).map(({ id, nombre }) => ({ id, nombre }));
 
   // Se monta una sola vez según el ancho: dos botones «Agregar» en el DOM dejarían nombres accesibles repetidos.
   const compra = (
     <>
       {agotado ? null : <SelectorCantidad valor={cantidad} max={producto.stock_cantidad} onCambiar={setCantidad} />}
-      <BotonAgregarAlCarrito producto={producto} cantidad={cantidad} variante="detalle" />
+      <BotonAgregarAlCarrito producto={producto} cantidad={cantidad} variante="detalle" excluidos={elegidos} />
     </>
   );
 
@@ -50,6 +67,9 @@ export function DetalleProducto({ producto }: { producto: Producto }) {
             <MarcaStock stock={producto.stock_cantidad} />
           </div>
           {producto.descripcion === null ? null : <p className="pd-desc">{producto.descripcion}</p>}
+          {agotado || removibles.length === 0 ? null : (
+            <SelectorPersonalizacion ingredientes={removibles} excluidos={excluidos} onAlternar={alternar} />
+          )}
           {esMobile ? null : <div className="buy">{compra}</div>}
           {conAlergenos.length === 0 ? null : (
             <div className="allergen-note" role="note">

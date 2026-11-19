@@ -56,6 +56,11 @@ export function alergenos(producto: Pick<Producto, 'ingredientes'>): Ingrediente
   return producto.ingredientes.filter((ingrediente) => ingrediente.es_alergeno);
 }
 
+/** Ingredientes que la persona puede quitar (`es_removible`), en el orden del servidor. */
+export function ingredientesRemovibles(producto: Pick<Producto, 'ingredientes'>): IngredienteProducto[] {
+  return producto.ingredientes.filter((ingrediente) => ingrediente.es_removible);
+}
+
 /** La categoría `es_principal`; si ninguna lo es, la primera; sin categorías, `null`. */
 export function categoriaPrincipal(producto: Pick<Producto, 'categorias'>): CategoriaDeProducto | null {
   return producto.categorias.find((categoria) => categoria.es_principal) ?? producto.categorias[0] ?? null;
