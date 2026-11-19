@@ -578,7 +578,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/05_reglas_de_negocio.md` §Pagos
 
 ### [C-20b] `fe-pago-seguimiento`
-- **Estado**: `[x]` cerrado (2026-11-19). Verify: tests y visual passed (seguimiento del pendiente, tope de 2 min, recarga y línea de pago en la confirmación). **Pendiente**: prueba del webhook con ngrok (tarea 6.1 diferida por el usuario) y mostrar el N.º de operación tras recargar (`GET /pagos/{pedido_id}` no devuelve `mp_payment_id`; requiere cambio de backend). Archivado en `openspec/changes/archive/2026-11-19-c-20b-fe-pago-seguimiento/`.
+- **Estado**: `[x]` cerrado (2026-11-19). Verify: tests y visual passed (seguimiento del pendiente, tope de 2 min, recarga y línea de pago en la confirmación). Webhook con ngrok probado en sandbox el 2026-11-19 (tarea 6.1: FUND y APRO reciben webhook firmado con 200; CONT queda en proceso sin webhook). **Pendiente**: mostrar el N.º de operación tras recargar (`GET /pagos/{pedido_id}` no devuelve `mp_payment_id`; requiere cambio de backend). Archivado en `openspec/changes/archive/2026-11-19-c-20b-fe-pago-seguimiento/`.
 - **Scope**:
   - US-025 reflejo de la confirmación por webhook: polling de `GET /pagos/{pedido_id}` mientras el pago está pendiente (5 s durante 2 min por defecto, OQ-2) con «La confirmación está demorando» + «Actualizar» al pasar el tope.
   - Reconstrucción de la vista de pago al recargar a partir del último intento en el servidor.
