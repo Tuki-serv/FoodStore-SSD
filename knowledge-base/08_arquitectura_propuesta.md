@@ -130,7 +130,7 @@ Comandos de frontend: se corren desde `frontend/` (`npm install`, `npm run dev`,
 | Store | Estado | Persistencia |
 |-------|--------|--------------|
 | `authStore` | accessToken, usuario, estado (`verificando`/`autenticada`/`anonima`), motivo | **Sin `persist`**: el access vive en memoria (DD-27); la cookie HttpOnly del refresh rehidrata la sesión al recargar. `[INT]` pedía `partialize` del `accessToken`: desvío decidido en DD-27. No leer el token a mano fuera del store |
-| `cartStore` | líneas (producto + personalización + cantidad); `selectTotalItems/selectTotalPrecio/selectLinea` | `persist` `foodstore.cart` (líneas completas, v1; datos corruptos → carrito vacío). Sobrevive al logout (CE-14) |
+| `cartStore` | líneas (producto + personalización + cantidad); `selectTotalItems/selectTotalPrecio/selectLinea` | `persist` `foodstore.cart` (líneas completas, v2: cada línea guarda `personalizacion` (ids) y `personalizacionNombres` (snapshot); `migrate` desde v1 agrega `personalizacionNombres: []`; datos corruptos o de versión desconocida → carrito vacío). `subtotalLinea` y `textoPersonalizacion` son helpers puros del slice (C-18). Sobrevive al logout (CE-14) |
 | `paymentStore` | estado del checkout/pago MP, `mpPaymentId`, errores | Ninguna (se resetea al recargar) |
 | `uiStore` | cartOpen, sidebarOpen (drawer mobile), sidebarCollapsed (desktop, solo íconos), confirmModal, toasts | `persist` + `partialize`: solo `sidebarCollapsed`; el resto no se persiste. Vive en `src/shared/model/ui-store.ts` (clave `foodstore.ui`, v1); desde C-13b incluye `cartOpen`, `toasts` y `confirmModal` (estado y acciones; los dibuja el change que los use). El tema no existe: el design system Revision 2 no define tema oscuro |
 

@@ -143,7 +143,7 @@ describe('página Detalle: stock y cantidad', () => {
     await usuario.click(screen.getByRole('button', { name: 'Agregar Burger Doble Cheddar al carrito' }));
 
     expect(useCartStore.getState().lineas).toEqual([
-      { productoId: 7, nombre: 'Burger Doble Cheddar', precioUnitario: '2300.00', imagenUrl: null, cantidad: 3, personalizacion: [] },
+      { productoId: 7, nombre: 'Burger Doble Cheddar', precioUnitario: '2300.00', imagenUrl: null, cantidad: 3, personalizacion: [], personalizacionNombres: [] },
     ]);
     expect(await screen.findByText('Agregado al carrito')).toBeInTheDocument();
     expect(screen.getByText('3 × Burger Doble Cheddar')).toBeInTheDocument();
@@ -225,5 +225,7 @@ describe('integración catálogo → carrito', () => {
 
     expect(await screen.findByText('Agregado al carrito')).toBeInTheDocument();
     expect(useCartStore.getState().lineas.map((linea) => [linea.productoId, linea.cantidad])).toEqual([[1, 1]]);
+    expect(useCartStore.getState().lineas[0]?.personalizacion).toEqual([]);
+    expect(useCartStore.getState().lineas[0]?.personalizacionNombres).toEqual([]);
   });
 });

@@ -133,6 +133,14 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - **Ingredientes en la URL**: `alergeno` (`si`/`no`) y `page` (20 por página); cambiar el filtro vuelve a la página 1.
 - **Unidad del ingrediente (C-17b)**: `Ingrediente.unidad_medida_id` es obligatorio en el frontend (la fila siempre muestra la unidad y la edición preelige la actual). Requiere que el backend de C-17b la exponga (`IngredienteRead.unidad_medida_id`, `PATCH` que la acepte).
 
+## Carrito y personalización (C-18)
+
+- **Página `/carrito`** (`src/pages/carrito/`: `CarritoPage`, `EntradaCarrito`, `ResumenCarrito`, `CarritoVacio`, `carrito.css`): solo con sesión; sin pedir nada al servidor (el carrito es estado de cliente). Cantidades con tope 99 por línea en la UI, «Quitar» sin confirmación (toast «Quitado del carrito»), «Vaciar carrito» con el diálogo global. **Sin botón de checkout** hasta C-19.
+- **Personalización**: `SelectorPersonalizacion` (`src/features/agregar-al-carrito/`) en el detalle del producto, una casilla «Sin X» por ingrediente removible (`ingredientesRemovibles` de `entities/producto`). Las casillas se mantienen tras agregar.
+- **Store**: `LineaCarrito.personalizacionNombres` (snapshot de nombres) y `agregar(producto, cantidad, excluidos: {id, nombre}[])`; persistencia v2 con `migrate` desde v1. Helpers puros: `subtotalLinea`, `textoPersonalizacion`.
+- **Contador**: `ContadorCarrito` (`entities/cart/ui`) en el ítem «Carrito» del panel y en el botón de la barra superior mobile (solo con sesión); cuenta unidades.
+- **Compartido**: `SelectorCantidad` ahora vive en `src/shared/ui/selector-cantidad/` (etiquetas parametrizables).
+
 ## Productos y stock (C-17b)
 
 - **Slices**: `src/pages/admin-productos/` (`ui/`: página, filtros, lista, fila con stock e interruptor, formulario, secciones de categorías e ingredientes, diálogo de baja; `model/`: permisos por rol, validación, diff de edición, filtros de URL) y, en `src/entities/producto/api/`, `producto-gestion-api.ts`, `productoGestionQueries` y `producto-mutations.ts`.

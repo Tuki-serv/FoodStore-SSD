@@ -16,7 +16,7 @@ describe('BotonAgregarAlCarrito con sesión', () => {
     await usuario.click(screen.getByRole('button', { name: 'Agregar Hamburguesa Clásica al carrito' }));
 
     expect(useCartStore.getState().lineas).toEqual([
-      { productoId: 1, nombre: 'Hamburguesa Clásica', precioUnitario: '1500.00', imagenUrl: null, cantidad: 1, personalizacion: [] },
+      { productoId: 1, nombre: 'Hamburguesa Clásica', precioUnitario: '1500.00', imagenUrl: null, cantidad: 1, personalizacion: [], personalizacionNombres: [] },
     ]);
     expect(screen.getByText('Agregado al carrito')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('1 × Hamburguesa Clásica');

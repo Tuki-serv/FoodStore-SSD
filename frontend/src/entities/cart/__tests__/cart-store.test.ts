@@ -5,6 +5,7 @@ import {
   selectLinea,
   selectTotalItems,
   selectTotalPrecio,
+  subtotalLinea,
   useCartStore,
   type ProductoParaCarrito,
 } from '..';
@@ -15,21 +16,54 @@ const gaseosa: ProductoParaCarrito = { productoId: 9, nombre: 'Gaseosa', precioU
 const carrito = () => useCartStore.getState();
 const guardado = (): string | null => window.localStorage.getItem(CLAVE_CART_STORAGE);
 
+const cebolla = { id: 1, nombre: 'Cebolla' };
+const tomate = { id: 3, nombre: 'Tomate' };
+
 describe('agregar al carrito', () => {
   beforeEach(() => {
     carrito().reset();
   });
 
-  it('mismo producto y personalización (sin importar el orden) suma cantidades en una sola línea', () => {
-    carrito().agregar(hamburguesa, 1, [3, 1]);
-    carrito().agregar(hamburguesa, 2, [1, 3]);
+  it('guarda los ids excluidos ordenados y sus nombres en el mismo orden', () => {
+    carrito().agregar(hamburguesa, 1, [tomate, cebolla]);
+
+    expect(carrito().lineas[0]?.personalizacion).toEqual([1, 3]);
+    expect(carrito().lineas[0]?.personalizacionNombres).toEqual(['Cebolla', 'Tomate']);
+  });
+
+  it('ids repetidos se deduplican', () => {
+    carrito().agregar(hamburguesa, 1, [cebolla, { id: 1, nombre: 'Cebolla' }, tomate]);
+
+    expect(carrito().lineas[0]?.personalizacion).toEqual([1, 3]);
+    expect(carrito().lineas[0]?.personalizacionNombres).toEqual(['Cebolla', 'Tomate']);
+  });
+
+  it('sumar a una línea existente con otro nombre conserva el original', () => {
+    carrito().agregar(hamburguesa, 1, [cebolla]);
+    carrito().agregar(hamburguesa, 1, [{ id: 1, nombre: 'Cebolla morada' }]);
 
     expect(carrito().lineas).toHaveLength(1);
-    expect(carrito().lineas[0]).toEqual({ ...hamburguesa, cantidad: 3, personalizacion: [1, 3] });
+    expect(carrito().lineas[0]?.cantidad).toBe(2);
+    expect(carrito().lineas[0]?.personalizacionNombres).toEqual(['Cebolla']);
+  });
+
+  it('sin excluidos ambos arreglos quedan vacíos', () => {
+    carrito().agregar(hamburguesa, 1);
+
+    expect(carrito().lineas[0]?.personalizacion).toEqual([]);
+    expect(carrito().lineas[0]?.personalizacionNombres).toEqual([]);
+  });
+
+  it('mismo producto y personalización (sin importar el orden) suma cantidades en una sola línea', () => {
+    carrito().agregar(hamburguesa, 1, [tomate, cebolla]);
+    carrito().agregar(hamburguesa, 2, [cebolla, tomate]);
+
+    expect(carrito().lineas).toHaveLength(1);
+    expect(carrito().lineas[0]).toEqual({ ...hamburguesa, cantidad: 3, personalizacion: [1, 3], personalizacionNombres: ['Cebolla', 'Tomate'] });
   });
 
   it('otra personalización crea otra línea', () => {
-    carrito().agregar(hamburguesa, 1, [1]);
+    carrito().agregar(hamburguesa, 1, [cebolla]);
     carrito().agregar(hamburguesa, 1);
 
     expect(carrito().lineas.map((linea) => [linea.productoId, linea.personalizacion])).toEqual([
@@ -140,10 +174,72 @@ describe('totales', () => {
   });
 
   it('selectLinea devuelve la línea por su clave', () => {
-    carrito().agregar(hamburguesa, 2, [4]);
+    carrito().agregar(hamburguesa, 2, [{ id: 4, nombre: 'Pepino' }]);
 
     expect(selectLinea(claveLinea(7, [4]))(carrito())?.cantidad).toBe(2);
     expect(selectLinea('7:')(carrito())).toBeUndefined();
+  });
+});
+
+describe('subtotalLinea', () => {
+  it.each([
+    ['0.10', 3, '0.30'],
+    ['1500.00', 2, '3000.00'],
+    ['1250.50', 1, '1250.50'],
+  ])('%s × %i = %s', (precioUnitario, cantidad, esperado) => {
+    expect(subtotalLinea({ precioUnitario, cantidad })).toBe(esperado);
+  });
+});
+
+describe('persistencia v2', () => {
+  beforeEach(() => {
+    carrito().reset();
+  });
+
+  const lineaV1 = { ...hamburguesa, personalizacion: [1], cantidad: 2 };
+  const rehidratar = async (contenido: unknown): Promise<void> => {
+    window.localStorage.setItem(CLAVE_CART_STORAGE, JSON.stringify(contenido));
+    await useCartStore.persist.rehydrate();
+  };
+
+  it('una línea guardada en v1 se conserva con personalizacionNombres vacío', async () => {
+    await rehidratar({ state: { lineas: [lineaV1] }, version: 1 });
+
+    expect(carrito().lineas).toEqual([{ ...lineaV1, personalizacionNombres: [] }]);
+  });
+
+  it('una línea v1 sin personalización también migra', async () => {
+    await rehidratar({ state: { lineas: [{ ...hamburguesa, personalizacion: [], cantidad: 1 }] }, version: 1 });
+
+    expect(carrito().lineas).toEqual([{ ...hamburguesa, personalizacion: [], cantidad: 1, personalizacionNombres: [] }]);
+  });
+
+  it('un v2 válido se recupera igual', async () => {
+    const linea = { ...lineaV1, personalizacion: [1, 3], personalizacionNombres: ['Cebolla', 'Tomate'] };
+    await rehidratar({ state: { lineas: [linea] }, version: 2 });
+
+    expect(carrito().lineas).toEqual([linea]);
+  });
+
+  it('2 ids y 3 nombres dejan el carrito vacío', async () => {
+    await rehidratar({
+      state: { lineas: [{ ...lineaV1, personalizacion: [1, 3], personalizacionNombres: ['a', 'b', 'c'] }] },
+      version: 2,
+    });
+
+    expect(carrito().lineas).toEqual([]);
+  });
+
+  it('nombres que no son strings dejan el carrito vacío', async () => {
+    await rehidratar({ state: { lineas: [{ ...lineaV1, personalizacionNombres: [5] }] }, version: 2 });
+
+    expect(carrito().lineas).toEqual([]);
+  });
+
+  it('una versión desconocida (99) deja el carrito vacío', async () => {
+    await rehidratar({ state: { lineas: [{ ...lineaV1, personalizacionNombres: ['Cebolla'] }] }, version: 99 });
+
+    expect(carrito().lineas).toEqual([]);
   });
 });
 
@@ -161,7 +257,7 @@ describe('persistencia', () => {
     window.localStorage.setItem(CLAVE_CART_STORAGE, copia ?? '');
     await useCartStore.persist.rehydrate();
 
-    expect(carrito().lineas).toEqual([{ ...hamburguesa, cantidad: 2, personalizacion: [] }]);
+    expect(carrito().lineas).toEqual([{ ...hamburguesa, cantidad: 2, personalizacion: [], personalizacionNombres: [] }]);
   });
 
   it('una entrada guardada que no es JSON válido deja el carrito vacío sin lanzar', async () => {
@@ -173,9 +269,9 @@ describe('persistencia', () => {
   });
 
   it.each([
-    ['líneas con la forma equivocada', { state: { lineas: [{ productoId: 'siete', cantidad: 2 }] }, version: 1 }],
-    ['cantidad no entera', { state: { lineas: [{ ...hamburguesa, cantidad: 1.5, personalizacion: [] }] }, version: 1 }],
-    ['lineas que no es una lista', { state: { lineas: 'x' }, version: 1 }],
+    ['líneas con la forma equivocada', { state: { lineas: [{ productoId: 'siete', cantidad: 2 }] }, version: 2 }],
+    ['cantidad no entera', { state: { lineas: [{ ...hamburguesa, cantidad: 1.5, personalizacion: [], personalizacionNombres: [] }] }, version: 2 }],
+    ['lineas que no es una lista', { state: { lineas: 'x' }, version: 2 }],
   ])('datos guardados inválidos (%s) dejan el carrito vacío', async (_nombre, contenido) => {
     window.localStorage.setItem(CLAVE_CART_STORAGE, JSON.stringify(contenido));
 
@@ -200,7 +296,7 @@ describe('persistencia', () => {
       await useCartStore.persist.rehydrate();
       carrito().agregar(hamburguesa, 2);
 
-      expect(carrito().lineas).toEqual([{ ...hamburguesa, cantidad: 2, personalizacion: [] }]);
+      expect(carrito().lineas).toEqual([{ ...hamburguesa, cantidad: 2, personalizacion: [], personalizacionNombres: [] }]);
     });
   });
 

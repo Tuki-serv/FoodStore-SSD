@@ -13,3 +13,5 @@ export { AvisoDesactualizado, EsqueletoFilas, EstadoError, EstadoVacio } from '.
 export type { EsqueletoFilasProps, EstadoErrorProps, EstadoVacioProps } from './estados';
 export { DialogoBaja } from './dialogo-baja';
 export type { AvisoBaja, DialogoBajaProps } from './dialogo-baja';
+export { SelectorCantidad } from './selector-cantidad';
+export type { SelectorCantidadProps } from './selector-cantidad';

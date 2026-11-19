@@ -544,6 +544,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` flujo de checkout.
 - **Leer antes**:
+  - Punto de partida (C-18): la página `/carrito` (`src/pages/carrito/`) ya existe y **no tiene CTA de checkout**: C-19 agrega el botón y la ruta. Cada línea del carrito (`useCartStore`) trae `personalizacion` (ids, ordenados; es lo que se envía como `items[].personalizacion`) y `personalizacionNombres` (snapshot para mostrar); `subtotalLinea(linea)` y `selectTotalPrecio` dan importes en string decimal. Riesgo R4: el backend no valida que los ids de personalización sean ingredientes removibles del producto (deuda backend para C-19/C-25b). El carrito muestra el precio del momento de agregar; el backend cobra el vigente y suma `costo_envio`.
   - `knowledge-base/06_funcionalidades.md` US-017
   - `knowledge-base/07_flujos_principales.md` §Compra
   - `knowledge-base/05_reglas_de_negocio.md` RN-PE-06, RN-PE-09, RN-ST

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { productoDto } from '@/test/msw/catalogo';
-import { alergenos, aProductoParaCarrito, categoriaPrincipal, estadoStock, formatearPrecio, imagenPrincipal } from '../index';
+import {
+  alergenos,
+  aProductoParaCarrito,
+  categoriaPrincipal,
+  estadoStock,
+  formatearPrecio,
+  imagenPrincipal,
+  ingredientesRemovibles,
+} from '../index';
 
 describe('formatearPrecio', () => {
   it('«12000.00» se muestra «$ 12.000»', () => {
@@ -98,5 +106,32 @@ describe('aProductoParaCarrito', () => {
 
   it('sin imagen, imagenUrl es null', () => {
     expect(aProductoParaCarrito(productoDto({ id: 2, imagenes_url: null })).imagenUrl).toBeNull();
+  });
+});
+
+describe('ingredientesRemovibles', () => {
+  const ing = (id: number, nombre: string, es_removible: boolean, es_alergeno = false) => ({
+    id,
+    nombre,
+    es_alergeno,
+    es_removible,
+    cantidad: '1.000',
+    unidad_medida_id: 1,
+  });
+
+  it('devuelve solo los removibles, en el orden del servidor', () => {
+    const producto = productoDto({ id: 1, ingredientes: [ing(1, 'Pan Brioche', false), ing(2, 'Cebolla', true), ing(3, 'Tomate', true)] });
+
+    expect(ingredientesRemovibles(producto).map((i) => i.nombre)).toEqual(['Cebolla', 'Tomate']);
+  });
+
+  it('sin ingredientes devuelve una lista vacía', () => {
+    expect(ingredientesRemovibles(productoDto({ id: 1, ingredientes: [] }))).toEqual([]);
+  });
+
+  it('un alérgeno removible se incluye', () => {
+    const producto = productoDto({ id: 1, ingredientes: [ing(4, 'Queso', true, true), ing(5, 'Pan', false, true)] });
+
+    expect(ingredientesRemovibles(producto).map((i) => i.nombre)).toEqual(['Queso']);
   });
 });

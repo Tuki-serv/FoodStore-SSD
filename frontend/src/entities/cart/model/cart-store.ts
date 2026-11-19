@@ -11,6 +11,14 @@ export interface LineaCarrito {
   cantidad: number;
   /** Ids de ingredientes excluidos, ordenados y sin repetir. */
   personalizacion: number[];
+  /** Nombres de los excluidos (snapshot al agregar), en el mismo orden que `personalizacion`; vacío en líneas migradas de v1. */
+  personalizacionNombres: string[];
+}
+
+/** Ingrediente que la persona quitó de un producto al agregarlo. */
+export interface IngredienteExcluido {
+  id: number;
+  nombre: string;
 }
 
 export type ProductoParaCarrito = Pick<LineaCarrito, 'productoId' | 'nombre' | 'precioUnitario' | 'imagenUrl'>;
@@ -19,7 +27,7 @@ export type ProductoParaCarrito = Pick<LineaCarrito, 'productoId' | 'nombre' | '
 export interface CartState {
   lineas: LineaCarrito[];
   /** Suma `cantidad` unidades; mismo producto y misma personalización (sin importar el orden) comparten línea. */
-  agregar: (producto: ProductoParaCarrito, cantidad?: number, personalizacion?: readonly number[]) => void;
+  agregar: (producto: ProductoParaCarrito, cantidad?: number, excluidos?: readonly IngredienteExcluido[]) => void;
   /** Cantidad entera >= 1; 0 o menos quita la línea; una no entera se rechaza sin cambios. */
   fijarCantidad: (clave: string, cantidad: number) => void;
   quitar: (clave: string) => void;
@@ -30,6 +38,13 @@ export interface CartState {
 export const CLAVE_CART_STORAGE = 'foodstore.cart';
 
 const REGEX_DECIMAL = /^(\d+)(?:\.(\d{1,2}))?$/;
+
+/** Excluidos sin repetir por id y ordenados por id. */
+function normalizarExcluidos(excluidos: readonly IngredienteExcluido[]): IngredienteExcluido[] {
+  const porId = new Map<number, IngredienteExcluido>();
+  for (const excluido of excluidos) if (!porId.has(excluido.id)) porId.set(excluido.id, excluido);
+  return [...porId.values()].sort((a, b) => a.id - b.id);
+}
 
 const normalizarPersonalizacion = (ids: readonly number[]): number[] => [...new Set(ids)].sort((a, b) => a - b);
 
@@ -61,22 +76,33 @@ function esLineaValida(valor: unknown): valor is LineaCarrito {
     typeof linea.cantidad === 'number' &&
     esEnteroPositivo(linea.cantidad) &&
     Array.isArray(linea.personalizacion) &&
-    linea.personalizacion.every((id) => Number.isInteger(id))
+    linea.personalizacion.every((id) => Number.isInteger(id)) &&
+    Array.isArray(linea.personalizacionNombres) &&
+    linea.personalizacionNombres.every((nombre) => typeof nombre === 'string') &&
+    (linea.personalizacionNombres.length === 0 || linea.personalizacionNombres.length === linea.personalizacion.length)
   );
+}
+
+/** v1 no guardaba los nombres de los excluidos: cada línea recibe `personalizacionNombres: []`. */
+function migrarDeV1(guardado: unknown): unknown {
+  const lineas = (guardado as { lineas?: unknown } | undefined)?.lineas;
+  if (!Array.isArray(lineas)) return guardado;
+  return { ...(guardado as object), lineas: lineas.map((linea) => (typeof linea === 'object' && linea !== null ? { personalizacionNombres: [], ...linea } : linea)) };
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       lineas: [],
-      agregar: (producto, cantidad = 1, personalizacion = []) => {
+      agregar: (producto, cantidad = 1, excluidos = []) => {
         if (!esEnteroPositivo(cantidad) || aCentavos(producto.precioUnitario) === null) return;
-        const ids = normalizarPersonalizacion(personalizacion);
+        const normalizados = normalizarExcluidos(excluidos);
+        const ids = normalizados.map((excluido) => excluido.id);
         const clave = claveLinea(producto.productoId, ids);
         set(({ lineas }) =>
           lineas.some((linea) => claveDe(linea) === clave)
             ? { lineas: lineas.map((linea) => (claveDe(linea) === clave ? { ...linea, cantidad: linea.cantidad + cantidad } : linea)) }
-            : { lineas: [...lineas, { ...producto, cantidad, personalizacion: ids }] },
+            : { lineas: [...lineas, { ...producto, cantidad, personalizacion: ids, personalizacionNombres: normalizados.map((excluido) => excluido.nombre) }] },
         );
       },
       fijarCantidad: (clave, cantidad) => {
@@ -97,7 +123,9 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: CLAVE_CART_STORAGE,
-      version: 1,
+      version: 2,
+      // Solo v1 sabe migrarse; cualquier otra versión distinta de la actual se descarta (carrito vacío).
+      migrate: (guardado, version) => (version === 1 ? migrarDeV1(guardado) : { lineas: [] }) as CartState,
       storage: createJSONStorage(() => almacenamientoSeguro),
       partialize: ({ lineas }) => ({ lineas }),
       // Datos guardados con otra forma (o a mano) se descartan enteros: el carrito arranca vacío.
@@ -109,13 +137,20 @@ export const useCartStore = create<CartState>()(
   ),
 );
 
+/** Importe de la línea (`precioUnitario × cantidad`) con dos decimales, en centavos enteros. */
+export function subtotalLinea(linea: Pick<LineaCarrito, 'precioUnitario' | 'cantidad'>): string {
+  return formatearCentavos((aCentavos(linea.precioUnitario) ?? 0) * linea.cantidad);
+}
+
+const formatearCentavos = (centavos: number): string => `${Math.floor(centavos / 100)}.${String(centavos % 100).padStart(2, '0')}`;
+
 export const selectLineas = (estado: CartState): LineaCarrito[] => estado.lineas;
 export const selectTotalItems = (estado: CartState): number => estado.lineas.reduce((total, linea) => total + linea.cantidad, 0);
 
 /** Importe total con dos decimales, sumado en centavos enteros (sin `parseFloat` acumulado). */
 export const selectTotalPrecio = (estado: CartState): string => {
   const centavos = estado.lineas.reduce((total, linea) => total + (aCentavos(linea.precioUnitario) ?? 0) * linea.cantidad, 0);
-  return `${Math.floor(centavos / 100)}.${String(centavos % 100).padStart(2, '0')}`;
+  return formatearCentavos(centavos);
 };
 
 export const selectLinea =
