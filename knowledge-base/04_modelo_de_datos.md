@@ -28,7 +28,7 @@ Ingrediente N──1 UnidadMedida ; Producto N──0..1 UnidadMedida (unidad_ve
 
 ### Dominio 1
 
-**Usuario** (`usuario`): `id` BIGSERIAL PK; `nombre` VARCHAR(80); `apellido` VARCHAR(80) `[INT]`; `email` VARCHAR(254) único (parcial por soft delete), validar `EmailStr`; `celular` VARCHAR(20) opcional (`telefono` en `[DESC]`); `password_hash` **CHAR(60)** (bcrypt cost >= 12, nunca plaintext); auditoría + `deleted_at`. Relaciones: roles N:M, sesiones 1:N (C-02), direcciones 1:N.
+**Usuario** (`usuario`): `id` BIGSERIAL PK; `nombre` VARCHAR(80); `apellido` VARCHAR(80) `[INT]`; `email` VARCHAR(254) único (parcial por soft delete), validar `EmailStr`, siempre normalizado (sin espacios al borde y en minúsculas; `CHECK ck_usuario_email_normalizado`, migración `005`); `celular` VARCHAR(20) opcional (`telefono` en `[DESC]`); `password_hash` **CHAR(60)** (bcrypt cost >= 12, nunca plaintext); auditoría + `deleted_at`. Relaciones: roles N:M, sesiones 1:N (C-02), direcciones 1:N.
 
 **Rol** (`rol`): PK semántica `codigo` VARCHAR(20) (`ADMIN|STOCK|PEDIDOS|CLIENT`); `nombre` único; `descripcion`. (`[DESC]` usa id numérico 1..4: IN-02.)
 

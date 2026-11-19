@@ -3,6 +3,7 @@
 @import "../layouts/app-shell/notificaciones.css";
 @import "../../shared/ui/dialogo/dialogo.css";
 @import "../../shared/ui/campo/campo.css";
+@import "../../shared/ui/tarjeta-auth/tarjeta-auth.css";
 @import "../../shared/ui/paginacion/paginacion.css";
 @import "../../shared/ui/selector-cantidad/selector-cantidad.css";
 @import "../../shared/ui/lista-admin/lista-admin.css";
@@ -11,6 +12,7 @@
 @import "../../entities/producto/ui/producto.css";
 @import "../../entities/pedido/ui/pedido.css";
 @import "../../pages/direcciones/ui/direcciones.css";
+@import "../../pages/mi-cuenta/ui/mi-cuenta.css";
 @import "../../pages/admin-categorias/ui/admin-categorias.css";
 @import "../../pages/admin-ingredientes/ui/admin-ingredientes.css";
 @import "../../pages/admin-productos/ui/admin-productos.css";

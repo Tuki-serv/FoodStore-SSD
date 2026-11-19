@@ -25,7 +25,7 @@ Las celdas marcadas `[DESC]` son divergencias informativas, no normativas. Leyen
 | Recurso | ADMIN | STOCK | PEDIDOS | CLIENT | Público |
 |---------|-------|-------|---------|--------|---------|
 | Usuarios (admin) | CRUD + asignar roles | — | — | — | — |
-| Perfil propio (`/usuarios/me`) | RU | RU | RU | RU | — |
+| Perfil propio (`GET /auth/me` + `PATCH /usuarios/me`) | RU | RU | RU | RU | — |
 | Direcciones | — (propias) | — | — | CRUD **propias** | — |
 | Categorías | CRUD | R | — | R | R |
 | Productos | CRUD | RU: `PATCH /{id}/stock` y `PATCH /{id}/disponibilidad` (sin crear, editar ni borrar) | — | R | R (solo `disponible` y no eliminados) |

@@ -157,3 +157,10 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - **URL**: `?q=&categoria=<id>&disponible=si|no&page=`; la búsqueda se aplica al enviar.
 - **Permisos**: `accionesProductos(roles)`; `STOCK` solo ve stock e interruptor (el servidor sigue siendo la autoridad).
 - **Tests**: `src/test/msw/admin-productos.ts` (estado en memoria, registro de pedidos) y `montarAdminProductos` en `src/test/render-admin.ts`.
+
+## Ingreso, registro y cuenta (C-14)
+
+- **Rutas**: `/ingresar` (`IngresarPage`), `/registrarse` (`RegistrarsePage`) y `/mi-cuenta` (`MiCuentaPage`, cualquier usuario con sesión), en `PAGINAS` de `src/app/router/routes.tsx`. Las dos primeras son rutas solo para visitantes: tras iniciar sesión, el guard lleva a la ruta recordada o a `/catalogo`.
+- **Sesión** (`src/entities/session/`): `useIniciarSesion` (login como formulario OAuth2 + `abrirSesion`), `useRegistrarse` (registro y login automático; si el login falla devuelve `cuentaCreadaSinSesion` y la pantalla lleva a `/ingresar` con el email precargado), `useActualizarPerfil` (`PATCH /usuarios/me`, conserva los roles de la sesión) y `useCerrarTodasLasSesiones` (`POST /auth/logout-all`, deja la sesión `anonima` responda lo que responda el backend). Las llamadas HTTP están en `src/shared/api/auth.ts`.
+- **Páginas** (`src/pages/ingresar|registrarse|mi-cuenta/`): TanStack Form, `model/` con validadores y mapeo de errores por `status`/`code`/`field` (nunca por el texto de `detail`); «Repetir contraseña» solo se valida en el navegador. El bloqueo por 429 deshabilita «Ingresar» según `Retry-After`. Compartido nuevo: `TarjetaAuth` (`shared/ui`), `NOMBRE_ROL`/`nombreDeRol` (`shared/config/roles.ts`), `esEmailValido` y validadores de nombre/celular (`shared/lib`).
+- **Tests**: `handlerLogin`, `handlerRegister`, `handlerPatchPerfil` y `handlerLogoutAll` en `src/test/msw/auth.ts` (registran cuerpo, tipo de contenido y `Authorization`).

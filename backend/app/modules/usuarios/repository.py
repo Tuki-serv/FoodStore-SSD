@@ -3,6 +3,7 @@ from sqlmodel import select, Session, func
 from sqlalchemy.orm import selectinload
 from app.modules.usuarios.models import Usuario, Rol
 from app.core.repository import BaseRepository
+from app.core.email_normalizado import normalizar_email
 from app.core.enums import EstadoFiltro
 
 class UsuarioRepository(BaseRepository[Usuario]):
@@ -10,7 +11,7 @@ class UsuarioRepository(BaseRepository[Usuario]):
         super().__init__(session, Usuario)
 
     def get_by_email(self, email: str, state: EstadoFiltro = EstadoFiltro.ACTIVO) -> Optional[Usuario]:
-        statement = select(Usuario).options(selectinload(Usuario.roles)).where(Usuario.email == email)
+        statement = select(Usuario).options(selectinload(Usuario.roles)).where(Usuario.email == normalizar_email(email))
         statement = self._filter_state(statement, state)
         return self.session.exec(statement).first()
     

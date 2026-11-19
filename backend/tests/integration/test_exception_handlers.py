@@ -57,7 +57,7 @@ class TestUnifiedErrorFormat:
         """
         Un endpoint protegido sin token → 401 con formato unificado.
         """
-        response = client.get("/api/v1/usuarios/me")
+        response = client.get("/api/v1/auth/me")
         assert response.status_code == 401
         data = response.json()
         assert "detail" in data

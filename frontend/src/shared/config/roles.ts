@@ -5,3 +5,16 @@ export type Rol = (typeof ROLES)[number];
 export function esRol(valor: string): valor is Rol {
   return ROLES.some((rol) => rol === valor);
 }
+
+/** Nombre visible de cada rol (la sesión solo guarda los códigos). */
+export const NOMBRE_ROL: Readonly<Record<Rol, string>> = {
+  ADMIN: 'Administrador',
+  STOCK: 'Gestor de stock',
+  PEDIDOS: 'Gestor de pedidos',
+  CLIENT: 'Cliente',
+};
+
+/** Nombre visible de un código de rol; si no se conoce, el propio código. */
+export function nombreDeRol(codigo: string): string {
+  return esRol(codigo) ? NOMBRE_ROL[codigo] : codigo;
+}

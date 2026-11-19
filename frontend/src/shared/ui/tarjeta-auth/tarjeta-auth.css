@@ -1,0 +1,23 @@
+/* Pantallas de acceso (ingreso y registro) y aviso de éxito: reglas aprobadas en los mockups de C-14 (design-system Revision 2). Solo tokens. */
+@layer components {
+  .auth-card{width:100%;max-width:440px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-5)}
+  .auth-card.is-wide{max-width:560px}
+  .auth-head{display:flex;flex-direction:column;gap:var(--space-2)}
+  .auth-head p{color:var(--color-text-muted);margin:0}
+  .auth-form{display:flex;flex-direction:column;gap:var(--space-4)}
+  .auth-form .btn-block{width:100%;min-height:48px;margin-top:var(--space-1)}
+  .auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+  .auth-foot{border-top:1px solid var(--color-border);padding-top:var(--space-4);text-align:center;font-size:var(--text-sm);color:var(--color-text-muted);margin:0}
+  .auth-foot a,.err a,.form-alert a{color:var(--color-primary-hover);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+  .ok-box{display:flex;gap:var(--space-3);align-items:flex-start;background:var(--color-success-bg);color:var(--color-success);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-weight:700}
+  .ok-box p{color:var(--color-text);font-weight:400;margin:0}
+  .ok-box .ico,.auth-form .notice .ico,.auth-form .form-alert .ico{width:20px;height:20px;margin-top:2px;flex:none}
+  .notice[role=alert]{border:1px solid var(--color-warning)}
+  .spinner-sm{width:18px;height:18px;border-radius:50%;border:2px solid var(--color-border);border-top-color:currentColor;animation:giro-spinner .9s linear infinite}
+  @keyframes giro-spinner{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spinner-sm{animation:none;border-right-color:currentColor}}
+  @media (max-width:719.98px){
+    .auth-card{padding:var(--space-5) var(--space-4);box-shadow:var(--shadow-sm)}
+    .auth-grid{grid-template-columns:1fr}
+  }
+}

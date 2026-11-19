@@ -12,8 +12,8 @@ export interface CampoProps {
   /** Agrega «(opcional)» a la etiqueta. */
   opcional?: boolean;
   ayuda?: string;
-  /** Mensaje de error ya decidido por quien usa el campo (por ejemplo, solo tras tocarlo). */
-  error?: string;
+  /** Mensaje de error ya decidido por quien usa el campo (por ejemplo, solo tras tocarlo); puede incluir un enlace. */
+  error?: ReactNode;
   /** Contador a la derecha de la etiqueta (por ejemplo, «12/100»); decorativo para lectores de pantalla. */
   contador?: string;
   /** Marca junto a la etiqueta (por ejemplo, «Alérgeno»); a diferencia del contador, la leen los lectores de pantalla. */

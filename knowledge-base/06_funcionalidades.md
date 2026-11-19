@@ -31,7 +31,7 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 **Reglas**: RN-AU-06
 
 ### US-005 — Gestión de perfil propio
-- [ ] `GET/PATCH /usuarios/me` sin poder modificar roles
+- [ ] `GET /auth/me` (lectura) + `PATCH /usuarios/me` (nombre, apellido, celular) sin poder modificar email ni roles; nombre y apellido obligatorios (422 si quedan vacíos o `null`). Frontend: `/mi-cuenta` (C-14)
 
 ## Épica 2: Direcciones de entrega
 
