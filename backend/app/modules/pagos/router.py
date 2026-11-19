@@ -5,7 +5,13 @@ from fastapi import APIRouter, Depends, Request, BackgroundTasks
 
 from app.modules.auth.dependencies import get_current_active_user, get_current_roles
 from app.modules.usuarios.schemas import UserPublic
-from app.modules.pagos.schemas import CrearPagoRequest, NotificacionWebhook, PagoCrearResponse, PagoEstadoResponse
+from app.modules.pagos.schemas import (
+    ConfiguracionPagosResponse,
+    CrearPagoRequest,
+    NotificacionWebhook,
+    PagoCrearResponse,
+    PagoEstadoResponse,
+)
 from app.modules.pagos.dependencies import PaymentServiceDep
 from app.modules.pedidos.schemas import PedidoDetalle
 from app.core.websocket import manager
@@ -86,7 +92,14 @@ async def webhook(
     return result
 
 
-# 3. Endpoint para consultar el estado (El Mostrador de Consultas)
+# 3. Configuración pública para el brick (declarada ANTES de `/{pedido_id}`: `config` no es un id de pedido)
+@router.get("/config", response_model=ConfiguracionPagosResponse)
+def configuracion_publica(current_user: CurrentUser, svc: PaymentServiceDep):
+    """Clave pública de MercadoPago para inicializar `CardPayment`. Usuario activo, sin restricción de rol; 503 sin clave."""
+    return svc.obtener_configuracion_publica()
+
+
+# 4. Endpoint para consultar el estado (El Mostrador de Consultas)
 @router.get("/{pedido_id}", response_model=PagoEstadoResponse)
 def consultar_pago(
     pedido_id: int,

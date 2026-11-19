@@ -17,7 +17,7 @@
 - `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 2 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
 - `[PENDIENTE DE DECISIÓN: PA-xx]` = el orden o scope puede cambiar según una pregunta abierta que sigue abierta (hoy PA-08, PA-14); **no bloquea** el roadmap (se implementa con el supuesto indicado y se ajusta).
 - `[OPCIONAL/BLOQUEADO]` = Fase 2; no iniciar hasta resolver la parte abierta de PA-07 (COCINA/KDS) y PA-19.
-- Los sufijos `a`/`b` (`C-13a`, `C-13b`, `C-16a`, `C-16b`, `C-17a`, `C-17b`, `C-25a`, `C-25b`) parten un change en dos sin renumerar el resto.
+- Los sufijos `a`/`b` (`C-13a`, `C-13b`, `C-16a`, `C-16b`, `C-17a`, `C-17b`, `C-20a`, `C-20b`, `C-25a`, `C-25b`) parten un change en dos sin renumerar el resto.
 
 ---
 
@@ -56,7 +56,8 @@ C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        ├── C-16b ✓ fe-catalogo-publico (+C-16a)
        │     └── C-18 ✓ fe-carrito-personalizacion
        │           └── C-19 ✓ fe-checkout-pedido (+C-10, C-11, C-15)
-       │                 ├── C-20 fe-pago-mercadopago (+C-12)
+       │                 ├── C-20a ✓ fe-pago-tarjeta (+C-12)
+       │                 │     └── C-20b fe-pago-seguimiento
        │                 └── C-21 fe-mis-pedidos-seguimiento (+C-11)
        ├── C-17a ✓ fe-admin-categorias-ingredientes (+C-08)
        │     └── C-17b ✓ fe-admin-productos-stock (+C-08)
@@ -110,7 +111,7 @@ GATE 5: C-13b ✓                                         ← FORK
   → C-23 fe-admin-usuarios-roles              [Agente A — si C-08 ✓]
 
 GATE 6: C-16b ✓ → C-18 ; C-18 + C-15 + C-10 ✓ → C-19 ; C-19 ✓ →
-  → C-20 fe-pago-mercadopago                  [Agente B — si C-12 ✓]
+  → C-20a ✓ fe-pago-tarjeta                     [Agente B — si C-12 ✓]; luego C-20b fe-pago-seguimiento
   → C-21 fe-mis-pedidos-seguimiento           [Agente C]
   → C-24 fe-dashboard-metricas                [Agente A — si C-22 ✓]
 
@@ -118,11 +119,11 @@ GATE 7: Fase 0 y Fase 1 ✓ (incl. C-25a) → C-25b entrega-docs-video (todos)
 GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y PA-19 resueltas → C-26, C-27, C-28
 ```
 
-### Camino crítico (11 changes — mínimo irreducible)
+### Camino crítico (12 changes — mínimo irreducible)
 
-`C-01 → C-06 → C-07 → C-09 → C-11 → C-13b → C-16b → C-18 → C-19 → C-20* → C-25b`
+`C-01 → C-06 → C-07 → C-09 → C-11 → C-13b → C-16b → C-18 → C-19 → C-20a* → C-20b → C-25b`
 
-\* C-20 requiere además C-12 (rama paralela `C-05 → C-12`), que también debe estar completa antes de C-20. C-13b requiere además C-13a (que corre en paralelo con la Fase 0) y C-02. C-16b requiere además C-16a (backend de filtros del catálogo; depende de C-11 y C-25a y corre en paralelo con C-13b/C-14/C-15). Los changes de seguridad (C-02, C-04, C-05) no están en el camino crítico pero tienen **prioridad de ejecución** por regla de Fase 0.
+\* C-20a requiere además C-12 (rama paralela `C-05 → C-12`), que también debe estar completa antes de C-20a; C-20b depende solo de C-20a. C-13b requiere además C-13a (que corre en paralelo con la Fase 0) y C-02. C-16b requiere además C-16a (backend de filtros del catálogo; depende de C-11 y C-25a y corre en paralelo con C-13b/C-14/C-15). Los changes de seguridad (C-02, C-04, C-05) no están en el camino crítico pero tienen **prioridad de ejecución** por regla de Fase 0.
 
 ### Plan óptimo con 3 agentes
 
@@ -138,7 +139,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 8 | C-16a ✓ → C-17a ✓ | C-15 | C-14 + C-16b ✓ |
 | 9 | C-17b ✓ | C-22 | C-18 ✓ |
 | 10 | C-23 | C-24 | C-19 ✓ |
-| 11 | — | C-20 | C-21 |
+| 11 | — | C-20a → C-20b | C-21 |
 | 12 | C-25b | C-25b | C-25b |
 
 (C-03 no bloquea nada y puede moverse a cualquier hueco del Agente A. C-13a no depende del backend: puede correr en cualquier hueco del Agente C desde ya. En el paso 8, C-17a y C-15 requieren C-13b: ajustar si C-13b aún no terminó. C-16b requiere C-16a: el Agente A hace C-16a primero en el paso 8 (es corto, solo backend) y el Agente C arranca C-14 mientras tanto. C-25a solo exige C-01..C-12: puede adelantarse o retrasarse según huecos, siempre antes de C-25b.)
@@ -481,7 +482,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `openspec/changes/c-16a-backend-catalogo-filtros/design.md` (decisiones DU-1..DU-3 y contrato de los filtros)
 
 ### [C-16b+] `fe-catalogo-filtros-arriba` (ajuste visual post-roadmap)
-- **Estado**: `[x]` cerrado (2026-11-19). Verify: visual passed. Archivado en `openspec/changes/archive/2026-11-19-fe-catalogo-filtros-arriba/`; spec principal `frontend-catalog` ampliada. Ajuste extra **fuera de los 32 changes planificados**; no cuenta en los totales ni renumera nada.
+- **Estado**: `[x]` cerrado (2026-11-19). Verify: visual passed. Archivado en `openspec/changes/archive/2026-11-19-fe-catalogo-filtros-arriba/`; spec principal `frontend-catalog` ampliada. Ajuste extra **fuera de los changes planificados**; no cuenta en los totales ni renumera nada.
 - **Scope**: el catálogo público deja la columna lateral de filtros (desde 1024 px) y usa la barra superior en todos los anchos; en escritorio suma la fila de subcategorías, «Precio ▾» (popover) y «Solo con stock» en línea. Mobile y el modelo de filtros en la URL sin cambios.
 - **Dependencias**: `C-16b`
 - **Governance**: BAJO
@@ -559,23 +560,38 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/10_preguntas_abiertas.md` (PA-03, PA-06, PA-11, PA-13)
   - Punto de partida (C-15): usar `SelectorDireccion` de `@/entities/direccion` (props `valor: number | null | undefined` donde `null` = retiro en el local, `onCambiar`, `permitirRetiro` —por defecto `true`; apagarlo según PA-13— y `leyenda`); preselecciona la principal (si no la primera, si no retiro) llamando una vez a `onCambiar`, y trata como «sin elegir» un id que ya no existe; pide `direccionQueries.lista({ page: 1, size: 100 })` y su enlace «Agregar dirección» lleva a `/direcciones` (el formulario de alta no está en el checkout). Notificaciones con `useUiStore.getState().notificar(...)` y confirmaciones con `pedirConfirmacion(...)` (ya se dibujan en el shell). Eliminar la principal no promueve otra en el backend (OQ-1 de C-15): el selector puede encontrarse con direcciones y ninguna principal. `entities/direccion` suma además `nombreDireccion` y `TarjetaDireccion`/`ResumenDireccion`.
 
-### [C-20] `fe-pago-mercadopago`
-- **Estado**: `[ ]` pendiente
+### [C-20a] `fe-pago-tarjeta`
+- **Estado**: `[x]` cerrado (2026-11-19). C-20 partido en dos por decisión del usuario (OQ-5). Verify: tests, visual y sandbox passed (`FUND`, `OTHE`, `APRO`, `CONT`; se agregó `rejected_by_issuer` a los motivos). Archivado en `openspec/changes/archive/2026-11-19-c-20a-fe-pago-tarjeta/`.
 - **Scope**:
-  - US-024 pago con `CardPayment` brick (PA-05 resuelta, DD-21: sin alternativa de redirect a Checkout Pro), reintento tras rechazo; US-025 reflejo de la confirmación por webhook (polling del estado); US-026 estado de pago con `mp_status_detail`.
-  - Pantallas de éxito/pendiente/rechazo; incluir el caso «pago aprobado pero pedido cancelado por falta de stock» (DD-20).
-  - Tests: aprobado, rechazado, reintento (MP mockeado).
+  - US-024 pago con `CardPayment` brick (PA-05 resuelta, DD-21: sin alternativa de redirect a Checkout Pro): envío sin datos de tarjeta, resultado inmediato de `POST /pagos/crear` (aprobado, rechazado con reintento, pendiente estático, «pago aprobado pero pedido cancelado por falta de stock» `a_devolver`, DD-20), «no corresponde pagar», errores 409/400/502/503/red y accesibilidad; `paymentStore` con `mpPaymentId` texto y `a_devolver`.
+  - Clave pública servida por el backend (OQ-1 = endpoint, 2026-11-19): `GET /api/v1/pagos/config` autenticado (sin restricción de rol), 503 si falta `MP_PUBLIC_KEY`, en capas y con tests pytest; sin variable `VITE_*` nueva. OQ-3, OQ-4 y OQ-6 respondidas por defecto.
+  - Tests: aprobado, rechazado, reintento, errores (MP mockeado con `vi.mock('@mercadopago/sdk-react')`) y endpoint de configuración (pytest).
   - **Heredado de C-12** (2026-11-17): el backend cobra por la Orders API (DD-26). El pedido a `POST /api/v1/pagos/crear` exige `payment_type_id` (`credit_card`/`debit_card`), que el brick entrega en `additionalData.paymentTypeId`; `issuer_id` se acepta pero no se envía a MercadoPago; los estados de MercadoPago son los de la orden (`processed`, `failed`, `processing`, `action_required`) y `mp_payment_id` es texto. La página `sandbox/pago-prueba.html` del change archivado sirve de referencia del contrato. Para probar: aplicación creada como Checkout API con «API de Orders», credenciales `APP_USR-` de la cuenta vendedora de prueba, email de una cuenta compradora de prueba y webhook del panel con el evento «Order (Mercado Pago)».
   - Punto de partida (C-13b): `paymentStore` ya existe en memoria (`@/entities/payment`: `iniciar(pedidoId)`, `registrarResultado`, `registrarError`, `reset`, estados `inactivo|procesando|aprobado|rechazado|pendiente|error`); falta el flujo del brick y la pantalla de resultado.
   - Punto de partida (C-19): la confirmación `MERCADOPAGO` `PENDIENTE` enlaza «Pagar $ X con tarjeta» a `/finalizar-compra/pedido/:pedidoId/pago` (`rutaPagoPedido(id)`), hoy una página provisoria (`PlaceholderPage`, dueño `C-20`, solo `CLIENT`): C-20 reemplaza esa página en `app/router/routes.tsx` sin cambiar la ruta. `pedidoQueries.detalle(id)` (`@/entities/pedido`) devuelve el `PedidoDetalle` con `total` (string decimal) y `estado_codigo`; tras crear el pedido ya está en la caché. El carrito ya está **vacío** cuando se llega al pago (se vacía al crear el pedido para cualquier forma de pago, OQ-3): el reintento de pago es sobre el pedido, no sobre el carrito. Si el pago se aprueba, invalidar `pedidoQueries.detalle(id)` y `pedidoQueries.todas()`.
 - **Dependencias**: `C-19, C-12`
 - **Governance**: CRITICO
-- **UI**: `[UI-MOCKUP]` pantalla de pago y resultados.
+- **UI**: `[UI-MOCKUP]` pantalla de pago y resultados inmediatos.
 - **Leer antes**:
   - `knowledge-base/11_pagos_mercadopago.md`
-  - `knowledge-base/06_funcionalidades.md` Épica 6
-  - `knowledge-base/07_flujos_principales.md` §Webhook
+  - `knowledge-base/06_funcionalidades.md` Épica 6 (US-024)
   - `knowledge-base/05_reglas_de_negocio.md` §Pagos
+
+### [C-20b] `fe-pago-seguimiento`
+- **Estado**: `[ ]` pendiente (propuesto 2026-11-19 en `openspec/changes/c-20b-fe-pago-seguimiento/`)
+- **Scope**:
+  - US-025 reflejo de la confirmación por webhook: polling de `GET /pagos/{pedido_id}` mientras el pago está pendiente (5 s durante 2 min por defecto, OQ-2) con «La confirmación está demorando» + «Actualizar» al pasar el tope.
+  - Reconstrucción de la vista de pago al recargar a partir del último intento en el servidor.
+  - US-026 estado del pago con `mp_status_detail` legible en la confirmación del pedido (OQ-7).
+  - Tests: recarga, polling con timers falsos (pendiente → aprobado/rechazado/`a_devolver`, tope), línea de estado en la confirmación.
+  - Punto de partida (C-20a): `PagoPedidoPage`, `pagoQueries.estado`, `vistaPago` y `motivoRechazo` (`@/entities/payment`) ya existen; la vista sale de la caché `['pagos', id]`, que C-20a solo llena con la respuesta de `crear` o tras un 409.
+- **Dependencias**: `C-20a`
+- **Governance**: CRITICO
+- **UI**: `[UI-MOCKUP]` pendiente con seguimiento, demora y estado del pago en la confirmación.
+- **Leer antes**:
+  - `knowledge-base/11_pagos_mercadopago.md`
+  - `knowledge-base/06_funcionalidades.md` Épica 6 (US-025, US-026)
+  - `knowledge-base/07_flujos_principales.md` §Webhook
 
 ### [C-21] `fe-mis-pedidos-seguimiento`
 - **Estado**: `[ ]` pendiente
@@ -729,11 +745,11 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | Fase | Changes | Rango | Notas |
 |------|---------|-------|-------|
 | 0 — Deuda técnica | 12 | C-01..C-12 | Cubre DT-01, 03..07, 09..23, 26 (DT-02 y DT-08 en Fase 2; DT-24 en Fase 1; DT-25 en C-25a) |
-| 1 — Features | 17 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18..C-24 |
+| 1 — Features | 18 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 23** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-25a). **Pendientes obligatorios: 6** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (propuesto).
+**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 24** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-25a). **Pendientes obligatorios: 6** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
 
-Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
+Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
 **Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-13a (`fe-foundation-scaffold`) y luego C-13b (`fe-foundation-auth-data`, ya desbloqueado en backend: requiere C-13a, C-02 ✓ y C-11 ✓). Fase 0 completa: C-12 se cerró el 2026-11-17.

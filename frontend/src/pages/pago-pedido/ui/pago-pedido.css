@@ -1,0 +1,35 @@
+/* Página Pago con tarjeta: reglas aprobadas en los mockups de C-20a (design-system Revision 2). Solo tokens. */
+@layer components {
+  .pay-head{display:flex;gap:var(--space-4);align-items:center}
+  .pay-head .badge-ico{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--color-primary-soft);color:var(--color-primary-hover)}
+  .pay-head .badge-ico .ico{width:30px;height:30px}
+  .pay-head h1{font-size:var(--text-2xl)}
+  .pay-head h1:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-sm)}
+  .pay-head p{color:var(--color-text-muted);margin:0}
+  .pay-head.ok .badge-ico{background:var(--color-success-bg);color:var(--color-success)}
+  .pay-head.bad .badge-ico{background:var(--color-danger-bg);color:var(--color-danger)}
+  .pay-head.warn .badge-ico,.pay-head.wait .badge-ico{background:var(--color-warning-bg);color:var(--color-warning)}
+  .b-aprobado{color:var(--state-entregado-fg);background:var(--state-entregado-bg)}
+  .sec-note{color:var(--color-text-muted);font-size:var(--text-sm);margin:0}
+  .secure{display:flex;gap:var(--space-2);align-items:center;font-size:var(--text-sm);color:var(--color-text-muted);margin:0}
+  .secure .ico{width:18px;height:18px;flex:none}
+  .reason{display:flex;gap:var(--space-3);align-items:flex-start;background:var(--color-danger-bg);color:var(--color-danger);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-weight:700}
+  .reason .ico{width:22px;height:22px;flex:none;margin-top:1px}
+  .reason p{color:var(--color-text);font-weight:400;margin:0}
+  .reason strong{display:block}
+  .pay-actions{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+  /* Área del brick: el contenido de la tarjeta lo dibuja Mercado Pago */
+  .mp-area{position:relative;min-height:var(--space-6)}
+  .mp-load{display:flex;flex-direction:column;gap:var(--space-3);align-items:center;padding:var(--space-6) 0;color:var(--color-text-muted)}
+  .mp-veil{position:absolute;inset:0;background:var(--color-surface);opacity:.92;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center}
+  .mp-veil .veil-box{border:1px solid var(--color-border);background:var(--color-surface);border-radius:var(--radius-md);box-shadow:var(--shadow-md);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-2);align-items:center;text-align:center;font-weight:700;color:var(--color-text)}
+  .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--color-border);border-top-color:var(--color-primary);animation:pago-giro 0.8s linear infinite}
+  @keyframes pago-giro{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+  @media (max-width:719.98px){
+    .pay-head{align-items:flex-start}
+    .pay-head .badge-ico{width:44px;height:44px}
+    .pay-head .badge-ico .ico{width:24px;height:24px}
+    .pay-actions .btn,.pay-actions a,.pay-actions button{width:100%}
+  }
+}

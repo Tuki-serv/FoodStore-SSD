@@ -22,7 +22,13 @@ from app.modules.pagos.pasarela_mp import (
     PasarelaMercadoPago,
     ResultadoMP,
 )
-from app.modules.pagos.schemas import CrearPagoRequest, NotificacionWebhook, PagoCrearResponse, PagoEstadoResponse
+from app.modules.pagos.schemas import (
+    ConfiguracionPagosResponse,
+    CrearPagoRequest,
+    NotificacionWebhook,
+    PagoCrearResponse,
+    PagoEstadoResponse,
+)
 from app.modules.pagos.unit_of_work import PagoUnitOfWork
 from app.modules.pedidos.models import Pedido
 from app.modules.pedidos.schemas import PedidoDetalle
@@ -74,6 +80,13 @@ class PaymentService:
         """503 (formato uniforme) si falta la variable necesaria para crear un pago (solo `MP_ACCESS_TOKEN`)."""
         if not self._get_mp_access_token():
             raise AppError(503, "HTTP_503", "MercadoPago no configurado: faltan MP_ACCESS_TOKEN")
+
+    def obtener_configuracion_publica(self) -> ConfiguracionPagosResponse:
+        """Clave pública de MercadoPago para el brick del frontend; 503 (formato uniforme) si falta `MP_PUBLIC_KEY`."""
+        clave = (settings.MP_PUBLIC_KEY or "").strip()
+        if not clave:
+            raise AppError(503, "HTTP_503", "MercadoPago no configurado: falta MP_PUBLIC_KEY")
+        return ConfiguracionPagosResponse(public_key=clave)
 
     # ─── Crear pago (Checkout API): T1 guarda el intento → llamada a MercadoPago sin locks → T2 aplica el resultado ───
     def crear_pago(self, datos: CrearPagoRequest, usuario_id: int, roles: AbstractSet[str]) -> ResultadoCrearPago:
