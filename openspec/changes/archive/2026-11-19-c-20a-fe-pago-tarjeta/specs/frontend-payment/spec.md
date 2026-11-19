@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define cómo un cliente paga con tarjeta un pedido `MERCADOPAGO` en el frontend de Food Store: quién accede a la página de pago, cómo se tokeniza la tarjeta sin que sus datos pasen por Food Store, qué se envía al backend, qué ve según el resultado (aprobado, rechazado con reintento, pendiente hasta la confirmación por webhook, aprobado sin stock) y cómo se informan los casos donde no corresponde pagar y los errores.
+Define cómo un cliente paga con tarjeta un pedido `MERCADOPAGO` en el frontend de Food Store: quién accede a la página de pago, cómo se tokeniza la tarjeta sin que sus datos pasen por Food Store, qué se envía al backend, qué ve según el resultado inmediato del cobro (aprobado, rechazado con reintento, pendiente, aprobado sin stock) y cómo se informan los casos donde no corresponde pagar y los errores.
 
 ## ADDED Requirements
 
@@ -26,14 +26,21 @@ La ruta `/finalizar-compra/pedido/:pedidoId/pago` SHALL abrirse solo con sesión
 - **THEN** ve «No encontramos este pedido» sin pedir nada al backend
 
 ### Requirement: Formulario de tarjeta tokenizado (PCI SAQ-A)
-Cuando corresponde pagar, la página SHALL montar el brick `CardPayment` de `@mercadopago/sdk-react`, inicializado con la clave pública `VITE_MP_PUBLIC_KEY`, locale `es-AR` y el `total` del pedido como monto. Los datos de la tarjeta SHALL ingresarse solo en el brick: ningún componente de Food Store SHALL tener campos de número, CVV o vencimiento. Sin clave pública configurada SHALL mostrarse «El pago con tarjeta no está disponible en este momento» sin montar el brick.
+Cuando corresponde pagar, la página SHALL montar el brick `CardPayment` de `@mercadopago/sdk-react` con locale `es-AR` y el `total` del pedido como monto. Los datos de la tarjeta SHALL ingresarse solo en el brick: ningún componente de Food Store SHALL tener campos de número, CVV o vencimiento.
 
 #### Scenario: Monto del pedido
 - **WHEN** el pedido 58 `MERCADOPAGO` `PENDIENTE` tiene total `"2850.00"`
 - **THEN** el brick se inicializa con monto `2850`
 
-#### Scenario: Sin clave pública
-- **WHEN** la configuración no tiene clave pública de MercadoPago
+### Requirement: Clave pública obtenida del backend
+El brick SHALL inicializarse con la clave pública que devuelve `GET /api/v1/pagos/config`; ninguna variable de entorno del frontend SHALL contener la clave. Si esa consulta responde 503 o no obtiene respuesta, SHALL mostrarse «El pago con tarjeta no está disponible en este momento» sin montar el brick.
+
+#### Scenario: Clave pública del backend
+- **WHEN** `GET /api/v1/pagos/config` responde `{"public_key": "APP_USR-clave-publica-de-prueba"}`
+- **THEN** el brick se inicializa con la clave `APP_USR-clave-publica-de-prueba`
+
+#### Scenario: Clave pública no disponible
+- **WHEN** `GET /api/v1/pagos/config` responde 503
 - **THEN** se ve «El pago con tarjeta no está disponible en este momento» y no se monta el brick
 
 ### Requirement: Carga del formulario de tarjeta
@@ -62,16 +69,16 @@ Al confirmar en el brick, el frontend SHALL llamar `POST /api/v1/pagos/crear` co
 - **WHEN** hay un pago en proceso y el cliente intenta confirmar de nuevo
 - **THEN** no se envía un segundo `POST /pagos/crear`
 
-### Requirement: Vista según el estado del pago en el servidor
-La página SHALL decidir qué mostrar a partir del pedido (`GET /pedidos/{id}`) y del último intento de pago (`GET /pagos/{pedido_id}`), de modo que una recarga muestre el mismo resultado: formulario (sin intentos o último intento `rechazado`, con pedido `PENDIENTE`), aprobado, pendiente, aprobado sin stock (`a_devolver`) o «no corresponde pagar». La respuesta de `POST /pagos/crear` SHALL actualizar la vista sin esperar otra consulta.
+### Requirement: Vista según el pedido y el resultado del pago
+La página SHALL decidir qué mostrar a partir del pedido (`GET /pedidos/{id}`) y del último resultado de pago conocido (al menos la respuesta de `POST /pagos/crear` y la consulta de `GET /pagos/{pedido_id}` que sigue a un 409): formulario (sin resultado o último resultado `rechazado`, con pedido `PENDIENTE`), aprobado, pendiente, aprobado sin stock (`a_devolver`) o «no corresponde pagar». La respuesta de `POST /pagos/crear` SHALL actualizar la vista sin esperar otra consulta.
 
-#### Scenario: Recarga con pago aprobado
-- **WHEN** el cliente recarga la página del pedido 58 y el último intento es `aprobado` con el pedido `CONFIRMADO`
-- **THEN** ve «¡Pago aprobado!» y no ve el formulario de tarjeta
+#### Scenario: Pedido por pagar sin resultado
+- **WHEN** un `CLIENT` abre la página del pedido 58 `MERCADOPAGO` `PENDIENTE` y todavía no envió ningún pago en la sesión
+- **THEN** ve el formulario de tarjeta
 
-#### Scenario: Recarga tras un rechazo
-- **WHEN** el último intento del pedido 58 es `rechazado` con detalle `cc_rejected_insufficient_amount` y el pedido sigue `PENDIENTE`
-- **THEN** ve el motivo del rechazo y el formulario de tarjeta para reintentar
+#### Scenario: Resultado sin otra consulta
+- **WHEN** `POST /pagos/crear` responde 201 con `estado` `"rechazado"` para el pedido 58
+- **THEN** la vista pasa a rechazado sin pedir `GET /pagos/58`
 
 ### Requirement: Pago aprobado
 Con el pago `aprobado`, la página SHALL mostrar «¡Pago aprobado!», que el pedido quedó confirmado y los enlaces «Ver mi pedido» (`/finalizar-compra/pedido/<id>`) y «Seguir comprando» (`/catalogo`). SHALL invalidar las consultas del detalle del pedido y de la lista de pedidos.
@@ -79,10 +86,6 @@ Con el pago `aprobado`, la página SHALL mostrar «¡Pago aprobado!», que el pe
 #### Scenario: Aprobado al crear
 - **WHEN** `POST /pagos/crear` responde 201 con `estado` `"aprobado"` para el pedido 58
 - **THEN** se ve «¡Pago aprobado!» y el detalle del pedido 58 se vuelve a pedir
-
-#### Scenario: Aprobado por el webhook
-- **WHEN** la vista está en pendiente y la consulta del pago pasa a `aprobado`
-- **THEN** se ve «¡Pago aprobado!»
 
 ### Requirement: Pago rechazado y reintento
 Con el pago `rechazado` y el pedido `PENDIENTE`, la página SHALL mostrar «El pago fue rechazado» con un motivo legible derivado de `mp_status_detail` (texto genérico «Mercado Pago no aprobó el pago. Probá con otra tarjeta o medio.» si el detalle es desconocido o nulo) y SHALL permitir reintentar sobre el mismo pedido volviendo a montar el brick. El carrito no interviene en el reintento.
@@ -103,20 +106,12 @@ Con el pago `rechazado` y el pedido `PENDIENTE`, la página SHALL mostrar «El p
 - **WHEN** `POST /pagos/crear` responde 400
 - **THEN** se ve «El pago fue rechazado» con el motivo genérico y se puede reintentar
 
-### Requirement: Pago pendiente y confirmación por webhook
-Con el pago `pendiente`, la página SHALL mostrar «Estamos esperando la confirmación de Mercado Pago» y SHALL consultar `GET /pagos/{pedido_id}` periódicamente hasta un estado terminal (`aprobado`, `rechazado`, `a_devolver`) o hasta el tope de espera; al pasar el tope SHALL dejar de consultar y mostrar «La confirmación está demorando» con «Actualizar» (consulta manual) y «Ver mi pedido». El intervalo y el tope son los de design D6.
+### Requirement: Pago pendiente
+Con el pago `pendiente`, la página SHALL mostrar «Estamos esperando la confirmación de Mercado Pago», explicar que el pedido se confirmará cuando Mercado Pago apruebe el pago y ofrecer «Ver mi pedido», sin formulario de tarjeta ni opción de reintentar.
 
-#### Scenario: Pendiente que se aprueba
-- **WHEN** `POST /pagos/crear` responde `pendiente` y una consulta posterior de `GET /pagos/58` responde `aprobado`
-- **THEN** la vista pasa de «Estamos esperando la confirmación de Mercado Pago» a «¡Pago aprobado!» y deja de consultar
-
-#### Scenario: Pendiente que se rechaza
-- **WHEN** la consulta pasa de `pendiente` a `rechazado`
-- **THEN** se ve «El pago fue rechazado» con la opción de reintentar
-
-#### Scenario: Tope de espera
-- **WHEN** el pago sigue `pendiente` al cumplirse el tope de espera
-- **THEN** se ve «La confirmación está demorando», deja de consultar y «Actualizar» hace una consulta más
+#### Scenario: Pendiente al crear
+- **WHEN** `POST /pagos/crear` responde 201 con `estado` `"pendiente"` para el pedido 58
+- **THEN** se ve «Estamos esperando la confirmación de Mercado Pago», el enlace «Ver mi pedido» y no se ve el formulario de tarjeta
 
 ### Requirement: Pago aprobado sin stock
 Con el pago `a_devolver` (aprobado en MercadoPago pero el pedido quedó `CANCELADO` por falta de stock, DD-20), la página SHALL explicar que el pago se aprobó pero el pedido se canceló porque algún producto se quedó sin stock, que la devolución del dinero se gestiona manualmente y SHALL ofrecer «Ver mi pedido» y «Seguir comprando». No SHALL ofrecer reintentar.

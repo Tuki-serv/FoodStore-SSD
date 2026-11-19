@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-20a - Pago con tarjeta (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="pago-pedido.css">
+</head>
+<body data-roles="CLIENT" data-current="">
+<script>
+/* Parámetros: ?estado=formulario (por defecto) | cargando | brick-error | procesando
+   | aprobado | rechazado (&motivo=fondos|datos|codigo|vencimiento|emisor|monto|duplicado|generico) | rechazado-datos (400)
+   | a-devolver | pendiente | no-disponible (503) | desconocido (502) | conexion
+   | no-tarjeta | no-pagable | no-encontrado
+   ?nav=collapsed | drawer (de mockup.js). */
+(function () {
+  var q = new URLSearchParams(location.search), e = q.get('estado') || 'formulario';
+  window.CFG = { count: 0, pageClass: 'page-wide', banner: 'Mockup C-20a · /finalizar-compra/pedido/58/pago · estado «' + e + '» · CLIENT · Revision 2 · pendiente de aprobación' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="checkout.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, est = M.estado || 'formulario', q = M.params;
+  var id = 58;
+  var MOTIVOS = {
+    fondos: 'La tarjeta no tiene fondos suficientes.',
+    datos: 'Revisá los datos de la tarjeta e intentá de nuevo.',
+    codigo: 'El código de seguridad no es correcto.',
+    vencimiento: 'La fecha de vencimiento no es correcta.',
+    emisor: 'El banco emisor rechazó el pago. Probá con otra tarjeta o consultalo con el banco.',
+    monto: 'La tarjeta no admite pagos por este monto.',
+    duplicado: 'Ya hiciste un pago igual hace un momento.',
+    generico: 'Mercado Pago no aprobó el pago. Probá con otra tarjeta o medio.'
+  };
+
+  /* Resumen del pedido (PedidoDetalle del servidor): total 2850.00 */
+  var items = [
+    { n: 'Hamburguesa Clásica', c: 1, p: '1500.00', pers: 'Sin cebolla, sin tomate' },
+    { n: 'Papas fritas', c: 1, p: '1300.00', pers: null }
+  ];
+  var lista = items.map(function (i) {
+    return '<li><span class="q">' + i.c + ' ×</span><span class="n">' + i.n + (i.pers ? '<small>' + i.pers + '</small>' : '') + '</span><span>' + M.precio(i.p) + '</span></li>';
+  }).join('');
+  function resumen(badge) {
+    return '<aside class="summary" aria-labelledby="res-t"><h2 id="res-t">Pedido #' + id + '</h2>' +
+      '<div class="line"><span>Estado</span><span>' + badge + '</span></div>' +
+      '<ul class="sum-items" aria-label="Productos del pedido">' + lista + '</ul>' +
+      '<div class="line"><span>Subtotal</span><span>$ 2.800</span></div><div class="line"><span>Costo de envío</span><span>$ 50</span></div><div class="line"><span>Descuento</span><span>$ 0</span></div>' +
+      '<div class="total"><span>Total</span><span>$ 2.850</span></div></aside>';
+  }
+  var B_PEND = '<span class="badge b-pendiente">Pendiente</span>', B_CONF = '<span class="badge b-confirmado">Confirmado</span>', B_CANC = '<span class="badge b-cancelado">Cancelado</span>';
+
+  function cabecera(cls, icono, titulo, texto) {
+    return '<div class="pay-head ' + cls + '"><span class="badge-ico">' + ico(icono) + '</span><div><h1 tabindex="-1">' + titulo + '</h1>' + (texto ? '<p>' + texto + '</p>' : '') + '</div></div>';
+  }
+  function pagina(head, izq, der) {
+    return '<div class="done">' + head + '<div class="done-grid"><div class="col">' + izq + '</div>' + der + '</div></div>';
+  }
+  function tarjeta(titulo, cuerpo) {
+    return '<section class="card" aria-labelledby="c-t"><h2 id="c-t">' + titulo + '</h2>' + cuerpo + '</section>';
+  }
+  function alerta(cls, icono, titulo, texto, acciones) {
+    return '<div class="' + cls + '" role="alert" tabindex="-1">' + ico(icono) + '<div><strong>' + titulo + '</strong>' + (texto ? '<p>' + texto + '</p>' : '') +
+      (acciones ? '<div class="alert-actions">' + acciones + '</div>' : '') + '</div></div>';
+  }
+  var verPedido = '<a class="btn btn-secondary" href="#/finalizar-compra/pedido/58">' + ico('i-pedidos') + 'Ver mi pedido</a>';
+  var seguir = '<a class="btn btn-ghost" href="#/catalogo">Seguir comprando</a>';
+
+  /* Recuadro del brick CardPayment (lo dibuja Mercado Pago). */
+  function campos(busy) {
+    return '<div class="mp-brick' + (busy ? ' mp-busy' : '') + '">' +
+      '<div><label>Número de tarjeta</label><div class="mp-f">1234 1234 1234 1234<b>VISA · MASTER</b></div></div>' +
+      '<div class="mp-row"><div><label>Vencimiento</label><div class="mp-f">MM/AA</div></div><div><label>Código de seguridad</label><div class="mp-f">123</div></div></div>' +
+      '<div><label>Nombre del titular como aparece en la tarjeta</label><div class="mp-f">Ej.: María López</div></div>' +
+      '<div class="mp-doc"><div><label>Tipo</label><div class="mp-f">DNI<b>▾</b></div></div><div><label>Documento del titular</label><div class="mp-f">Ej.: 12345678</div></div></div>' +
+      '<div><label>E-mail</label><div class="mp-f">ejemplo@email.com</div></div>' +
+      '<div><label>Cuotas</label><div class="mp-f">1 cuota de $ 2.850<b>▾</b></div></div>' +
+      '<div class="mp-btn' + (busy ? ' is-busy' : '') + '">Pagar</div>' +
+      '<div class="mp-foot">Procesado por Mercado Pago</div>' +
+      (busy ? '<div class="mp-veil"><div class="veil-box"><span class="spinner" aria-hidden="true"></span><span role="status">Procesando el pago…</span><span class="sec-note">No cierres ni recargues esta página.</span></div></div>' : '') +
+      '</div>';
+  }
+  function brick(contenido) {
+    return '<div class="mp-wrap"><span class="mp-tag">Formulario de Mercado Pago (simulado)</span>' + contenido + '</div>' +
+      '<p class="secure">' + ico('i-candado') + 'Los datos de la tarjeta los recibe Mercado Pago directamente; Food Store no los ve ni los guarda.</p>';
+  }
+  var cargandoBrick = '<div class="mp-load" role="status"><span class="spinner" aria-hidden="true"></span><span>Cargando el formulario de tarjeta…</span>' +
+    '<div class="mp-skel" aria-hidden="true"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div></div>';
+  var titPagar = 'Pagá con tarjeta';
+  var headPagar = cabecera('', 'i-tarjeta', 'Pagar pedido #58', 'Total a pagar: <b>$ 2.850</b>. El pedido queda confirmado cuando Mercado Pago aprueba el pago.');
+
+  var out = '';
+  switch (est) {
+    case 'cargando':
+      out = pagina(headPagar, tarjeta(titPagar, brick(cargandoBrick)), resumen(B_PEND)); break;
+    case 'brick-error':
+      out = pagina(headPagar, tarjeta(titPagar, '<div class="mp-wrap">' +
+        alerta('form-alert', 'i-alerta', 'No pudimos cargar el formulario de tarjeta', 'Puede ser un problema de conexión. Intentá de nuevo.', '<button class="btn btn-secondary btn-sm" type="button">Reintentar</button>') + '</div>'), resumen(B_PEND)); break;
+    case 'procesando':
+      out = pagina(headPagar, tarjeta(titPagar, brick(campos(true))), resumen(B_PEND)); break;
+    case 'aprobado':
+      out = pagina(cabecera('ok', 'i-ok', '¡Pago aprobado!', 'Mercado Pago aprobó el pago y tu pedido #58 quedó confirmado.'),
+        tarjeta('Pago', '<dl class="kv"><dt>Estado del pago</dt><dd><span class="badge b-aprobado">Aprobado</span></dd><dt>Monto</dt><dd>$ 2.850</dd><dt>Medio</dt><dd><span class="pay-lbl">' + ico('i-tarjeta') + 'Tarjeta (Mercado Pago)</span></dd><dt>N.º de operación</dt><dd>PAY01HZX7K2Q9</dd></dl>' +
+          '<div class="pay-actions">' + verPedido + seguir + '</div>'), resumen(B_CONF)); break;
+    case 'rechazado': case 'rechazado-datos': {
+      var m = est === 'rechazado-datos' ? 'generico' : (q.get('motivo') || 'fondos');
+      var razon = '<div class="reason" role="alert" tabindex="-1">' + ico('i-alerta') + '<div><strong>Motivo</strong><p>' + MOTIVOS[m] + '</p></div></div>';
+      out = pagina(cabecera('bad', 'i-alerta', 'El pago fue rechazado', 'No se cobró nada. Tu pedido #58 sigue pendiente y podés intentar de nuevo con otra tarjeta.'),
+        tarjeta(titPagar, razon + '<div class="pay-actions"><button class="btn btn-primary" type="button">' + ico('i-tarjeta') + 'Intentar de nuevo</button></div>' +
+          '<p class="sec-note">Al intentar de nuevo se vuelve a cargar el formulario de Mercado Pago, vacío.</p>'), resumen(B_PEND)); break; }
+    case 'a-devolver':
+      out = pagina(cabecera('warn', 'i-alerta', 'Tu pago se aprobó, pero no pudimos confirmar el pedido', 'Algún producto se quedó sin stock mientras se procesaba el pago, así que el pedido #58 se canceló.'),
+        tarjeta('¿Qué pasa con tu dinero?', '<p>Te devolvemos los $ 2.850. La devolución la gestiona el equipo del local de forma manual, por eso puede demorar unos días.</p>' +
+          '<div class="info-box" role="status">' + ico('i-info') + '<div><strong>No tenés que hacer nada</strong>No vuelvas a pagar este pedido: ya no se puede cobrar.</div></div>' +
+          '<div class="pay-actions">' + verPedido + seguir + '</div>'), resumen(B_CANC)); break;
+    case 'pendiente':
+      out = pagina(cabecera('wait', 'i-reloj', 'Estamos esperando la confirmación de Mercado Pago', 'Tu pedido #58 se confirma cuando Mercado Pago apruebe el pago.'),
+        tarjeta('Pago en proceso', '<p>Mercado Pago todavía no confirmó el pago. Esta pantalla no se actualiza sola: podés ver el estado de tu pedido desde «Ver mi pedido».</p>' +
+          '<div class="info-box" role="status">' + ico('i-info') + '<div><strong>No lo pagues de nuevo</strong>Si el pago se aprueba, el pedido se confirma solo.</div></div>' +
+          '<div class="pay-actions">' + verPedido + '</div>'), resumen(B_PEND)); break;
+    case 'no-disponible':
+      out = pagina(headPagar, tarjeta(titPagar, '<div class="state is-error" role="alert"><span class="badge-ico">' + ico('i-alerta') + '</span><h2>El pago con tarjeta no está disponible en este momento</h2>' +
+        '<p>Tu pedido #58 está creado y sigue pendiente. Probá de nuevo en unos minutos.</p><div class="actions"><a class="btn btn-secondary" href="#/finalizar-compra/pedido/58">' + ico('i-pedidos') + 'Ver mi pedido</a></div></div>'), resumen(B_PEND)); break;
+    case 'desconocido':
+      out = pagina(headPagar, tarjeta(titPagar, alerta('form-alert', 'i-alerta', 'No pudimos confirmar el resultado con Mercado Pago', 'Es posible que el pago esté en proceso. Reintentá: si ya se hubiera cobrado, no se cobra dos veces. Vas a tener que cargar la tarjeta de nuevo.',
+        '<button class="btn btn-primary btn-sm" type="button">Reintentar</button>')), resumen(B_PEND)); break;
+    case 'conexion':
+      out = pagina(headPagar, tarjeta(titPagar, alerta('form-alert', 'i-alerta', 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.', 'Tu pedido #58 sigue pendiente.',
+        '<button class="btn btn-primary btn-sm" type="button">Reintentar</button>')), resumen(B_PEND)); break;
+    case 'no-tarjeta':
+      out = '<div class="nf"><div class="state"><span class="badge-ico">' + ico('i-efectivo') + '</span><h1>Este pedido no se paga con tarjeta</h1><p>El pedido #57 se paga en efectivo o por transferencia y lo confirma el local.</p><div class="actions">' + verPedido + '</div></div></div>'; break;
+    case 'no-pagable':
+      out = '<div class="nf"><div class="state"><span class="badge-ico">' + ico('i-info') + '</span><h1>Este pedido ya no se puede pagar</h1><p>El pedido #58 ya no está pendiente de pago.</p><div class="actions">' + verPedido + '</div></div></div>'; break;
+    case 'no-encontrado':
+      out = '<div class="nf"><div class="state"><span class="badge-ico">' + ico('i-pedidos') + '</span><h1>No encontramos este pedido</h1><p>Puede que el enlace esté mal o que el pedido no sea de tu cuenta.</p><div class="actions"><a class="btn btn-primary" href="#/mis-pedidos">Ver mis pedidos</a></div></div></div>'; break;
+    default:
+      out = pagina(headPagar, tarjeta(titPagar, brick(campos(false))), resumen(B_PEND));
+  }
+
+  var LINKS = [
+    ['Formulario', [['formulario', 'Listo'], ['cargando', 'Cargando el brick'], ['procesando', 'Procesando'], ['brick-error', 'Error del brick']]],
+    ['Resultado', [['aprobado', 'Aprobado'], ['rechazado', 'Rechazado'], ['rechazado-datos', 'Rechazado (400)'], ['a-devolver', 'Sin stock (a_devolver)'], ['pendiente', 'Pendiente']]],
+    ['Errores', [['no-disponible', 'No disponible (503)'], ['desconocido', 'Desconocido (502)'], ['conexion', 'Sin conexión']]],
+    ['No corresponde pagar', [['no-tarjeta', 'No es tarjeta'], ['no-pagable', 'Ya no se puede pagar'], ['no-encontrado', 'No encontrado (404)']]]
+  ];
+  var sw = '<nav class="switcher" aria-label="Estados del mockup"><strong>Estados del mockup</strong>' + LINKS.map(function (g) {
+    return '<b>' + g[0] + '</b>' + g[1].map(function (l) { return '<a href="?estado=' + l[0] + '"' + (l[0] === est ? ' aria-current="true"' : '') + '>' + l[1] + '</a>'; }).join('');
+  }).join('') + (est === 'rechazado' ? '<b>Motivo del rechazo</b>' + Object.keys(MOTIVOS).map(function (k) { return '<a href="?estado=rechazado&motivo=' + k + '"' + ((q.get('motivo') || 'fondos') === k ? ' aria-current="true"' : '') + '>' + k + '</a>'; }).join('') : '') + '</nav>';
+  M.llenar('contenido', out + sw);
+})();
+</script>
+</body>
+</html>

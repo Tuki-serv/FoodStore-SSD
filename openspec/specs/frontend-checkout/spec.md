@@ -123,7 +123,7 @@ Para un pedido `EFECTIVO` o `TRANSFERENCIA` la confirmación SHALL explicar que 
 - **THEN** se ve la explicación de confirmación manual y no se ve «Pagar»
 
 ### Requirement: Traspaso al pago con tarjeta
-Para un pedido `MERCADOPAGO` en estado `PENDIENTE`, la confirmación SHALL explicar que falta pagar con tarjeta para que el pedido se confirme y SHALL ofrecer «Pagar $ <total> con tarjeta», que navega a `/finalizar-compra/pedido/<id>/pago`. Esa ruta (solo `CLIENT`) es el punto de traspaso al flujo de pago y, hasta que exista, SHALL mostrar la página provisoria con el change dueño `C-20`.
+Para un pedido `MERCADOPAGO` en estado `PENDIENTE`, la confirmación SHALL explicar que falta pagar con tarjeta para que el pedido se confirme y SHALL ofrecer «Pagar $ <total> con tarjeta», que navega a `/finalizar-compra/pedido/<id>/pago`. Esa ruta (solo `CLIENT`) SHALL mostrar la página de pago con tarjeta (capability `frontend-payment`).
 
 #### Scenario: Pagar con tarjeta
 - **WHEN** la confirmación es del pedido 58 `MERCADOPAGO` con total `"2850.00"` y el cliente pulsa «Pagar $ 2.850 con tarjeta»
@@ -131,7 +131,7 @@ Para un pedido `MERCADOPAGO` en estado `PENDIENTE`, la confirmación SHALL expli
 
 #### Scenario: Ruta de pago provisoria
 - **WHEN** el cliente abre `/finalizar-compra/pedido/58/pago`
-- **THEN** ve la página provisoria y el mapa de rutas declara a `C-20` como dueño
+- **THEN** ve el título «Pagar pedido #58» y no la página provisoria (el nombre del escenario se conserva de C-19; la página provisoria ya no existe)
 
 ### Requirement: Accesibilidad del checkout
 Los pasos SHALL ser grupos con leyenda, los errores de campo SHALL asociarse a su grupo, el aviso de error SHALL anunciarse y recibir el foco, y la pantalla de checkout (con y sin error) y la confirmación SHALL pasar la revisión automática de accesibilidad.
