@@ -7,16 +7,18 @@ import { useMediaQuery } from '@/shared/lib';
 import { Paginacion } from '@/shared/ui';
 import { aParametrosApi, contarFiltros, filtrosAUrl, filtrosDesdeUrl, hayCategoriaEnUrl, useBusqueda, type FiltrosUrl } from '../model';
 import { BarraBusqueda } from './barra-busqueda';
-import { BarraMobile } from './barra-mobile';
+import { BarraCategorias } from './barra-categorias';
+import { BotonFiltros } from './boton-filtros';
 import { ChipsFiltros, type FiltroQuitable } from './chips-filtros';
-import { ContenidoFiltros } from './contenido-filtros';
 import { CatalogoVacio, ErrorCatalogo, SinResultados } from './estados-catalogo';
 import { EsqueletoProductos, GrillaProductos } from './grilla-productos';
+import { FiltroStock } from './filtro-stock';
 import { HojaFiltros } from './hoja-filtros';
+import { PopoverPrecio } from './popover-precio';
 
 const textoTotal = (total: number): string => `${total} ${total === 1 ? 'producto' : 'productos'}`;
 
-/** Desde este ancho los filtros son una columna fija; debajo, chips y una hoja «Filtros». */
+/** Desde este ancho los filtros van en la barra superior (categorías, «Precio», «Solo con stock»); debajo, chips y una hoja «Filtros». */
 const CONSULTA_DESKTOP = '(min-width: 1024px)';
 
 /** Catálogo público (US-007): listado paginado de productos con búsqueda, categorías, precio y stock; los filtros viven en la URL. */
@@ -90,44 +92,44 @@ export function CatalogoPage() {
         <h1 className="text-2xl">Catálogo</h1>
         <p>Elegí lo que tengas ganas y sumalo al carrito.</p>
       </header>
-      <div className="cat-layout">
-        {esDesktop ? (
-          <aside className="filters" aria-label="Filtros">
-            <ContenidoFiltros {...contenido} />
-          </aside>
-        ) : null}
-        <div className="cat-main">
-          <BarraBusqueda texto={busqueda.texto} onCambiar={busqueda.setTexto} onBorrar={busqueda.borrar} />
-          {esDesktop ? null : (
-            <BarraMobile arbol={arbol} raizActual={raizActual} filtrosAplicados={cantidadFiltros} onElegirRaiz={(id) => actualizar({ categoria: id ?? undefined })} onAbrirFiltros={() => setHojaAbierta(true)} />
+      <div className="cat-main">
+        <BarraBusqueda texto={busqueda.texto} onCambiar={busqueda.setTexto} onBorrar={busqueda.borrar} />
+        <BarraCategorias variante={esDesktop ? 'escritorio' : 'mobile'} arbol={arbolConsulta} categoriaActual={filtros.categoria ?? null} raizActual={raizActual} onElegirCategoria={contenido.onElegirCategoria}>
+          {esDesktop ? (
+            <div className="desk-tools">
+              <PopoverPrecio min={filtros.min} max={filtros.max} onAplicar={contenido.onAplicarPrecio} />
+              <FiltroStock compacto activo={filtros.stock} onCambiar={contenido.onCambiarStock} />
+            </div>
+          ) : (
+            <BotonFiltros aplicados={cantidadFiltros} onAbrir={() => setHojaAbierta(true)} />
           )}
-          <h2 className="sr-only">Resultados</h2>
-          {data === undefined && !consulta.isError ? <EsqueletoProductos /> : null}
-          {data === undefined && consulta.isError ? <ErrorCatalogo error={consulta.error} onReintentar={() => void consulta.refetch()} /> : null}
-          {data !== undefined ? (
-            <>
-              <div className="results-head">
-                <p className="results-count" role="status" tabIndex={-1} ref={resultadosRef}>
-                  {textoTotal(data.total)}
-                  {nombreCategoria === undefined ? null : <small> en {nombreCategoria}</small>}
-                </p>
-                {data.total === 0 ? null : chips(true)}
-              </div>
-              {data.total === 0 ? (
-                sinResultados ? (
-                  <SinResultados q={filtros.q} filtros={chips(false)} onLimpiar={limpiar} />
-                ) : (
-                  <CatalogoVacio />
-                )
+        </BarraCategorias>
+        <h2 className="sr-only">Resultados</h2>
+        {data === undefined && !consulta.isError ? <EsqueletoProductos /> : null}
+        {data === undefined && consulta.isError ? <ErrorCatalogo error={consulta.error} onReintentar={() => void consulta.refetch()} /> : null}
+        {data !== undefined ? (
+          <>
+            <div className="results-head">
+              <p className="results-count" role="status" tabIndex={-1} ref={resultadosRef}>
+                {textoTotal(data.total)}
+                {nombreCategoria === undefined ? null : <small> en {nombreCategoria}</small>}
+              </p>
+              {data.total === 0 ? null : chips(true)}
+            </div>
+            {data.total === 0 ? (
+              sinResultados ? (
+                <SinResultados q={filtros.q} filtros={chips(false)} onLimpiar={limpiar} />
               ) : (
-                <>
-                  <GrillaProductos productos={data.items} actualizando={consulta.isPlaceholderData} />
-                  <Paginacion etiqueta="Paginación del catálogo" page={data.page} pages={data.pages} onCambiar={irAPagina} />
-                </>
-              )}
-            </>
-          ) : null}
-        </div>
+                <CatalogoVacio />
+              )
+            ) : (
+              <>
+                <GrillaProductos productos={data.items} actualizando={consulta.isPlaceholderData} />
+                <Paginacion etiqueta="Paginación del catálogo" page={data.page} pages={data.pages} onCambiar={irAPagina} />
+              </>
+            )}
+          </>
+        ) : null}
       </div>
       {hojaAbierta && !esDesktop ? (
         <HojaFiltros {...contenido} total={data?.total} onLimpiar={limpiar} onCerrar={() => setHojaAbierta(false)} />

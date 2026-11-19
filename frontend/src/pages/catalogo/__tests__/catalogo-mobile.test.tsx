@@ -119,13 +119,16 @@ describe('catálogo en mobile (< 1024 px)', () => {
     await esperarSinViolacionesA11y(hoja);
   });
 
-  it('al pasar a desktop reaparece el árbol lateral y desaparecen los chips', async () => {
+  it('al pasar a desktop desaparece «Filtros» y aparecen «Precio» y «Solo con stock» en la barra, sin columna lateral', async () => {
     montarMobile();
     await screen.findByRole('group', { name: 'Categorías principales' });
+    expect(screen.queryByRole('button', { name: 'Precio' })).not.toBeInTheDocument();
 
     act(() => setViewport(1440));
 
-    expect(await screen.findByRole('navigation', { name: 'Categorías' })).toBeInTheDocument();
-    expect(screen.queryByRole('group', { name: 'Categorías principales' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Precio' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Solo con stock' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Filtros/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Filtros' })).not.toBeInTheDocument();
   });
 });
