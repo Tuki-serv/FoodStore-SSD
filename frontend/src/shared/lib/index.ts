@@ -4,3 +4,4 @@ export { useValorDiferido } from './valor-diferido/use-valor-diferido';
 export { rutaRecordada } from './ruta-recordada';
 export type { RutaRecordada } from './ruta-recordada';
 export { errorDeNombre, MAXIMO_NOMBRE, textoONulo } from './texto-formulario';
+export { aCentavos, formatearCentavos, sumarImportes } from './importe';

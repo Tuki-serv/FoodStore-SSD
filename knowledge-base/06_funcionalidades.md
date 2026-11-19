@@ -90,9 +90,9 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 - [x] `personalizacion` = IDs de ingredientes removidos; se guarda también el nombre en snapshot (`personalizacionNombres`, C-18; casillas «Sin X» en el detalle del producto)
 
 ### US-017 — Crear pedido (checkout)
-- [ ] Seleccionar dirección (o retiro en local) y forma de pago; el pedido se crea en PENDIENTE en una sola transacción con snapshots e historial inicial
-- [ ] Errores claros: producto no disponible, sin stock, forma de pago deshabilitada, líneas duplicadas
-- [ ] Crear el pedido solo verifica disponibilidad y stock; el stock se descuenta al confirmarse (DD-20)
+- [x] Seleccionar dirección (o retiro en local) y forma de pago; el pedido se crea en PENDIENTE en una sola transacción con snapshots e historial inicial (C-19: `/finalizar-compra` con un único `POST /pedidos/`; envío fijo `$ 50` y descuento `$ 0` según DD-10, `[PENDIENTE DE DECISIÓN: PA-11/PA-13]`)
+- [x] Errores claros: producto no disponible, sin stock, forma de pago deshabilitada, líneas duplicadas (C-19: aviso «No pudimos crear el pedido» con el mensaje del servidor y la acción que corresponde; el frontend clasifica por el texto de `detail` porque el backend no da código estable, ver deuda en C-25b)
+- [x] Crear el pedido solo verifica disponibilidad y stock; el stock se descuenta al confirmarse (DD-20) (C-19: el checkout y la confirmación lo explican; EFECTIVO/TRANSFERENCIA muestran los pasos de confirmación manual de DD-22 y MERCADOPAGO entrega al pago con tarjeta en `/finalizar-compra/pedido/:id/pago`, de C-20)
 **Reglas**: RN-PE-06, RN-PE-09, RN-ST-00, RN-ST-01
 
 ### US-018 — Ver mis pedidos y seguimiento

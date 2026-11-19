@@ -22,6 +22,15 @@ export const RUTA_PRODUCTO = '/catalogo/:productoId';
 
 export const rutaProducto = (id: number): string => `${RUTAS.catalogo}/${id}`;
 
+/** Checkout de C-19: sub-rutas solo para `CLIENT`, fuera de `RUTAS` y `ACCESO_RUTAS` (no son secciones de navegación). */
+export const RUTA_FINALIZAR_COMPRA = '/finalizar-compra';
+export const RUTA_PEDIDO_CREADO = '/finalizar-compra/pedido/:pedidoId';
+/** Punto de traspaso al pago con tarjeta: pantalla provisoria hasta que C-20 la implemente. */
+export const RUTA_PAGO_PEDIDO = '/finalizar-compra/pedido/:pedidoId/pago';
+
+export const rutaPedidoCreado = (id: number): string => `${RUTA_FINALIZAR_COMPRA}/pedido/${id}`;
+export const rutaPagoPedido = (id: number): string => `${rutaPedidoCreado(id)}/pago`;
+
 export type Ruta = (typeof RUTAS)[keyof typeof RUTAS];
 
 /** Quién puede abrir una ruta: todos, solo visitantes sin sesión, cualquier usuario con sesión o ciertos roles. */

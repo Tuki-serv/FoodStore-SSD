@@ -1,0 +1,34 @@
+/* Página Pedido creado: reglas aprobadas en los mockups de C-19 (design-system Revision 2). Solo tokens. */
+@layer components {
+  .done{max-width:880px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-5)}
+  .done-head{display:flex;gap:var(--space-4);align-items:center}
+  .done-head .badge-ico{width:56px;height:56px;border-radius:50%;background:var(--color-success-bg);color:var(--color-success);display:grid;place-items:center;flex:none}
+  .done-head .badge-ico .ico{width:30px;height:30px;stroke-width:2}
+  .done-head h1{font-size:var(--text-2xl)}
+  .done-head p{color:var(--color-text-muted);margin:0}
+  .done-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--space-5);align-items:start}
+  .done-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+  .pcard{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+  .pcard h2{font-size:var(--text-lg)}
+  .kv{display:grid;grid-template-columns:140px minmax(0,1fr);gap:var(--space-2) var(--space-4);margin:0}
+  .kv dt{color:var(--color-text-muted);font-size:var(--text-sm);font-weight:600}
+  .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+  .entrega-skel{display:block;height:48px;max-width:320px}
+  .next{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-3);counter-reset:paso}
+  .next li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:var(--space-3);align-items:start;counter-increment:paso}
+  .next li::before{content:counter(paso);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--color-primary-soft);color:var(--color-primary-hover)}
+  .next li.is-now::before{background:var(--state-pendiente-bg);color:var(--state-pendiente-fg)}
+  .next li strong{display:block}
+  .next li span{color:var(--color-text-muted);font-size:var(--text-sm)}
+  .handoff{border:2px solid var(--color-primary);background:var(--color-primary-soft)}
+  .handoff p{color:var(--color-text);margin:0}
+  .done-actions{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+  @media (max-width:1023.98px){.done-grid{grid-template-columns:1fr}}
+  @media (max-width:719.98px){
+    .kv{grid-template-columns:1fr;gap:2px}
+    .kv dd{margin-bottom:var(--space-2)}
+    .done-head{align-items:flex-start}
+    .done-head .badge-ico{width:48px;height:48px}
+    .done-actions > *{flex:1 1 100%}
+  }
+}

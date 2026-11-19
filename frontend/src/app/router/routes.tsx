@@ -7,14 +7,19 @@ import { AdminProductosPage } from '@/pages/admin-productos';
 import { CarritoPage } from '@/pages/carrito';
 import { CatalogoPage } from '@/pages/catalogo';
 import { DireccionesPage } from '@/pages/direcciones';
+import { FinalizarCompraPage } from '@/pages/finalizar-compra';
 import { ErrorPage } from '@/pages/error';
 import { NotFoundPage } from '@/pages/not-found';
+import { PedidoCreadoPage } from '@/pages/pedido-creado';
 import { PlaceholderPage } from '@/pages/placeholder';
 import { ProductoPage } from '@/pages/producto';
-import { ACCESO_RUTAS, RUTA_PRODUCTO, RUTAS, type Ruta } from '@/shared/config';
+import { ACCESO_RUTAS, RUTA_FINALIZAR_COMPRA, RUTA_PAGO_PEDIDO, RUTA_PEDIDO_CREADO, RUTA_PRODUCTO, RUTAS, type Acceso, type Ruta } from '@/shared/config';
 import { FUTURO_ROUTER } from './future';
 import { RequiereAcceso } from './requiere-acceso';
 import { MAPA_RUTAS } from './route-map';
+
+/** El checkout solo lo abre un cliente (el backend exige `CLIENT` para crear y pagar pedidos). */
+const ACCESO_CLIENTE: Acceso = { roles: ['CLIENT'] };
 
 /** Pantallas reales por ruta: cada change visual agrega su línea; las rutas sin entrada usan `PlaceholderPage`. */
 const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
@@ -51,6 +56,10 @@ export const routes: RouteObject[] = [
             };
           }),
           { path: RUTA_PRODUCTO, element: <RequiereAcceso acceso="publica"><ProductoPage /></RequiereAcceso> },
+          // Checkout (C-19): solo clientes; fuera del mapa de navegación. La ruta de pago es provisoria hasta C-20.
+          { path: RUTA_FINALIZAR_COMPRA, element: <RequiereAcceso acceso={ACCESO_CLIENTE}><FinalizarCompraPage /></RequiereAcceso> },
+          { path: RUTA_PEDIDO_CREADO, element: <RequiereAcceso acceso={ACCESO_CLIENTE}><PedidoCreadoPage /></RequiereAcceso> },
+          { path: RUTA_PAGO_PEDIDO, element: <RequiereAcceso acceso={ACCESO_CLIENTE}><PlaceholderPage title="Pago" owner="C-20" /></RequiereAcceso> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
