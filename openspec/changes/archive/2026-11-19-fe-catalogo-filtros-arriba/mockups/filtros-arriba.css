@@ -1,0 +1,36 @@
+/* fe-catalogo-filtros-arriba: barra de filtros superior en escritorio. Solo tokens existentes (Revision 2).
+   Se carga despues de mockup.css (copiado sin cambios de C-16b). */
+
+/* Sin columna lateral: los resultados ocupan todo el ancho. Buscador y barras separados como en la app (hermanos en .cat-main) */
+#barra{display:flex;flex-direction:column;gap:var(--space-4)}
+.cat-layout{display:block}
+
+/* Barra de escritorio (>= 1024 px) */
+.desk-bar{display:flex;flex-direction:column;gap:var(--space-3)}
+.desk-row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap}
+.desk-row .cat-pills{display:flex;flex-wrap:wrap;gap:var(--space-2);flex:1;min-width:0}
+.desk-tools{display:flex;align-items:center;gap:var(--space-3);margin-left:auto}
+
+/* Fila de subcategorias: un escalon mas chica y en tono primario para leerse como hija de la raiz */
+.sub-row{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--color-surface-alt);border-radius:var(--radius-lg)}
+.sub-row .sub-label{font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted);margin-right:var(--space-1)}
+.pill.sub{min-height:34px;padding:0 var(--space-3);border-width:1px;font-weight:600}
+.pill.sub[aria-pressed=true]{background:var(--color-primary-soft);border-color:var(--color-primary);color:var(--color-primary-hover);font-weight:700}
+
+/* Boton «Precio» (misma forma que .pill) y su panel */
+.pop-wrap{position:relative}
+.pill.tool{display:inline-flex;align-items:center;gap:var(--space-2)}
+.pill.tool.is-active{border-color:var(--color-primary);color:var(--color-primary-hover);background:var(--color-primary-soft)}
+.pill.tool svg.chev{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform var(--motion-fast) var(--ease-out)}
+.pill.tool[aria-expanded=true] svg.chev{transform:rotate(180deg)}
+.popover{position:absolute;right:0;top:calc(100% + var(--space-2));z-index:20;width:320px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);animation:popin var(--motion-fast) var(--ease-out)}
+.popover h3{font-family:var(--font-sans);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted)}
+.popover .pop-actions{display:flex;justify-content:space-between;align-items:center;gap:var(--space-2)}
+@keyframes popin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.popover{animation:none}.pill.tool svg.chev{transition:none}}
+
+/* «Solo con stock» compacto (sin ayuda visible: queda como descripcion accesible) */
+.switch.compact{min-height:40px;gap:var(--space-2);font-size:var(--text-sm);white-space:nowrap}
+
+/* Debajo de 1024 px se ve la barra mobile de C-16b sin cambios */
+@media (max-width:1023.98px){.desk-bar{display:none}}
