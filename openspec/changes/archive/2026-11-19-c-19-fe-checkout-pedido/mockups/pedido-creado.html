@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-19 - Pedido creado (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-roles="CLIENT" data-current="">
+<script>
+/* Parámetros: ?forma=EFECTIVO (por defecto) | TRANSFERENCIA | MERCADOPAGO
+               ?estado=precios (el total del servidor difiere del estimado) | no-encontrado (404/403) | retiro (direccion_id null)
+               ?nav=collapsed | drawer (de mockup.js). El carrito ya se vació: contador 0. */
+(function () {
+  var q = new URLSearchParams(location.search), f = q.get('forma') || 'EFECTIVO', e = q.get('estado');
+  var t = { precios: 'aviso «Los precios se actualizaron»', 'no-encontrado': 'pedido no encontrado', retiro: 'retiro en el local' };
+  window.CFG = { count: 0, pageClass: 'page-wide', banner: 'Mockup C-19 · Pedido creado · ' + (e === 'no-encontrado' ? '' : f + (t[e] ? ' · ' : '')) + (t[e] || '') + ' · CLIENT · Revision 2 · pendiente de aprobación' };
+})();
+</script>
+<script src="../../../../design-system/brand.js"></script>
+<script src="checkout.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, ico = M.ico, q = M.params, est = M.estado;
+  var forma = q.get('forma') || 'EFECTIVO';
+
+  if (est === 'no-encontrado') {
+    M.llenar('contenido', '<div class="nf"><div class="state"><span class="badge-ico">' + ico('i-pedidos') + '</span>' +
+      '<h1>No encontramos este pedido</h1><p>Puede que el enlace esté mal o que el pedido no sea de tu cuenta.</p>' +
+      '<div class="actions"><a class="btn btn-primary" href="#/catalogo">Ver catálogo</a><a class="btn btn-secondary" href="#/mis-pedidos">Ver mis pedidos</a></div></div></div>');
+    return;
+  }
+
+  var id = forma === 'MERCADOPAGO' ? 58 : 57;
+  var precios = est === 'precios';
+  /* Respuesta del servidor (PedidoDetalle): subtotal con precios vigentes, envío 50.00, descuento 0.00 (DD-10). */
+  var hamb = precios ? '1600.00' : '1500.00';
+  var items = [
+    { n: 'Hamburguesa Clásica', c: 2, p: hamb, pers: 'Sin cebolla, sin tomate' },
+    { n: 'Coca-Cola 500ml', c: 1, p: '800.00', pers: null }
+  ];
+  var sub = items.reduce(function (s, i) { return s + M.aCent(i.p) * i.c; }, 0);
+  var total = sub + 5000;
+
+  var FORMAS = { MERCADOPAGO: ['Tarjeta (Mercado Pago)', 'i-tarjeta'], EFECTIVO: ['Efectivo', 'i-efectivo'], TRANSFERENCIA: ['Transferencia bancaria', 'i-transferencia'] };
+  var retiro = est === 'retiro';
+  var entrega = retiro
+    ? '<span class="pay-lbl">' + ico('i-tienda') + 'Retiro en el local</span>'
+    : '<strong>Casa</strong><br>Av. San Martín 1234, piso 3, depto. B<br><span class="addr-sub">Mendoza, Mendoza · CP 5500</span>';
+
+  var lista = items.map(function (i) {
+    return '<li><span class="q">' + i.c + ' ×</span><span class="n">' + i.n + (i.pers ? '<small>' + i.pers + '</small>' : '') + '</span><span>' + M.precio(M.deCent(M.aCent(i.p) * i.c)) + '</span></li>';
+  }).join('');
+
+  var head = forma === 'MERCADOPAGO'
+    ? '<div class="done-head"><span class="badge-ico">' + ico('i-ok') + '</span><div><h1>Pedido #' + id + ' recibido</h1><p>Falta un paso: pagalo con tarjeta para que se confirme.</p></div></div>'
+    : '<div class="done-head"><span class="badge-ico">' + ico('i-ok') + '</span><div><h1>Pedido #' + id + ' recibido</h1><p>Lo vas a poder seguir desde «Mis pedidos».</p></div></div>';
+
+  var aviso = precios
+    ? '<div class="info-box warn" role="status">' + ico('i-alerta') + '<div><strong>Los precios se actualizaron</strong>El total quedó en ' + M.precio(M.deCent(total)) + ' (estimado: $ 3.850) porque algún producto cambió de precio. Si no te sirve, podés cancelar el pedido desde «Mis pedidos» mientras esté pendiente.</div></div>'
+    : '';
+
+  var siguiente;
+  if (forma === 'MERCADOPAGO') {
+    siguiente = '<section class="card handoff" aria-labelledby="pago-t"><h2 id="pago-t">Falta el pago</h2>' +
+      '<p>El pedido queda <b>pendiente</b> hasta que Mercado Pago apruebe el pago. Vas a cargar la tarjeta en un formulario seguro: no guardamos sus datos.</p>' +
+      '<a class="btn btn-primary btn-block" href="pago-provisorio.html">' + ico('i-tarjeta') + 'Pagar ' + M.precio(M.deCent(total)) + ' con tarjeta</a></section>';
+  } else {
+    var manual = forma === 'EFECTIVO' ? 'El local confirma tu pago en efectivo' : 'Transferí y el local confirma el pago';
+    var detalle = forma === 'EFECTIVO' ? 'Pagás al recibirlo o al retirarlo. Mientras tanto, el pedido figura como pendiente.' : 'El local te indica los datos para transferir. Cuando acredite el pago, lo confirma a mano.';
+    siguiente = '<section class="card" aria-labelledby="sig-t"><h2 id="sig-t">¿Qué sigue?</h2><ol class="next">' +
+      '<li class="is-now"><div><strong>' + manual + '</strong><span>' + detalle + '</span></div></li>' +
+      '<li><div><strong>El pedido pasa a «Confirmado» y se prepara</strong><span>La confirmación es manual: la hace el equipo del local, no es automática.</span></div></li>' +
+      '<li><div><strong>Seguilo en «Mis pedidos»</strong><span>Vas a ver cada cambio de estado hasta la entrega.</span></div></li></ol></section>';
+  }
+
+  var stock = '<p class="sum-note">' + ico('i-alerta') + '<span>Si algún producto se agota antes de que se confirme, el pedido puede cancelarse por falta de stock.</span></p>';
+
+  M.llenar('contenido',
+    '<div class="done">' + head + aviso +
+    '<div class="done-grid"><div style="display:flex;flex-direction:column;gap:var(--space-5);min-width:0">' + siguiente +
+      '<section class="card" aria-labelledby="det-t"><h2 id="det-t">Detalle</h2><dl class="kv">' +
+        '<dt>Estado</dt><dd><span class="badge b-pendiente">Pendiente</span></dd>' +
+        '<dt>Entrega</dt><dd>' + entrega + '</dd>' +
+        '<dt>Forma de pago</dt><dd><span class="pay-lbl">' + ico(FORMAS[forma][1]) + FORMAS[forma][0] + '</span></dd>' +
+      '</dl></section></div>' +
+      '<aside class="summary" aria-labelledby="res-t"><h2 id="res-t">Pedido #' + id + '</h2><ul class="sum-items" aria-label="Productos del pedido">' + lista + '</ul>' +
+        '<div class="line"><span>Subtotal</span><span>' + M.precio(M.deCent(sub)) + '</span></div>' +
+        '<div class="line"><span>Costo de envío</span><span>$ 50</span></div>' +
+        '<div class="line"><span>Descuento</span><span>$ 0</span></div>' +
+        '<div class="total"><span>Total</span><span>' + M.precio(M.deCent(total)) + '</span></div>' + stock + '</aside></div>' +
+    '<div class="done-actions"><a class="btn btn-secondary" href="#/mis-pedidos">' + ico('i-pedidos') + 'Ver mis pedidos</a><a class="btn btn-ghost" href="#/catalogo">Seguir comprando</a></div>' +
+    '</div>');
+})();
+</script>
+</body>
+</html>

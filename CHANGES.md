@@ -55,7 +55,7 @@ C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        ├── C-15 ✓ fe-direcciones
        ├── C-16b ✓ fe-catalogo-publico (+C-16a)
        │     └── C-18 ✓ fe-carrito-personalizacion
-       │           └── C-19 fe-checkout-pedido (+C-10, C-11, C-15)
+       │           └── C-19 ✓ fe-checkout-pedido (+C-10, C-11, C-15)
        │                 ├── C-20 fe-pago-mercadopago (+C-12)
        │                 └── C-21 fe-mis-pedidos-seguimiento (+C-11)
        ├── C-17a ✓ fe-admin-categorias-ingredientes (+C-08)
@@ -137,7 +137,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 7 | C-25a ✓ | — | C-13b |
 | 8 | C-16a ✓ → C-17a ✓ | C-15 | C-14 + C-16b ✓ |
 | 9 | C-17b ✓ | C-22 | C-18 ✓ |
-| 10 | C-23 | C-24 | C-19 |
+| 10 | C-23 | C-24 | C-19 ✓ |
 | 11 | — | C-20 | C-21 |
 | 12 | C-25b | C-25b | C-25b |
 
@@ -533,7 +533,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/09_decisiones_y_supuestos.md` (DD-03, DD-05)
 
 ### [C-19] `fe-checkout-pedido`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-19). Apply completo (35/35 tareas; frontend 986/986 tests, lint y typecheck limpios; sin cambios de backend). Mockups y OQ-1..OQ-6 (por defecto) aprobados por el usuario el 2026-11-19. Verify visual: passed (ver `design.md`). Archivado en `openspec/changes/archive/2026-11-19-c-19-fe-checkout-pedido/`; spec principal nueva `frontend-checkout`, y `frontend-cart` ampliada (Página del carrito).
 - **Scope**:
   - US-017: elegir dirección (o retiro en local) y forma de pago; crear pedido PENDIENTE en una transacción; manejo de errores (no disponible, sin stock, forma de pago deshabilitada, líneas duplicadas).
   - Mensajes de stock según DD-20: al crear solo se **verifica** disponibilidad y stock (el stock se descuenta recién al confirmarse el pedido); si el producto se agota antes de pagar, el cliente lo ve al intentar pagar o al cancelarse el pedido por «sin stock».
@@ -559,6 +559,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Tests: aprobado, rechazado, reintento (MP mockeado).
   - **Heredado de C-12** (2026-11-17): el backend cobra por la Orders API (DD-26). El pedido a `POST /api/v1/pagos/crear` exige `payment_type_id` (`credit_card`/`debit_card`), que el brick entrega en `additionalData.paymentTypeId`; `issuer_id` se acepta pero no se envía a MercadoPago; los estados de MercadoPago son los de la orden (`processed`, `failed`, `processing`, `action_required`) y `mp_payment_id` es texto. La página `sandbox/pago-prueba.html` del change archivado sirve de referencia del contrato. Para probar: aplicación creada como Checkout API con «API de Orders», credenciales `APP_USR-` de la cuenta vendedora de prueba, email de una cuenta compradora de prueba y webhook del panel con el evento «Order (Mercado Pago)».
   - Punto de partida (C-13b): `paymentStore` ya existe en memoria (`@/entities/payment`: `iniciar(pedidoId)`, `registrarResultado`, `registrarError`, `reset`, estados `inactivo|procesando|aprobado|rechazado|pendiente|error`); falta el flujo del brick y la pantalla de resultado.
+  - Punto de partida (C-19): la confirmación `MERCADOPAGO` `PENDIENTE` enlaza «Pagar $ X con tarjeta» a `/finalizar-compra/pedido/:pedidoId/pago` (`rutaPagoPedido(id)`), hoy una página provisoria (`PlaceholderPage`, dueño `C-20`, solo `CLIENT`): C-20 reemplaza esa página en `app/router/routes.tsx` sin cambiar la ruta. `pedidoQueries.detalle(id)` (`@/entities/pedido`) devuelve el `PedidoDetalle` con `total` (string decimal) y `estado_codigo`; tras crear el pedido ya está en la caché. El carrito ya está **vacío** cuando se llega al pago (se vacía al crear el pedido para cualquier forma de pago, OQ-3): el reintento de pago es sobre el pedido, no sobre el carrito. Si el pago se aprueba, invalidar `pedidoQueries.detalle(id)` y `pedidoQueries.todas()`.
 - **Dependencias**: `C-19, C-12`
 - **Governance**: CRITICO
 - **UI**: `[UI-MOCKUP]` pantalla de pago y resultados.
@@ -574,6 +575,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - US-018 listado paginado y detalle propio (snapshots, totales), timeline de estados con polling 30 s (WebSocket queda en C-27).
   - US-019 cancelar mi pedido (solo PENDIENTE/CONFIRMADO, motivo obligatorio).
   - Tests: timeline, cancelación.
+  - Punto de partida (C-19): existe `src/entities/pedido/` con `pedidoQueries.todas()` (`['pedidos']`, que `useCrearPedido` invalida al crear un pedido: el listado se vuelve a pedir al abrirlo), `pedidoQueries.detalle(id)` (`GET /pedidos/{id}`), los tipos `PedidoDetalle`/`DetallePedido`, `BadgeEstado`/`etiquetaEstado`/`claseEstado` (estados `PENDIENTE`…`CANCELADO`), `EtiquetaFormaPago` y `FORMAS_PAGO`. La confirmación `/finalizar-compra/pedido/:id` enlaza «Ver mis pedidos» a `/mis-pedidos` (hoy provisoria, dueño `C-21`). Falta el listado paginado (`pedidoQueries.lista`), el timeline, la cancelación y el seguimiento.
 - **Dependencias**: `C-19, C-11`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` mis pedidos, detalle y timeline.
@@ -651,6 +653,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Verificación visual contra mockups aprobados.
   - **Heredado de C-13a** (menores del verify 2026-11-15): favicon (hoy `/favicon.ico` da 404 en consola); accesibilidad del drawer mobile (`role="dialog"`/`aria-modal`, trampa de foco, contenido `inert` detrás del scrim); test que exija `index.ts` en cada slice/segmento FSD; título del 404 en mobile (una línea en la app, dos en el mockup); decidir si se quita la escala por defecto de Tailwind (hoy `h-10` sale como `2.5rem` literal, fuera de los tokens); sumar los íconos `obra`, `brujula` y `alerta` al sprite de `design-system/components.html` (cambio visual del design system: requiere revisión del usuario); test de `readConfig` con valor vacío que no distingue del caso URL inválida; imagen de producción del frontend (el Dockerfile actual es solo servidor de desarrollo).
   - **Heredado de C-15** (deuda sugerida, 2026-11-17): índice único parcial de `es_principal` (`WHERE es_principal AND deleted_at IS NULL`, por usuario) en `direcciones`, porque la regla «solo una principal» (RN-DI-01) la garantiza solo el service y dos `PATCH /direcciones/{id}/principal` simultáneos podrían dejar dos principales (R3; requiere migración Alembic, governance BAJO); sumar al sprite de `design-system/components.html` los íconos `editar`, `basura`, `estrella`, `mas` y `tienda` que usa el frontend (cambio visual del design system: requiere revisión del usuario); decidir con OQ-1 de C-15 si al eliminar la principal el backend promueve otra.
+  - **Heredado de C-19** (deuda de backend detectada, 2026-11-19; el frontend la compensa): R1 `POST /pedidos/` devuelve todos sus rechazos como `HTTP_400`/`HTTP_404` sin código estable ni línea afectada (el frontend clasifica por el texto de `detail` en `clasificarErrorCreacion`); sumar `ErrorCode` estables (`PRODUCT_NOT_FOUND`, `PRODUCT_UNAVAILABLE`, `PAYMENT_METHOD_UNAVAILABLE`, `DUPLICATE_ITEM`) con `field` y el `producto_id` afectado y simplificar el clasificador; R2 sin idempotencia de creación (un timeout tras el commit + «Reintentar» puede crear dos pedidos `PENDIENTE`); R3 `direccion_id` no se valida (inexistente o de otro usuario → FK/500 o pedido a dirección ajena); R4 los ids de `personalizacion` no se validan como ingredientes removibles del producto; además no hay endpoint que liste las formas de pago habilitadas (el frontend usa un catálogo local, OQ-2) y no hay datos bancarios en el sistema para la transferencia (OQ-5).
 - **Dependencias**: `C-01 a C-24, C-25a`
 - **Governance**: MEDIO
 - **Decisión pendiente**: PA-16, PA-17, PA-18
@@ -720,7 +723,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 17 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 21** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-25a). **Pendientes obligatorios: 8** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 22** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-25a). **Pendientes obligatorios: 7** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
