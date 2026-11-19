@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-17b - Productos y stock (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-current="productos">
+<main class="page wide" id="main">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Productos y stock</h1>
+      <p id="bajada">Cargá productos con sus categorías e ingredientes y mantené el stock y la disponibilidad al día.</p>
+    </div>
+    <button class="btn btn-primary" type="button" id="btn-nuevo"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nuevo producto</button>
+  </div>
+  <form class="toolbar ptools" role="search" onsubmit="return false">
+    <div class="search">
+      <svg class="ico" aria-hidden="true"><use href="#i-buscar"/></svg>
+      <label class="sr-only" for="q">Buscar productos por nombre</label>
+      <input id="q" class="input" type="search" placeholder="Buscar por nombre">
+    </div>
+    <div class="tool-row">
+      <label class="sr-only" for="cat">Categoría</label>
+      <select id="cat" class="input"></select>
+      <div class="seg" role="group" aria-label="Filtrar por disponibilidad" id="filtro">
+        <button type="button" aria-pressed="true">Todos</button>
+        <button type="button" aria-pressed="false">Disponibles</button>
+        <button type="button" aria-pressed="false">No disponibles</button>
+      </div>
+    </div>
+  </form>
+  <p class="admin-summary" id="resumen" role="status"></p>
+  <div id="contenido"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="admin.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: vista ADMIN con el seed + «Burger Doble» recién creada (toast).
+   ?rol=stock: vista STOCK (sin «Nuevo producto», «Editar» ni «Eliminar»).
+   ?estado=stock (usar con ?rol=stock): estados de fila: stock editado, stock inválido, interruptor guardando, toast.
+   ?estado=carga | ?estado=vacio (búsqueda sin resultados) | ?estado=error */
+(function () {
+  var M = MOCK, $ = function (id) { return document.getElementById(id); };
+  var botones = document.querySelectorAll('#filtro button');
+  function filtro(i) { botones.forEach(function (b, k) { b.setAttribute('aria-pressed', String(k === i)); }); }
+  $('cat').innerHTML = M.opcionesCategoria('');
+  if (M.rol === 'STOCK') {
+    $('btn-nuevo').remove();
+    $('bajada').textContent = 'Actualizá el stock y la disponibilidad de cada producto.';
+  }
+  var noDisp = M.PRODUCTOS.filter(function (p) { return !p.disp; }).length;
+  function resumen(n) { M.llenar('resumen', '<strong>' + n + ' productos</strong> · ' + noDisp + ' no disponible'); }
+
+  if (M.estado === 'carga') {
+    M.banner('Mockup C-17b · Productos y stock: cargando');
+    $('resumen').hidden = true;
+    M.llenar('contenido', M.esqueleto(6));
+  } else if (M.estado === 'vacio') {
+    M.banner('Mockup C-17b · Productos y stock: la búsqueda «pizza» no trajo resultados');
+    $('q').value = 'pizza';
+    M.llenar('resumen', '<strong>0 productos</strong> para «pizza»');
+    M.llenar('contenido', M.estadoVista('vacio', 'i-buscar', 'No encontramos productos con esos filtros',
+      'Probá con otro nombre o quitá los filtros de categoría y disponibilidad.',
+      '<button class="btn btn-secondary" type="button">Limpiar filtros</button>'));
+    M.nota('sin filtros y sin datos: «Todavía no hay productos» + «Nuevo producto» (ADMIN) · URL: ?q=pizza');
+  } else if (M.estado === 'error') {
+    M.banner('Mockup C-17b · Productos y stock: falló la carga');
+    $('resumen').hidden = true;
+    M.llenar('contenido', M.estadoVista('error', 'i-alerta', 'No pudimos cargar los productos',
+      'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.',
+      '<button class="btn btn-secondary" type="button">' + M.ico('i-reintentar') + 'Reintentar</button>'));
+  } else if (M.estado === 'stock') {
+    M.banner('Mockup C-17b · Stock y disponibilidad en la fila: editado, inválido, guardando');
+    resumen(M.PRODUCTOS.length);
+    M.llenar('contenido', M.listaProductos(M.PRODUCTOS, {
+      1: { valor: '48' },
+      3: { stock: 'editado', valor: '12' },
+      4: { stock: 'error', valor: '-1' },
+      5: { disp: 'guardando', dispValor: false }
+    }));
+    M.toast('Stock actualizado', '«Hamburguesa Clásica» · 48 unidades');
+    M.nota('Burger Vegana: valor cambiado → «Guardar» habilitado (Enter también guarda) · Burger Sin TACC: -1 no se envía · Coca-Cola: interruptor esperando la respuesta (no optimista) · si falla, vuelve al valor anterior con un aviso de error');
+  } else if (M.rol === 'STOCK') {
+    M.banner('Mockup C-17b · Productos y stock, vista del rol STOCK (sin ADMIN)');
+    resumen(M.PRODUCTOS.length);
+    M.llenar('contenido', M.listaProductos(M.PRODUCTOS));
+    M.nota('STOCK ve también los no disponibles (Limonada) · solo edita stock y disponibilidad: sin alta, edición ni baja');
+  } else {
+    M.banner('Mockup C-17b · Productos del seed + «Burger Doble» recién creada · usuaria ADMIN (ejemplo)');
+    var items = M.PRODUCTOS.concat([{ id: 7, nombre: 'Burger Doble', cat: 'Hamburguesas', precio: '$ 2.500', stock: 10, disp: true, ings: 4, al: 2 }]);
+    resumen(items.length);
+    M.llenar('contenido', M.listaProductos(items, { 7: { nuevo: true } }));
+    M.toast('Producto creado', '«Burger Doble» · ya se ve en el catálogo');
+    M.nota('20 por página en el orden del servidor · búsqueda (al enviar), categoría, disponibilidad y página en la URL');
+  }
+})();
+</script>
+</body>
+</html>

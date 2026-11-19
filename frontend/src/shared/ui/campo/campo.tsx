@@ -16,6 +16,8 @@ export interface CampoProps {
   error?: string;
   /** Contador a la derecha de la etiqueta (por ejemplo, «12/100»); decorativo para lectores de pantalla. */
   contador?: string;
+  /** Marca junto a la etiqueta (por ejemplo, «Alérgeno»); a diferencia del contador, la leen los lectores de pantalla. */
+  marca?: ReactNode;
   /** Clase del contenedor (por ejemplo, columnas de una grilla). */
   className?: string;
   /** Dibuja el control con las propiedades de accesibilidad que le corresponden. */
@@ -23,7 +25,7 @@ export interface CampoProps {
 }
 
 /** Etiqueta + control + ayuda + error, con `aria-invalid` y `aria-describedby` coherentes (design system: `.field`). */
-export function Campo({ etiqueta, opcional = false, ayuda, error, contador, className, children }: CampoProps) {
+export function Campo({ etiqueta, opcional = false, ayuda, error, contador, marca, className, children }: CampoProps) {
   const id = useId();
   const idAyuda = `${id}-ayuda`;
   const idError = `${id}-error`;
@@ -35,14 +37,17 @@ export function Campo({ etiqueta, opcional = false, ayuda, error, contador, clas
   };
   return (
     <div className={className === undefined ? 'field' : `field ${className}`}>
-      {contador === undefined ? (
+      {contador === undefined && marca === undefined ? (
         etiquetaDe(id, etiqueta, opcional)
       ) : (
         <div className="label-row">
           {etiquetaDe(id, etiqueta, opcional)}
-          <span className="counter" aria-hidden="true">
-            {contador}
-          </span>
+          {marca}
+          {contador === undefined ? null : (
+            <span className="counter" aria-hidden="true">
+              {contador}
+            </span>
+          )}
         </div>
       )}
       {children(control)}

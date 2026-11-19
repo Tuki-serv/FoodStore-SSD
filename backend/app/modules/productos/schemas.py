@@ -1,6 +1,6 @@
 from decimal import Decimal
 from typing import Optional, List
-from pydantic import ConfigDict
+from pydantic import ConfigDict, field_validator
 from sqlmodel import SQLModel, Field
 
 
@@ -50,7 +50,30 @@ class ProductoIngredienteCreate(SQLModel):
     es_removible: bool = Field(default=False, description="Indica si el cliente puede remover este ingrediente")
 
 
-class ProductoCreate(ProductoBase):
+def _sin_repetidos(valores: Optional[list], etiqueta: str) -> None:
+    if valores is not None and len(set(valores)) != len(valores):
+        raise ValueError(f"{etiqueta} no puede tener elementos repetidos")
+
+
+class _ListasUnicasMixin(SQLModel):
+    """Validación compartida por alta y edición: sin categorías ni ingredientes repetidos (422)."""
+
+    @field_validator("categoria_ids", check_fields=False)
+    @classmethod
+    def _categorias_unicas(cls, valores: Optional[list[int]]) -> Optional[list[int]]:
+        _sin_repetidos(valores, "categoria_ids")
+        return valores
+
+    @field_validator("ingredientes", check_fields=False)
+    @classmethod
+    def _ingredientes_unicos(
+        cls, valores: Optional[list[ProductoIngredienteCreate]]
+    ) -> Optional[list[ProductoIngredienteCreate]]:
+        _sin_repetidos(None if valores is None else [i.ingrediente_id for i in valores], "ingredientes")
+        return valores
+
+
+class ProductoCreate(_ListasUnicasMixin, ProductoBase):
     categoria_ids: list[int] = Field(
         ..., 
         min_length=1, 
@@ -62,7 +85,7 @@ class ProductoCreate(ProductoBase):
     )
 
 
-class ProductoUpdate(SQLModel):
+class ProductoUpdate(_ListasUnicasMixin):
     nombre: Optional[str] = Field(default=None, description="Nombre del producto", max_length=150)
     descripcion: Optional[str] = Field(default=None, description="Descripción del producto")
     unidad_venta_id: Optional[int] = Field(default=None, description="ID de la unidad de medida en la que se vende el producto")

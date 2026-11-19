@@ -158,7 +158,6 @@ function CuerpoFormulario({ ingrediente, unidades, onCancelar, onTerminar }: For
               <Campo etiqueta="Unidad de medida" className="c-2">
                 {(control) => (
                   <select {...control} className="input" name={campo.name} value={campo.state.value} onChange={(evento) => campo.handleChange(evento.target.value)}>
-                    {iniciales.unidad_medida_id === '' ? <option value="">Sin cambios</option> : null}
                     {unidades.map((unidad) => (
                       <option key={unidad.id} value={String(unidad.id)}>
                         {etiquetaUnidad(unidad)}

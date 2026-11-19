@@ -59,7 +59,7 @@ C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        │                 ├── C-20 fe-pago-mercadopago (+C-12)
        │                 └── C-21 fe-mis-pedidos-seguimiento (+C-11)
        ├── C-17a ✓ fe-admin-categorias-ingredientes (+C-08)
-       │     └── C-17b fe-admin-productos-stock (+C-08)
+       │     └── C-17b ✓ fe-admin-productos-stock (+C-08)
        ├── C-22 fe-gestion-operativa-pedidos (+C-09, C-11)
        │     └── C-24 fe-dashboard-metricas
        └── C-23 fe-admin-usuarios-roles (+C-08)
@@ -105,7 +105,7 @@ GATE 5: C-13b ✓                                         ← FORK
   → C-14 fe-auth-cuenta                       [Agente C]
   → C-16b ✓ fe-catalogo-publico               [Agente C — si C-16a ✓]
   → C-15 ✓ fe-direcciones                     [Agente B]
-  → C-17a ✓ fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b
+  → C-17a ✓ fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b ✓
   → C-22 fe-gestion-operativa-pedidos         [Agente B — si C-09, C-11 ✓]
   → C-23 fe-admin-usuarios-roles              [Agente A — si C-08 ✓]
 
@@ -136,7 +136,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 6 | C-10 ✓ | C-12 ✓ | C-11 ✓ |
 | 7 | C-25a ✓ | — | C-13b |
 | 8 | C-16a ✓ → C-17a ✓ | C-15 | C-14 + C-16b ✓ |
-| 9 | C-17b | C-22 | C-18 |
+| 9 | C-17b ✓ | C-22 | C-18 |
 | 10 | C-23 | C-24 | C-19 |
 | 11 | — | C-20 | C-21 |
 | 12 | C-25b | C-25b | C-25b |
@@ -496,15 +496,15 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/04_modelo_de_datos.md` (Categoria, Ingrediente)
 
 ### [C-17b] `fe-admin-productos-stock`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-18). Verify: PASS (backend 1706 tests, frontend 780/780, lint y typecheck limpios). Verify visual: passed tras corregir la marca «Alérgeno» de la fila de ingredientes; diferencias menores anotadas en el design. Incluye el arreglo de backend de `unidad_medida_id` en ingredientes y del bug de C-11 (productos con ingredientes). Archivado en `openspec/changes/archive/2026-11-18-c-17b-fe-admin-productos-stock/`; specs principales nuevas `ingredient-measure-unit` y `product-ingredients`, y `frontend-admin-catalog` ampliada.
 - **Scope**:
   - US-010 productos (ADMIN/STOCK; `disponible` por PATCH), US-012 stock (rol STOCK limitado a stock/disponibilidad).
   - Vistas condicionadas por rol (RBAC alineado con C-08).
   - Imágenes y unidades de medida (US-013, US-014) quedan en C-28.
   - Tests: permisos por rol en UI, CRUD de productos, actualización de stock/disponibilidad.
   - Punto de partida (C-08): contratos de inventario: `PATCH /productos/{id}/disponibilidad` con body `{"disponible": bool}` (idempotente) y `PATCH /productos/{id}/stock` con `{"stock_cantidad": int>=0}` (absoluto), ambos ADMIN/STOCK; STOCK ve productos no disponibles pero no eliminados.
-  - Punto de partida (C-17a): `src/entities/ingrediente/` (`ingredienteQueries.lista`, `useCrearIngrediente`/`useEditarIngrediente`/`useEliminarIngrediente`, `resumenUso`) y `src/entities/unidad-medida/` (`unidadMedidaQueries.todas`, `etiquetaUnidad`) ya existen; las mutaciones de categorías e ingredientes invalidan `['categorias']`/`['ingredientes']` y `['productos']`. Componentes compartidos: `shared/ui/estados`, `shared/ui/dialogo-baja`, `shared/ui/lista-admin` (CSS). El backend aún no devuelve `unidad_medida_id` en `GET /ingredientes/`.
-  - Bug conocido (C-11): `POST /productos/` con `ingredientes` inline responde 500 (`ProductoService.create` no copia `cantidad` ni `unidad_medida_id` a `ProductoIngrediente`); `POST /productos/{id}/ingredientes` sí funciona.
+  - Punto de partida (C-17a): `src/entities/ingrediente/` (`ingredienteQueries.lista`, `useCrearIngrediente`/`useEditarIngrediente`/`useEliminarIngrediente`, `resumenUso`) y `src/entities/unidad-medida/` (`unidadMedidaQueries.todas`, `etiquetaUnidad`) ya existen; las mutaciones de categorías e ingredientes invalidan `['categorias']`/`['ingredientes']` y `['productos']`. Componentes compartidos: `shared/ui/estados`, `shared/ui/dialogo-baja`, `shared/ui/lista-admin` (CSS). (C-17b: el backend ya devuelve `unidad_medida_id` en las lecturas de ingrediente y `PATCH /ingredientes/{id}` lo acepta.)
+  - Bug conocido (C-11): `POST /productos/` con `ingredientes` inline respondía 500 (`ProductoService.create` no copiaba `cantidad` ni `unidad_medida_id`). **Resuelto en este change** (DT-27, sin migración): alta/edición/`POST /{id}/ingredientes` comparten `_vincular_ingrediente`; ids repetidos → 422, unidad o ingrediente inexistente → 404.
 - **Dependencias**: `C-17a, C-08`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` pantallas de administración de productos y stock.
@@ -523,6 +523,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - **Heredado de C-13a**: contador de ítems del carrito en el panel lateral y en la barra superior mobile (clase `.count` del design system; C-13a no lo portó porque no hay `cartStore`).
   - Punto de partida (C-13b): `cartStore` ya existe y persiste (`@/entities/cart`: `agregar`, `fijarCantidad`, `quitar`, `vaciar`, `selectTotalItems`, `selectTotalPrecio`, `selectLinea`; clave `foodstore.cart`, sobrevive al logout); `uiStore` ya tiene `cartOpen`/`abrirCarrito`/`cerrarCarrito`, `toasts` y `confirmModal` (solo estado: este change dibuja lo que use). Falta la UI del carrito, la personalización visual y el contador del panel.
   - Punto de partida (C-16b): `TarjetaProducto` (`@/entities/producto`) acepta un slot `accion`; `BotonAgregarAlCarrito` vive en `@/features/agregar-al-carrito` (anónimo → `/ingresar` con `state.desde`; autenticado → `cartStore.agregar` + toast); `productoQueries.detalle(id)` trae el producto con ingredientes y `es_removible` disponible para la personalización; `formatearPrecio` formatea importes (`$ 1.250,50`). El carrito NO valida el stock acumulado (R4: sumar varias veces puede superar el stock; lo valida el backend al crear el pedido). El panel lateral aún no tiene contador de ítems (heredado de C-13a, sigue pendiente aquí).
+  - Punto de partida (C-17b): `src/entities/producto/` expone `productoGestionQueries` (claves `productos-gestion`, distintas de las del catálogo público `productos`) y las mutaciones `useCrearProducto`/`useEditarProducto`/`useEliminarProducto`/`useFijarStock`/`useFijarDisponibilidad`, que invalidan `['productos-gestion']` y `['productos']`. `es_removible` ya es editable por producto-ingrediente (`PUT /productos/{id}` con `ingredientes` reemplaza la lista) y `GET /productos/{id}/ingredientes` lo devuelve junto con `cantidad` y `unidad_medida_id`; ya no hay 500 en el alta con ingredientes.
 - **Dependencias**: `C-16b`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` drawer/página de carrito y selector de personalización.
@@ -718,7 +719,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 17 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (13): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 19** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-16a, C-16b, C-17a, C-25a). **Pendientes obligatorios: 10** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
+**Total: 32 changes** (28 originales; C-13, C-16, C-17 y C-25 partidos en dos). **Cerrados: 20** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-15, C-16a, C-16b, C-17a, C-17b, C-25a). **Pendientes obligatorios: 9** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2.
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

@@ -3,6 +3,7 @@ import type { ComponentType } from 'react';
 import { ShellConSesion } from '@/app/layouts/app-shell';
 import { AdminCategoriasPage } from '@/pages/admin-categorias';
 import { AdminIngredientesPage } from '@/pages/admin-ingredientes';
+import { AdminProductosPage } from '@/pages/admin-productos';
 import { CatalogoPage } from '@/pages/catalogo';
 import { DireccionesPage } from '@/pages/direcciones';
 import { ErrorPage } from '@/pages/error';
@@ -20,6 +21,7 @@ const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
   [RUTAS.direcciones]: DireccionesPage,
   [RUTAS.adminCategorias]: AdminCategoriasPage,
   [RUTAS.adminIngredientes]: AdminIngredientesPage,
+  [RUTAS.adminProductos]: AdminProductosPage,
 };
 
 /**

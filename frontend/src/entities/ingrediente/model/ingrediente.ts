@@ -4,11 +4,7 @@ export interface ProductoDeIngrediente {
   nombre: string;
 }
 
-/**
- * Ingrediente de `GET /ingredientes/` (`IngredienteReadFull`).
- * `unidad_medida_id` es opcional a propósito: el contrato de lectura actual del backend no lo expone (solo lo acepta el alta),
- * así que la UI muestra la unidad cuando llega y funciona sin ella.
- */
+/** Ingrediente de `GET /ingredientes/` (`IngredienteReadFull`); `unidad_medida_id` siempre viene (C-17b). */
 export interface Ingrediente {
   id: number;
   nombre: string;
@@ -16,7 +12,7 @@ export interface Ingrediente {
   es_alergeno: boolean;
   imagen_url: string | null;
   imagen_public_id: string | null;
-  unidad_medida_id?: number | null;
+  unidad_medida_id: number;
   productos: ProductoDeIngrediente[];
 }
 
