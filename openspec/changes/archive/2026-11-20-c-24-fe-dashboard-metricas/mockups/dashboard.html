@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-24 - Dashboard (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="dash.css">
+</head>
+<body data-roles="ADMIN CLIENT" data-current="dashboard">
+<main class="page page-dash" id="main">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Dashboard</h1>
+      <p>Cómo viene el negocio: ventas, productos y pedidos del período.</p>
+    </div>
+    <div id="marca"></div>
+  </div>
+  <div id="periodo"></div>
+  <div id="kpis"></div>
+  <div class="grilla" id="grilla"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="dash.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetros: 30 días por día con datos.
+   ?periodo=30d|7d|hoy|mes-actual|semana (01-15/11 por semana)|mes (jun-nov por mes)|vacio
+   ?estado=datos|cargando|vacio|error-bloque|tabla|actualizando   (&bloque=ventas|productos|estados|pagos para «tabla»)
+   ?error=invertido|largo (selector con rango inválido; los bloques siguen mostrando el último período válido) */
+(function () {
+  var D = DASH, q = D.params;
+  var estado = q.get('estado') || 'datos', error = q.get('error');
+  var clave = q.get('periodo') || (estado === 'vacio' ? 'vacio' : '30d');
+  var p = D.PERIODOS[clave] || D.PERIODOS['30d'];
+  var d = D.datos(p.desde, p.hasta, p.g);
+  if (estado === 'vacio') d = { serie: d.serie.map(function (s) { return { fecha: s.fecha, total: 0, n: 0 }; }), ventas: 0, ingresos: 0, ticket: 0 };
+  var MARCA = ' · ADMIN (Ana Gómez, ejemplo) · Revision 2 · pendiente de aprobación · «hoy» = 20/11/2026';
+  var activos = 9;
+
+  var titulos = {
+    datos: 'Mockup C-24 · Dashboard con datos · URL: ?desde=' + p.desde + '&hasta=' + p.hasta + '&agrupacion=' + p.g,
+    cargando: 'Mockup C-24 · Dashboard: cargando (esqueletos por bloque)',
+    vacio: 'Mockup C-24 · Dashboard: período sin ventas',
+    'error-bloque': 'Mockup C-24 · Dashboard: un bloque falló, los demás con datos',
+    tabla: 'Mockup C-24 · Dashboard: «Ver como tabla» abierto',
+    actualizando: 'Mockup C-24 · Dashboard: actualizando (datos del período visibles mientras tanto)'
+  };
+  D.banner((error ? 'Mockup C-24 · Dashboard: rango personalizado inválido (' + error + ')' : titulos[estado] || titulos.datos) + MARCA);
+
+  D.llenar('marca', D.marca(estado === 'actualizando', estado === 'actualizando' ? '12:41' : '12:41'));
+  D.llenar('periodo', D.selectorPeriodo(p, error));
+  D.llenar('kpis', D.kpis(d, activos, estado));
+
+  var b = D.bloques(d, { p: p, estado: estado, tabla: estado === 'tabla' ? (q.get('bloque') || 'productos') : '' });
+  D.llenar('grilla', b.ventas + b.productos + b.estados + b.pagos);
+  if (estado === 'actualizando') document.getElementById('grilla').classList.add('is-stale');
+
+  /* Pin del tooltip de la serie: el día de mayor venta (para mostrarlo en la captura) */
+  var pin = 0; d.serie.forEach(function (s, i) { if (s.total > d.serie[pin].total) pin = i; });
+  var pinear = (estado === 'datos' || estado === 'actualizando') ? pin : null;
+  function pintar() { D.dibujar(d, p, pinear); }
+  pintar();
+  var t; window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(pintar, 60); });
+  if (window.ResizeObserver) new ResizeObserver(function () { clearTimeout(t); t = setTimeout(pintar, 60); }).observe(document.getElementById('grilla'));
+
+  var notas = {
+    datos: 'Gráficos de recharts en la app: el SVG es aria-hidden y cada bloque tiene su tabla («Ver como tabla») · el punto fijado muestra el tooltip al pasar el mouse · «Pedidos activos» enlaza a /gestion-pedidos',
+    cargando: 'Cada bloque carga por su cuenta (cinco consultas independientes): el esqueleto desaparece bloque a bloque',
+    vacio: '«Pedidos activos» no depende del período (foto de ahora) · Estados muestra su propio vacío porque no hubo pedidos',
+    'error-bloque': '«Reintentar» vuelve a pedir solo «Productos más vendidos» (GET /estadisticas/productos-top)',
+    tabla: 'Tabla equivalente del gráfico: misma información, accesible con teclado y lector de pantalla · en «Estados», cada estado enlaza a /gestion-pedidos?estado=…',
+    actualizando: 'Se siguen viendo los datos del período mientras se vuelven a pedir los cinco reportes'
+  };
+  D.nota(error ? 'No se pide nada al servidor con un rango inválido · el error se muestra junto a las fechas · el input de fecha es nativo en la app (aquí es texto para fijar el formato dd/mm/aaaa)' : (p.g !== 'day' ? 'Agrupación «' + (p.g === 'week' ? 'Semana' : 'Mes') + '»: el rótulo del eje cambia («Sem. dd/mm» o «mes aaaa»); semanas desde el lunes (ISO)' : notas[estado] || notas.datos));
+})();
+</script>
+</body>
+</html>

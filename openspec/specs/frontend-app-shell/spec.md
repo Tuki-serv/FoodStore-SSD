@@ -113,8 +113,16 @@ Cada sección de la navegación SHALL tener una ruta propia en español (`/catal
 - **THEN** cada una apunta a una ruta declarada en el mapa de rutas
 
 #### Scenario: Página provisoria
+- **WHEN** una ruta futura sin pantalla (por ejemplo, de un change de Fase 2) se declara en el mapa con su dueño
+- **THEN** muestra, dentro del shell, un encabezado con su título y el aviso de que la sección está en preparación, y el dueño queda declarado en el mapa de rutas, no en el texto visible
+
+#### Scenario: Ninguna sección provisoria
+- **WHEN** un usuario con los roles `CLIENT`, `PEDIDOS`, `STOCK` y `ADMIN` abre cada ruta del mapa
+- **THEN** ninguna muestra el aviso de sección en preparación
+
+#### Scenario: Dashboard ya no es provisoria
 - **WHEN** un `ADMIN` abre `/admin/dashboard`
-- **THEN** ve, dentro del shell, un encabezado «Dashboard» y el aviso de que la sección está en preparación, y el mapa de rutas declara a `C-24` como dueño
+- **THEN** ve la pantalla «Dashboard» con las tarjetas KPI y no el aviso de sección en preparación
 
 #### Scenario: Mis pedidos ya no es provisoria
 - **WHEN** un `CLIENT` abre `/mis-pedidos`
