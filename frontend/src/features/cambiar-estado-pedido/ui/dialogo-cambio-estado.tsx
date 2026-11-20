@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { BadgeEstado, EntregaDelPedido, etiquetaEstado, iconoAccion, pedidoQueries, type AccionPedido, type PedidoResumen } from '@/entities/pedido';
 import { Dialogo, Icon, claseBoton } from '@/shared/ui';
-import { useEnvioCambio } from '../api';
+import { useCambiarEstadoPedido, useEnvioCambio } from '../api';
 import { armarCambio } from '../model';
 import { AlertaCambio } from './alerta-cambio';
 import { CampoTexto } from './campo-texto';
@@ -48,7 +48,7 @@ function EntregaEnDialogo({ pedidoId }: { pedidoId: number }) {
 /** Diálogo de un avance del pedido (confirmar pago, pasar a preparación, despachar, marcar entregado) con observación opcional. */
 export function DialogoCambioEstado({ pedido, accion, onCerrar, onExito, onCancelarPorStock }: DialogoCambioEstadoProps) {
   const [observacion, setObservacion] = useState('');
-  const envio = useEnvioCambio(pedido.id, onExito);
+  const envio = useEnvioCambio(useCambiarEstadoPedido(pedido.id), onExito);
   const ayuda = ayudaDe(pedido, accion);
   const enviar = (): void => envio.enviar(armarCambio(accion.destino, observacion));
   const desde = etiquetaEstado(pedido.estado_codigo);

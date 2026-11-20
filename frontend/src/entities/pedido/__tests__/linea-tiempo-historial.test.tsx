@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { esperarSinViolacionesA11y } from '@/test/axe';
 import { eventoDto } from '@/test/msw/pedidos';
+import { autorEventoCliente, type EventoHistorial } from '../model';
 import { LineaTiempoHistorial } from '../ui';
 
 const local = (dia: number, hora: number, minuto: number) => new Date(2026, 10, dia, hora, minuto).toISOString();
@@ -61,5 +62,39 @@ describe('LineaTiempoHistorial', () => {
     const { container } = render(<LineaTiempoHistorial eventos={HISTORIAL} />);
 
     await esperarSinViolacionesA11y(container);
+  });
+
+  describe('con el autor del cliente (autorEventoCliente)', () => {
+    const delCliente = (evento: EventoHistorial) => autorEventoCliente(evento, 1);
+
+    it('muestra «Vos», «El local» y «Automático» y no el nombre del personal', () => {
+      const eventos = [
+        HISTORIAL[0] as EventoHistorial,
+        eventoDto({ id: 2, pedido_id: 58, estado_desde: 'PENDIENTE', estado_hacia: 'CONFIRMADO', usuario_id: null, usuario_nombre: null, created_at: local(19, 12, 41) }),
+        HISTORIAL[1] as EventoHistorial,
+      ];
+      render(<LineaTiempoHistorial eventos={eventos} autor={delCliente} />);
+
+      const items = within(screen.getByRole('list', { name: 'Historial del pedido' })).getAllByRole('listitem');
+
+      expect(items[0]).toHaveTextContent('Vos · 19/11/2026 a las 12:40');
+      expect(items[1]).toHaveTextContent('Automático · 19/11/2026 a las 12:41');
+      expect(items[2]).toHaveTextContent('El local · 19/11/2026 a las 12:42');
+      expect(screen.queryByText(/Carla/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Ana López/)).not.toBeInTheDocument();
+    });
+
+    it('«Automático» lleva el estilo del sistema y «El local» el del autor', () => {
+      render(<LineaTiempoHistorial eventos={[eventoDto({ id: 2, pedido_id: 58, estado_desde: 'PENDIENTE', estado_hacia: 'CONFIRMADO', usuario_id: null, usuario_nombre: null }), HISTORIAL[2] as EventoHistorial]} autor={delCliente} />);
+
+      expect(screen.getByText('Automático')).toHaveClass('sys');
+      expect(screen.getByText('El local').tagName).toBe('B');
+    });
+
+    it('no tiene violaciones de accesibilidad', async () => {
+      const { container } = render(<LineaTiempoHistorial eventos={HISTORIAL} autor={delCliente} />);
+
+      await esperarSinViolacionesA11y(container);
+    });
   });
 });

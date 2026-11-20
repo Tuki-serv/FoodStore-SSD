@@ -6,13 +6,14 @@ const MOTIVO_CREACION = 'Pedido creado';
 /**
  * Historial de un pedido como línea de tiempo (`<ol>`) en el orden del servidor: estado al que pasó, quién lo hizo,
  * fecha y hora locales y el motivo u observación. La cancelación se resalta con el color de peligro.
+ * `autor` decide cómo se nombra a quien hizo el cambio (por defecto su nombre; el cliente pasa «Vos» / «El local» / «Automático»).
  */
-export function LineaTiempoHistorial({ eventos }: { eventos: readonly EventoHistorial[] }) {
+export function LineaTiempoHistorial({ eventos, autor: nombrarAutor = autorEvento }: { eventos: readonly EventoHistorial[]; autor?: (evento: EventoHistorial) => string }) {
   return (
     <ol className="tl" aria-label="Historial del pedido">
       {eventos.map((evento) => {
         const observacion = evento.estado_desde === null || evento.motivo === null || evento.motivo === MOTIVO_CREACION ? null : evento.motivo;
-        const autor = autorEvento(evento);
+        const autor = nombrarAutor(evento);
         return (
           <li key={evento.id} className={evento.estado_hacia === 'CANCELADO' ? 'is-cancel' : undefined}>
             <span className={`dot s-${claseEstado(evento.estado_hacia).slice(2)}`} aria-hidden="true" />

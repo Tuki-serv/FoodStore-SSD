@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claseEstado, etiquetaEstado } from '../model';
+import { claseEstado, ESTADOS_PEDIDO, esEstadoPedido, esEstadoTerminal, etiquetaEstado } from '../model';
 
 describe('etiquetaEstado', () => {
   it.each([
@@ -29,5 +29,34 @@ describe('claseEstado', () => {
 
   it('un código desconocido usa la clase neutra', () => {
     expect(claseEstado('EXTRAVIADO')).toBe('b-neutro');
+  });
+});
+
+describe('ESTADOS_PEDIDO / esEstadoPedido', () => {
+  it('lista los seis estados en el orden de la FSM', () => {
+    expect(ESTADOS_PEDIDO).toEqual(['PENDIENTE', 'CONFIRMADO', 'EN_PREP', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO']);
+  });
+
+  it.each(['PENDIENTE', 'CONFIRMADO', 'EN_PREP', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO'])('%s es un estado', (codigo) => {
+    expect(esEstadoPedido(codigo)).toBe(true);
+  });
+
+  it.each([['DESPACHADO'], [''], [null], ['pendiente']])('%j no es un estado', (valor) => {
+    expect(esEstadoPedido(valor)).toBe(false);
+  });
+});
+
+describe('esEstadoTerminal', () => {
+  it.each(['ENTREGADO', 'CANCELADO'])('%s ya no cambia', (codigo) => {
+    expect(esEstadoTerminal(codigo)).toBe(true);
+  });
+
+  it.each(['PENDIENTE', 'CONFIRMADO', 'EN_PREP', 'EN_CAMINO'])('%s sigue en curso', (codigo) => {
+    expect(esEstadoTerminal(codigo)).toBe(false);
+  });
+
+  it('sin estado conocido (undefined, desconocido) se trata como en curso', () => {
+    expect(esEstadoTerminal(undefined)).toBe(false);
+    expect(esEstadoTerminal('ARCHIVADO')).toBe(false);
   });
 });

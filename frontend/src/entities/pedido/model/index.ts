@@ -1,4 +1,4 @@
-export { claseEstado, etiquetaEstado } from './estados';
+export { claseEstado, ESTADOS_PEDIDO, esEstadoPedido, esEstadoTerminal, etiquetaEstado } from './estados';
 export { clasificarErrorCreacion } from './clasificar-error';
 export type { ClaseErrorCreacion } from './clasificar-error';
 export { esConfirmacionManual, FORMAS_PAGO } from './formas-pago';
@@ -18,11 +18,13 @@ export type {
   PedidoDetalle,
   PedidoResumen,
 } from './pedido';
-export { accionesGestion, proximoAvance } from './transiciones';
+export { accionesGestion, proximoAvance, puedeCancelarCliente } from './transiciones';
+export { pasosProgreso } from './progreso';
+export type { PasoProgreso, SituacionPaso } from './progreso';
 export type { AccionPedido, TipoAccionPedido } from './transiciones';
 export { clasificarErrorCambioEstado } from './clasificar-error-cambio-estado';
 export type { ClaseErrorCambioEstado } from './clasificar-error-cambio-estado';
-export { autorEvento, tituloEvento } from './historial';
+export { autorEvento, autorEventoCliente, tituloEvento } from './historial';
 export { COSTO_ENVIO, DESCUENTO, totalEstimado } from './totales';
 export { fechaHoraCorta, fechaLocal, horaLocal } from './fecha';
 export { lineasDireccion } from './direccion';

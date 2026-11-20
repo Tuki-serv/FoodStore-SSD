@@ -7,9 +7,10 @@ export async function crearPedido(datos: PedidoCrear): Promise<PedidoDetalle> {
   return data;
 }
 
-/** `GET /pedidos/`: los pedidos del alcance del rol (todos para `ADMIN`/`PEDIDOS`, los propios para `CLIENT`), paginados. Sin claves vacías. */
-export async function listarPedidos({ estado, desde, hasta, page, size }: FiltrosListadoPedidos): Promise<Paginado<PedidoResumen>> {
+/** `GET /pedidos/`: los pedidos del alcance del rol (todos para `ADMIN`/`PEDIDOS`, los propios para `CLIENT` o con `propios`), paginados. Sin claves vacías. */
+export async function listarPedidos({ propios, estado, desde, hasta, page, size }: FiltrosListadoPedidos): Promise<Paginado<PedidoResumen>> {
   const params = {
+    ...(propios === undefined ? {} : { propios }),
     ...(estado === undefined ? {} : { estado }),
     ...(desde === undefined ? {} : { desde }),
     ...(hasta === undefined ? {} : { hasta }),
@@ -29,6 +30,12 @@ export async function obtenerHistorial(id: number): Promise<EventoHistorial[]> {
 /** `PATCH /pedidos/{id}/estado` (`ADMIN`/`PEDIDOS`): aplica una transición de la FSM; 200 con el detalle actualizado. */
 export async function cambiarEstadoPedido(id: number, cambio: CambioEstadoPedido): Promise<PedidoDetalle> {
   const { data } = await apiClient.patch<PedidoDetalle>(`/pedidos/${id}/estado`, cambio);
+  return data;
+}
+
+/** `DELETE /pedidos/{id}` (solo `CLIENT` dueño): cancela el pedido con el motivo dado; 200 con el detalle cancelado (409 si ya no se puede). */
+export async function cancelarMiPedido(id: number, motivo: string): Promise<PedidoDetalle> {
+  const { data } = await apiClient.delete<PedidoDetalle>(`/pedidos/${id}`, { data: { motivo } });
   return data;
 }
 

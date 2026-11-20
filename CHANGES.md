@@ -594,7 +594,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/07_flujos_principales.md` §Webhook
 
 ### [C-21] `fe-mis-pedidos-seguimiento`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-20). Verify: PASS WITH FINDINGS (frontend 1627/1627, backend 1764 passed, typecheck y lint limpios); major corregido en el mismo change: los distintivos de estado «Confirmado»/«Entregado» salían sin color porque Tailwind purgaba las clases `b-<estado>` armadas con plantilla (también afectaba a C-22); mapa de clases literales en `entities/pedido/model/estados.ts` y test en `tests/architecture/styles-compile.test.ts`. Visual verify: passed with differences (solo diferencias de datos de ejemplo). OQ-4 cambiada por el usuario: filtro por estado. Archivado en `openspec/changes/archive/2026-11-20-c-21-fe-mis-pedidos-seguimiento/`; spec principal nueva `frontend-my-orders`, y `order-api` y `frontend-app-shell` ampliadas. Alcance: `/mis-pedidos` (listado paginado con filtro por estado en la URL, polling 30 s) y `/mis-pedidos/:pedidoId` (progreso, pago con Pagar/Reintentar, entrega, ítems, historial con «Vos»/«El local»/«Automático», cancelación con motivo obligatorio en la UI); backend aditivo `GET /pedidos?propios=true` (sin migración); `MarcaActualizacion` y `vistaPagoDelPedido` movidos a `shared/ui` y `entities/payment`.
 - **Scope**:
   - US-018 listado paginado y detalle propio (snapshots, totales), timeline de estados con polling 30 s (WebSocket queda en C-27).
   - US-019 cancelar mi pedido (solo PENDIENTE/CONFIRMADO, motivo obligatorio).
@@ -716,7 +716,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 - **Estado**: `[ ]` pendiente `[OPCIONAL/BLOQUEADO: PA-19]`
 - **Scope**:
   - Cubre DT-08. Corregir `await manager.disconnect(...)` sobre método síncrono; rooms por rol/pedido; autenticación del handshake; notificación de cambios de estado.
-  - Reemplazar el polling de 30 s en C-21/C-22 si se aprueba.
+  - Reemplazar el polling de 30 s en C-21/C-22 si se aprueba (en C-21: `refetchInterval` de `pages/mis-pedidos`, listado y detalle, más el de `pagoQueries.estado`).
   - Autenticar el handshake con el access (Bearer/`sid`): los endpoints WS de `pedidos/router.py` leen la cookie `access_token`, que C-02 dejó de emitir, así que hoy no se pueden autenticar (roto desde C-02).
   - Tests: conexión, disconnect, rooms, autorización.
   - Punto de partida (C-08): el único `roles[0]` que queda en el backend es el handler WebSocket `websocket_endpoint` (`/cocina/ws`) de `pedidos/router.py`; los permisos del resto se evalúan con la unión de roles.
@@ -752,7 +752,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 18 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 26** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-22, C-25a). **Pendientes obligatorios: 4** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
+**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 27** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21, C-22, C-25a). **Pendientes obligatorios: 3** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

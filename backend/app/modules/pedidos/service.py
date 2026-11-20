@@ -401,8 +401,11 @@ class PedidoService:
     def listar_pedidos(
         self, usuario_id: int, roles: AbstractSet[str], filtros: FiltrosPedidos, params: PageParams
     ) -> PaginatedResponse[PedidoResumen]:
-        """Alcance por unión de roles: gestores (ADMIN/PEDIDOS) ven todos; el resto, solo los propios."""
-        alcance = None if tiene_algun_rol(roles, self.ROLES_GESTORES) else usuario_id
+        """Alcance por unión de roles: gestores (ADMIN/PEDIDOS) ven todos; el resto, solo los propios.
+
+        `filtros.propios` fuerza el alcance propio también para gestores («Mis pedidos»)."""
+        es_gestor = tiene_algun_rol(roles, self.ROLES_GESTORES)
+        alcance = usuario_id if filtros.propios or not es_gestor else None
         with self._uow as uow:
             filas, total = uow.pedidos.listar(filtros, params, usuario_id=alcance)
             resumenes = [self._armar_resumen(pedido, nombre) for pedido, nombre in filas]

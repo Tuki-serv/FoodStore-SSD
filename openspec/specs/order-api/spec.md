@@ -26,7 +26,7 @@ Define la superficie HTTP de pedidos que consume el frontend: qué endpoints exi
 - **THEN** recibe 403
 
 ### Requirement: Filtros del listado de pedidos
-`GET /api/v1/pedidos` SHALL aceptar los filtros opcionales `estado` (uno de los seis códigos de estado; otro valor responde 422), `desde` y `hasta` (fechas `YYYY-MM-DD`, inclusivas, sobre la fecha de creación). Los filtros SHALL combinarse con el alcance del lector y nunca ampliarlo; `total` SHALL contar solo lo filtrado.
+`GET /api/v1/pedidos` SHALL aceptar los filtros opcionales `estado` (uno de los seis códigos de estado; otro valor responde 422), `desde` y `hasta` (fechas `YYYY-MM-DD`, inclusivas, sobre la fecha de creación) y `propios` (booleano, por defecto `false`; con `true` el listado se limita a los pedidos del usuario aunque sus roles le den alcance sobre todos). Los filtros SHALL combinarse con el alcance del lector y nunca ampliarlo; `total` SHALL contar solo lo filtrado.
 
 #### Scenario: Filtro por estado
 - **WHEN** existen 2 pedidos `PENDIENTE` y 1 `CONFIRMADO`, y un `ADMIN` llama a `GET /api/v1/pedidos?estado=PENDIENTE`
@@ -39,6 +39,18 @@ Define la superficie HTTP de pedidos que consume el frontend: qué endpoints exi
 #### Scenario: Estado desconocido
 - **WHEN** un `ADMIN` llama a `GET /api/v1/pedidos?estado=DESPACHADO`
 - **THEN** recibe 422 con `field` `estado`
+
+#### Scenario: Solo los propios para un gestor
+- **WHEN** existen 2 pedidos del usuario U (roles `CLIENT` y `PEDIDOS`) y 3 del cliente B, y U llama a `GET /api/v1/pedidos?propios=true`
+- **THEN** recibe `total` 2 y solo pedidos de U
+
+#### Scenario: Propios para un cliente
+- **WHEN** el cliente A llama a `GET /api/v1/pedidos?propios=true`
+- **THEN** recibe lo mismo que sin el filtro: solo sus pedidos
+
+#### Scenario: Propios combinado con estado
+- **WHEN** un usuario con los roles `CLIENT` y `ADMIN`, con 1 pedido propio `PENDIENTE` y 1 propio `ENTREGADO` llama a `GET /api/v1/pedidos?propios=true&estado=PENDIENTE`
+- **THEN** recibe `total` 1
 
 ### Requirement: Forma de cada pedido del listado
 Cada elemento de `items` en `GET /api/v1/pedidos` SHALL tener `id`, `usuario_id`, `cliente_nombre`, `estado_codigo`, `forma_pago_codigo`, `subtotal`, `descuento`, `costo_envio`, `total`, `notas` y `created_at`, sin las líneas del pedido. Los importes SHALL serializarse como decimales exactos.

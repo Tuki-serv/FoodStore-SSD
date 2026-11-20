@@ -8,7 +8,9 @@ EstadoPedidoCodigo = Literal["PENDIENTE", "CONFIRMADO", "EN_PREP", "EN_CAMINO", 
 
 @dataclass(frozen=True)
 class FiltrosPedidos:
-    """Filtros opcionales del listado (query params): estado y rango de fechas de creación, inclusivo, en UTC."""
+    """Filtros opcionales del listado (query params): estado, rango de fechas de creación (inclusivo, UTC) y `propios`
+    (limita el listado a los pedidos del usuario aunque sea gestor; nunca amplía el alcance)."""
     estado: EstadoPedidoCodigo | None = None
     desde: date | None = None
     hasta: date | None = None
+    propios: bool = False

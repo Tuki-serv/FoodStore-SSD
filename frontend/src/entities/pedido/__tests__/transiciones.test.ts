@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accionesGestion, proximoAvance } from '../model';
+import { accionesGestion, pasosProgreso, proximoAvance, puedeCancelarCliente } from '../model';
 
 const etiquetas = (estado: string, forma: string) => accionesGestion(estado, forma).map((accion) => accion.etiqueta);
 
@@ -58,5 +58,48 @@ describe('proximoAvance', () => {
     ['ARCHIVADO', 'EFECTIVO'],
   ])('%s + %s no tiene avance', (estado, forma) => {
     expect(proximoAvance(estado, forma)).toBeNull();
+  });
+});
+
+describe('puedeCancelarCliente (espejo de TRANSICIONES[CLIENT] en fsm.py)', () => {
+  it.each(['PENDIENTE', 'CONFIRMADO'])('%s se puede cancelar', (estado) => {
+    expect(puedeCancelarCliente(estado)).toBe(true);
+  });
+
+  it.each(['EN_PREP', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO', 'ARCHIVADO', ''])('«%s» no se puede cancelar', (estado) => {
+    expect(puedeCancelarCliente(estado)).toBe(false);
+  });
+});
+
+describe('pasosProgreso', () => {
+  const resumen = (estado: string, conEnvio = true) => pasosProgreso(estado, conEnvio)?.map((paso) => `${paso.etiqueta}:${paso.estado}`);
+
+  it('PENDIENTE tiene el paso 1 como actual y el resto pendiente', () => {
+    expect(resumen('PENDIENTE')).toEqual(['Pendiente:actual', 'Confirmado:pendiente', 'En preparación:pendiente', 'En camino:pendiente', 'Entregado:pendiente']);
+  });
+
+  it('EN_PREP cumple los pasos 1 y 2 y tiene el 3 como actual', () => {
+    expect(resumen('EN_PREP')).toEqual(['Pendiente:cumplido', 'Confirmado:cumplido', 'En preparación:actual', 'En camino:pendiente', 'Entregado:pendiente']);
+  });
+
+  it('CONFIRMADO y EN_CAMINO avanzan el paso actual', () => {
+    expect(resumen('CONFIRMADO')?.map((paso) => paso.split(':')[1])).toEqual(['cumplido', 'actual', 'pendiente', 'pendiente', 'pendiente']);
+    expect(resumen('EN_CAMINO')?.map((paso) => paso.split(':')[1])).toEqual(['cumplido', 'cumplido', 'cumplido', 'actual', 'pendiente']);
+  });
+
+  it('ENTREGADO los cumple todos y no deja paso actual', () => {
+    expect(resumen('ENTREGADO')?.map((paso) => paso.split(':')[1])).toEqual(['cumplido', 'cumplido', 'cumplido', 'cumplido', 'cumplido']);
+  });
+
+  it('sin envío el paso 4 se llama «Listo para retirar»', () => {
+    expect(resumen('EN_CAMINO', false)).toEqual(['Pendiente:cumplido', 'Confirmado:cumplido', 'En preparación:cumplido', 'Listo para retirar:actual', 'Entregado:pendiente']);
+  });
+
+  it.each(['CANCELADO', 'ARCHIVADO'])('%s no tiene pasos (null)', (estado) => {
+    expect(pasosProgreso(estado, true)).toBeNull();
+  });
+
+  it('cada paso conserva el código de su estado', () => {
+    expect(pasosProgreso('PENDIENTE', true)?.map((paso) => paso.codigo)).toEqual(['PENDIENTE', 'CONFIRMADO', 'EN_PREP', 'EN_CAMINO', 'ENTREGADO']);
   });
 });

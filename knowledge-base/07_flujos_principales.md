@@ -102,6 +102,8 @@ MP ──▶ POST /pagos/webhook ──▶ MP GET order ──▶ Pago.update �
 
 `DELETE /pedidos/{id}` (C-11; body opcional `{motivo}`, por defecto «Cancelado por el cliente») cancela el pedido propio → verifica propiedad (403) → valida transición CLIENT (solo desde PENDIENTE/CONFIRMADO; 409 `INVALID_TRANSITION` si no) → estado CANCELADO, historial; el pedido nunca se borra y sigue visible; **objetivo (DD-20):** devuelve el stock solo si el pedido estaba CONFIRMADO (un PENDIENTE no descontó nada); *código actual:* restaura stock en toda cancelación. Si ya había un pago aprobado, **no hay reembolso automático documentado** (pregunta abierta).
 
+**UI (C-21):** el detalle `/mis-pedidos/:pedidoId` ofrece «Cancelar pedido» solo en `PENDIENTE`/`CONFIRMADO` y pide el motivo (obligatorio en la UI; el backend lo sigue aceptando opcional). El listado `/mis-pedidos` pide `GET /pedidos?propios=true`: `propios=true` limita a los pedidos del usuario aunque tenga también un rol de gestión (sin el parámetro, un gestor ve todos).
+
 ## Flujo 8: Tiempo real (KDS y seguimiento) — extra del código, no especificado
 
 Ver [12_tiempo_real_websocket.md](12_tiempo_real_websocket.md).

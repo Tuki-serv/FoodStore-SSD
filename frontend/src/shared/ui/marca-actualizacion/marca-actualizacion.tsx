@@ -1,7 +1,13 @@
-import { horaLocal } from '@/entities/pedido';
-import { claseBoton, Icon } from '@/shared/ui';
+import { claseBoton } from '../button/button-styles';
+import { Icon } from '../icon/icon';
 
-const horaDe = (marcaMs: number): string => horaLocal(new Date(marcaMs).toISOString());
+const dos = (numero: number): string => String(numero).padStart(2, '0');
+
+/** `HH:MM` en hora local de una marca de tiempo en ms. */
+const horaDe = (marcaMs: number): string => {
+  const fecha = new Date(marcaMs);
+  return `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+};
 
 export interface MarcaActualizacionProps {
   /** Cuándo llegaron por última vez los datos (`dataUpdatedAt`, ms); `0` si todavía no llegaron. */

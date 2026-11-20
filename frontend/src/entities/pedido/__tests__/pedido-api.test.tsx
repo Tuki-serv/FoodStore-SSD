@@ -5,7 +5,7 @@ import { ApiError } from '@/shared/api';
 import { crearEstadoPedidos, handlersPedidos, pedidoDto } from '@/test/msw/pedidos';
 import { server } from '@/test/msw/server';
 import { crearQueryClientDePrueba, envolverConQuery } from '@/test/query';
-import { pedidoQueries, useCrearPedido, type PedidoCrear } from '../index';
+import { cancelarMiPedido, pedidoQueries, useCrearPedido, type PedidoCrear } from '../index';
 
 const datos: PedidoCrear = {
   direccion_id: 4,
@@ -117,5 +117,62 @@ describe('pedidoQueries.detalle', () => {
     expect(pedidoQueries.detalle(57).queryKey).toEqual(['pedidos', 'detalle', 57]);
     expect(pedidoQueries.detalle(58).queryKey).not.toEqual(pedidoQueries.detalle(57).queryKey);
     expect(pedidoQueries.todas()).toEqual(['pedidos']);
+  });
+});
+
+describe('pedidoQueries.lista con `propios`', () => {
+  it('manda propios=true junto con la página y el tamaño', async () => {
+    const estado = crearEstadoPedidos();
+    const { result } = montar(() => useQuery(pedidoQueries.lista({ propios: true, page: 2, size: 10 })), estado);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(estado.consultasLista).toEqual([{ propios: 'true', page: '2', size: '10' }]);
+  });
+
+  it('manda también el estado cuando se filtra', async () => {
+    const estado = crearEstadoPedidos();
+    const { result } = montar(() => useQuery(pedidoQueries.lista({ propios: true, estado: 'ENTREGADO', page: 1, size: 10 })), estado);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(estado.consultasLista).toEqual([{ propios: 'true', estado: 'ENTREGADO', page: '1', size: '10' }]);
+  });
+
+  it('sin propios el parámetro no viaja (la gestión pide todos)', async () => {
+    const estado = crearEstadoPedidos();
+    const { result } = montar(() => useQuery(pedidoQueries.lista({ page: 1, size: 20 })), estado);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(estado.consultasLista).toEqual([{ page: '1', size: '20' }]);
+  });
+
+  it('la clave de caché distingue el listado propio del de gestión', () => {
+    expect(pedidoQueries.lista({ propios: true, page: 1, size: 10 }).queryKey).not.toEqual(pedidoQueries.lista({ page: 1, size: 10 }).queryKey);
+  });
+});
+
+describe('cancelarMiPedido', () => {
+  it('envía DELETE /pedidos/58 con {"motivo"} y devuelve el detalle cancelado', async () => {
+    const estado = crearEstadoPedidos();
+    estado.pedidos.set(58, pedidoDto({ id: 58, usuario_id: 1 }));
+    server.use(...handlersPedidos(estado));
+
+    const detalle = await cancelarMiPedido(58, 'Me equivoqué');
+
+    expect(estado.cancelaciones).toEqual([{ id: 58, cuerpo: { motivo: 'Me equivoqué' } }]);
+    expect(detalle).toMatchObject({ id: 58, estado_codigo: 'CANCELADO' });
+  });
+
+  it('un pedido que ya está en preparación es un ApiError 409 INVALID_TRANSITION', async () => {
+    const estado = crearEstadoPedidos();
+    estado.pedidos.set(54, pedidoDto({ id: 54, usuario_id: 1, estado_codigo: 'EN_PREP' }));
+    server.use(...handlersPedidos(estado));
+
+    const error = await cancelarMiPedido(54, 'Me arrepentí').catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 409, code: 'INVALID_TRANSITION' });
   });
 });

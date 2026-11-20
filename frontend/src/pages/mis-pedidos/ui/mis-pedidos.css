@@ -1,0 +1,70 @@
+/* «Mis pedidos» (listado, detalle con progreso y cancelación): reglas aprobadas en los mockups de C-21 (design-system Revision 2). Reutiliza las de gestión (.olist, .orow, .od, .ocard, .tl…). Solo tokens. */
+@layer components {
+  /* Listado: 5 columnas (sin cliente ni próxima acción) */
+  .orow.mrow{grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 110px 150px 150px}
+  .skel-orow.mrow{grid-template-columns:1.3fr 1.4fr 110px 150px 150px}
+  .mrow .onum small{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  .mrow .onum small .live{margin-left:var(--space-1)}
+  .mrow .oact a{width:auto}
+  .mrow .oact .ico{width:16px;height:16px}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:700;color:var(--color-primary-hover);background:var(--color-primary-soft);border-radius:var(--radius-pill);padding:1px 8px;align-self:center}
+  .live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--color-primary);animation:livepulse 1.6s var(--ease-out) infinite}
+  @keyframes livepulse{0%{box-shadow:0 0 0 0 var(--color-primary-soft)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  @media (prefers-reduced-motion:reduce){.live::before{animation:none}}
+
+  /* Filtro por estado: el de gestión (.gp-filters) sin fechas ni leyenda UTC */
+  .mp-filters .gp-filters-row{grid-template-columns:240px auto;justify-content:start;column-gap:var(--space-4)}
+
+  /* Progreso del pedido (ProgresoPedido) */
+  .prog-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+  .prog-steps li{position:relative;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);text-align:center;min-width:0}
+  .prog-steps li::before{content:"";position:absolute;top:13px;left:calc(-50% + 16px);right:calc(50% + 16px);height:3px;border-radius:2px;background:var(--color-border)}
+  .prog-steps li:first-child::before{display:none}
+  .prog-steps li.is-done::before,.prog-steps li.is-current::before{background:var(--color-primary)}
+  .prog-steps .sd{width:28px;height:28px;border-radius:50%;border:3px solid var(--color-border);background:var(--color-surface);display:grid;place-items:center;flex:none;position:relative;z-index:1}
+  .prog-steps .sd .ico{width:16px;height:16px;stroke-width:3;color:#fff}
+  .prog-steps li.is-done .sd{background:var(--color-primary);border-color:var(--color-primary)}
+  .prog-steps li.is-current .sd{border-color:var(--color-primary);box-shadow:0 0 0 5px var(--color-primary-soft)}
+  .prog-steps li.is-current .sd::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--color-primary)}
+  .prog-steps .sl{font-size:var(--text-sm);font-weight:600;color:var(--color-text-muted);overflow-wrap:anywhere;line-height:1.25}
+  .prog-steps li.is-done .sl{color:var(--color-text)}
+  .prog-steps li.is-current .sl{color:var(--color-text);font-weight:800}
+  .prog-next{display:flex;align-items:center;gap:var(--space-2);background:var(--color-surface-alt);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);font-weight:600;margin:0}
+  .prog-next .ico{width:20px;height:20px;flex:none;color:var(--color-primary-hover)}
+
+  /* Pedido cancelado: banda en lugar de los pasos */
+  .cancel-band{display:flex;gap:var(--space-3);align-items:flex-start;background:var(--color-danger-bg);border-radius:var(--radius-md);padding:var(--space-4)}
+  .cancel-band > .ico{width:24px;height:24px;flex:none;color:var(--color-danger);margin-top:1px}
+  .cancel-band > div{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+  .cancel-band strong{color:var(--color-danger);font-size:var(--text-lg);font-family:var(--font-display)}
+  .cancel-band q{display:block;margin-top:var(--space-1);background:var(--color-surface);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);font-size:var(--text-sm);overflow-wrap:anywhere;quotes:"\00AB" "\00BB"}
+
+  /* Acciones del cliente */
+  .c-acc .acts-none{display:flex;gap:var(--space-2);align-items:flex-start}
+  .c-acc .acts-none .ico{width:18px;height:18px;flex:none;margin-top:2px}
+
+  /* Tablet / mobile: una columna; «¿Cambiaste de idea?» justo después del seguimiento (patrón aprobado en C-22) */
+  @media (max-width:1023.98px){
+    .od-main,.od-side{display:contents}
+    .od{display:flex;flex-direction:column;align-items:stretch;gap:var(--space-4)}
+    .c-seg{order:1}.c-acc{order:2}.c-ent{order:3}.c-prod{order:4}.c-hist{order:5}
+    .orow.mrow{grid-template-columns:minmax(0,1fr) auto}
+    .mrow .onum{grid-column:1;grid-row:1}
+    .mrow .ostate{grid-column:2;grid-row:1;justify-self:end;align-self:start}
+    .mrow .opay{grid-column:1;grid-row:2}
+    .mrow .ototal{grid-column:2;grid-row:2;align-self:center}
+    .mrow .oact{grid-column:1 / -1;grid-row:3;margin-top:var(--space-1)}
+    .mrow .oact a{width:100%;justify-content:center;border:1px solid var(--color-border)}
+    .skel-orow.mrow{grid-template-columns:1fr auto}
+    .mp-filters .gp-filters-row{grid-template-columns:minmax(0,1fr)}
+    .mp-filters .clear{justify-self:start;padding-left:0}
+  }
+  @media (max-width:719.98px){
+    /* En mobile los pasos van en vertical: las etiquetas no entran en cinco columnas de ~65 px */
+    .prog-steps{grid-template-columns:1fr;gap:var(--space-3)}
+    .prog-steps li{flex-direction:row;text-align:left;gap:var(--space-3)}
+    .prog-steps li::before{top:auto;bottom:calc(100% - 2px);left:12px;right:auto;width:3px;height:calc(var(--space-3) + 4px)}
+    .prog-steps .sl{font-size:var(--text-sm);overflow-wrap:normal}
+    .prog-next{padding:var(--space-3)}
+  }
+}

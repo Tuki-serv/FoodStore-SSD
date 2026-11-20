@@ -8,8 +8,6 @@
   .done-head p{color:var(--color-text-muted);margin:0}
   .done-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--space-5);align-items:start}
   .done-col{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
-  .pcard{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
-  .pcard h2{font-size:var(--text-lg)}
   .kv{display:grid;grid-template-columns:140px minmax(0,1fr);gap:var(--space-2) var(--space-4);margin:0}
   .kv dt{color:var(--color-text-muted);font-size:var(--text-sm);font-weight:600}
   .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
@@ -20,12 +18,6 @@
   .next li.is-now::before{background:var(--state-pendiente-bg);color:var(--state-pendiente-fg)}
   .next li strong{display:block}
   .next li span{color:var(--color-text-muted);font-size:var(--text-sm)}
-  .handoff{border:2px solid var(--color-primary);background:var(--color-primary-soft)}
-  .handoff p{color:var(--color-text);margin:0}
-  .pay-line{display:flex;flex-direction:column;gap:var(--space-2);align-items:flex-start}
-  .reason-inline{display:flex;gap:var(--space-2);align-items:center;color:var(--color-danger);font-weight:700;font-size:var(--text-sm)}
-  .reason-inline .ico{width:18px;height:18px;flex:none}
-  .sec-note{color:var(--color-text-muted);font-size:var(--text-sm);margin:0}
   .done-actions{display:flex;flex-wrap:wrap;gap:var(--space-3)}
   @media (max-width:1023.98px){.done-grid{grid-template-columns:1fr}}
   @media (max-width:719.98px){

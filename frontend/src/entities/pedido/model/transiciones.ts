@@ -39,3 +39,12 @@ export function accionesGestion(estado: string, formaPago: string): AccionPedido
 export function proximoAvance(estado: string, formaPago: string): AccionPedido | null {
   return accionesGestion(estado, formaPago).find((accion) => accion.tipo !== 'cancelar') ?? null;
 }
+
+/**
+ * `true` si el cliente dueño puede cancelar el pedido en ese estado (`DELETE /pedidos/{id}`): `PENDIENTE` y `CONFIRMADO`.
+ * COPIA de `backend/app/modules/pedidos/fsm.py` (`TRANSICIONES[CLIENT]`): la UI solo esconde lo imposible; el backend sigue
+ * siendo la autoridad y un 409 se muestra (`clasificarErrorCambioEstado`).
+ */
+export function puedeCancelarCliente(estado: string): boolean {
+  return estado === 'PENDIENTE' || estado === 'CONFIRMADO';
+}

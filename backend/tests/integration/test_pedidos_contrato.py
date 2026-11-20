@@ -439,3 +439,59 @@ class TestListadoDeCocina:
         assert [p["id"] for p in cuerpo["items"]] == list(reversed(confirmados))
         assert all(p["estado_codigo"] == "CONFIRMADO" for p in cuerpo["items"])
         assert all("items" not in p for p in cuerpo["items"])
+
+
+class TestListadoPropios:
+    """Filtro `propios` (C-21): limita el listado a los pedidos del usuario, también para gestores."""
+
+    def test_propios_limita_al_usuario_con_client_y_pedidos(self, client, dos_clientes, usuario_con_roles, producto_db):
+        (_, headers_a), _ = dos_clientes
+        id_mixto, headers_mixto = usuario_con_roles(["CLIENT", "PEDIDOS"])
+        for _ in range(2):
+            crear_pedido_http(client, headers_mixto, producto_db.id)
+        for _ in range(3):
+            crear_pedido_http(client, headers_a, producto_db.id)
+
+        cuerpo = client.get(f"{PEDIDOS_URL}?propios=true", headers=headers_mixto).json()
+
+        assert cuerpo["total"] == 2
+        assert [p["usuario_id"] for p in cuerpo["items"]] == [id_mixto, id_mixto]
+
+    def test_sin_propios_el_usuario_mixto_sigue_viendo_todos(self, client, dos_clientes, usuario_con_roles, producto_db):
+        (_, headers_a), _ = dos_clientes
+        _, headers_mixto = usuario_con_roles(["CLIENT", "PEDIDOS"])
+        for _ in range(2):
+            crear_pedido_http(client, headers_mixto, producto_db.id)
+        for _ in range(3):
+            crear_pedido_http(client, headers_a, producto_db.id)
+
+        assert client.get(PEDIDOS_URL, headers=headers_mixto).json()["total"] == 5
+
+    def test_propios_en_un_cliente_equivale_a_no_filtrar(self, client, dos_clientes, producto_db):
+        (_, headers_a), (_, headers_b) = dos_clientes
+        for _ in range(2):
+            crear_pedido_http(client, headers_a, producto_db.id)
+        crear_pedido_http(client, headers_b, producto_db.id)
+
+        assert client.get(f"{PEDIDOS_URL}?propios=true", headers=headers_a).json()["total"] == 2
+
+    def test_propios_se_combina_con_estado(self, client, dos_clientes, usuario_con_roles, producto_db):
+        (_, headers_a), _ = dos_clientes
+        _, headers_admin = usuario_con_roles(["CLIENT", "ADMIN"])
+        pendiente = crear_pedido_http(client, headers_admin, producto_db.id)
+        confirmado = crear_pedido_http(client, headers_admin, producto_db.id)
+        crear_pedido_http(client, headers_a, producto_db.id)
+        assert client.patch(f"{PEDIDOS_URL}/{confirmado}/estado", json={"nuevo_estado": "CONFIRMADO"}, headers=headers_admin).status_code == 200
+
+        cuerpo = client.get(f"{PEDIDOS_URL}?propios=true&estado=PENDIENTE", headers=headers_admin).json()
+
+        assert [p["id"] for p in cuerpo["items"]] == [pendiente]
+        assert cuerpo["total"] == 1
+
+    def test_propios_invalido_es_422_sobre_el_campo(self, client, dos_clientes):
+        (_, headers_a), _ = dos_clientes
+
+        response = client.get(f"{PEDIDOS_URL}?propios=quizas", headers=headers_a)
+
+        assert response.status_code == 422
+        assert "propios" in response.text

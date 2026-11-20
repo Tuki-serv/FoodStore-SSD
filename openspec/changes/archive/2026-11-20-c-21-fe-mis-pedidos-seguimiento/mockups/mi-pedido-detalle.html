@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-21 - Detalle de mi pedido (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="gestion.css">
+<link rel="stylesheet" href="mis-pedidos.css">
+</head>
+<body>
+<main class="page page-wide" id="main">
+  <div id="contenido" style="display:flex;flex-direction:column;gap:var(--space-5)"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="mis-pedidos.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Parámetros (?estado=):
+   pendiente-efectivo (defecto, #58) · pendiente-mp (#63, pago rechazado) · pendiente-mp-sin-pago (#63, sin intento)
+   confirmado-mp (#57, pago aprobado, retiro + nota, evento «Automático») · en-prep (#54, no cancelable)
+   en-camino (#53, envío) · en-camino-retiro (#50, «Listo para retirar») · entregado (#41) · cancelado (#44)
+   carga · no-encontrado (404 / 403 / pedido de otro usuario) · error (500 del detalle) · historial-error
+   actualizando · aviso (falló una actualización periódica) · ?id=NN abre ese pedido */
+(function () {
+  var M = MOCK, ico = M.ico, est = M.estado || 'pendiente-efectivo';
+  var MAPA = { 'pendiente-efectivo': 58, 'pendiente-mp': 63, 'pendiente-mp-sin-pago': 63, 'confirmado-mp': 57, 'en-prep': 54, 'en-camino': 53, 'en-camino-retiro': 50, entregado: 41, cancelado: 44, 'historial-error': 58, actualizando: 54, aviso: 54 };
+  var DESCR = { 58: 'PENDIENTE · EFECTIVO: cancelable', 63: 'PENDIENTE · MERCADOPAGO', 57: 'CONFIRMADO · MERCADOPAGO aprobado · retiro + nota', 54: 'EN_PREP: ya no se cancela', 53: 'EN_CAMINO con envío', 50: 'EN_CAMINO · retiro: «Listo para retirar»', 41: 'ENTREGADO', 44: 'CANCELADO por el cliente', 46: 'ENTREGADO', 39: 'ENTREGADO' };
+
+  if (est === 'carga') {
+    M.banner('Mockup C-21 · Detalle de mi pedido: cargando');
+    M.llenar('contenido', M.esqueletoDetalle());
+    return;
+  }
+  if (est === 'no-encontrado') {
+    M.banner('Mockup C-21 · Detalle: /mis-pedidos/999 (404), 403, o un pedido que no es tuyo');
+    M.llenar('contenido', '<div class="nf"><section class="state" aria-labelledby="nf-t"><span class="badge-ico" aria-hidden="true">' + ico('i-pedidos') + '</span>' +
+      '<h1 id="nf-t">No encontramos este pedido</h1><p>Puede que el enlace esté mal o que el pedido no sea de tu cuenta.</p>' +
+      '<div class="actions"><a class="btn btn-primary" href="mis-pedidos.html">' + ico('i-volver') + 'Volver a mis pedidos</a></div></section></div>');
+    M.nota('mismo texto que la confirmación de C-19 · un gestor que abre el pedido de otro cliente desde «Mis pedidos» ve esto (no se muestran datos)');
+    return;
+  }
+  if (est === 'error') {
+    M.banner('Mockup C-21 · Detalle: falló la carga (500 o sin conexión)');
+    M.llenar('contenido', '<a class="back-link" href="mis-pedidos.html">' + ico('i-volver') + 'Volver a mis pedidos</a>' +
+      M.estadoVista('error', 'i-alerta', 'No pudimos cargar el pedido', 'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.', '<button class="btn btn-secondary" type="button">' + ico('i-reintentar') + 'Reintentar</button>'));
+    return;
+  }
+  var id = Number(M.params.get('id')) || MAPA[est] || 58;
+  var cambios = est === 'pendiente-mp-sin-pago' ? { pago: null } : null;
+  var p = M.pedido(id, cambios);
+  var opts = { histError: est === 'historial-error' };
+  if (est === 'actualizando') opts.marca = { girando: true };
+  if (est === 'aviso') { opts.marca = { hora: '12:52' }; opts.aviso = '12:52'; }
+  var titulo = { 'historial-error': 'el historial falló aparte (500)', actualizando: '«Actualizar» en curso', aviso: 'falló una actualización periódica', 'pendiente-mp-sin-pago': 'PENDIENTE · MERCADOPAGO sin intento de pago' }[est];
+  M.banner('Mockup C-21 · Mi pedido #' + id + ' · ' + (titulo || DESCR[id] || p.estado));
+  M.llenar('contenido', M.detalle(p, opts));
+  var notas = {
+    58: 'paso actual «Pendiente» · el local confirma al recibir el pago (DD-22) · dirección e ítems con «Sin …» · historial con «Vos»',
+    63: est === 'pendiente-mp-sin-pago' ? '«Pagar $ 2.650 con tarjeta» lleva a /finalizar-compra/pedido/63/pago (C-20) · todavía se puede cancelar' : 'fila «Pago» con el motivo del rechazo · «Reintentar el pago» lleva a la página de pago (C-20) · OQ-3',
+    57: '«Automático» = cambio sin usuario (pago aprobado) · se puede cancelar: el diálogo avisa que el reintegro no es automático',
+    54: 'el nombre de quien atendió no se muestra: «El local» (OQ-5) · EN_PREP: sin «Cancelar pedido» (FSM del cliente)',
+    53: 'paso «En camino» · ya no se cancela',
+    50: 'retiro en el local: el paso 4 dice «Listo para retirar» (el estado sigue siendo EN_CAMINO)',
+    41: 'terminado: sin marca de actualización ni acciones, no se vuelve a pedir',
+    44: 'banda «Pedido cancelado» con el motivo en lugar de los pasos · cancelación resaltada en el historial'
+  };
+  var extra = { 'historial-error': 'el detalle se muestra igual; el historial tiene su propio error y «Reintentar»', actualizando: 'el contenido no se vacía mientras llega la respuesta', aviso: 'aviso discreto: se siguen mostrando los datos de las 12:52' }[est];
+  M.nota(extra || ((notas[id] || '') + (M.terminado(p.estado) ? '' : ' · se actualiza cada 30 s con la pestaña visible')));
+})();
+</script>
+</body>
+</html>
