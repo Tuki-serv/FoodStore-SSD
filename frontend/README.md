@@ -182,6 +182,13 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - **Compartido nuevo**: `DialogoBaja` acepta `etiquetaConfirmar`, `etiquetaPendiente` y `cuerpo`; los estilos `.seg`/`.ilist` pasaron a `shared/ui/lista-admin`.
 - **Tests**: `src/test/msw/usuarios.ts` (estado en memoria con filtro por rol, paginación y registro de pedidos) y `montarUsuarios` en `src/test/render-usuarios.ts`.
 
+## Dashboard de métricas (C-24)
+
+- **Ruta** (solo `ADMIN`, con `RequiereAcceso`): `/admin/dashboard` (`AdminDashboardPage`); ya no es provisoria (`DuenoRuta` conserva `'C-24'` como dueño de la ruta). Slices: `src/pages/admin-dashboard/` (`ui/`: página, `SelectorPeriodo`, `TarjetasKpi`, `BloqueGrafico` común y los cuatro gráficos recharts —ventas, productos, estados, formas de pago—, `TablaDatos`; `model/`: período en la URL `?desde=&hasta=&agrupacion=`) y `src/entities/estadistica/` (`estadisticaQueries`, tipos, `validarRango`, atajos de período, formato de importes).
+- **Comportamiento**: período por defecto = últimos 30 días por día (atajos Hoy / 7 días / 30 días / Este mes y fechas personalizadas; fechas UTC, `desde`/`hasta` inclusivos, máximo 366 días validado igual que en el backend). Cinco consultas independientes (`GET /estadisticas/resumen|ventas|productos-top|pedidos-por-estado|ingresos`): cada bloque tiene su propio esqueleto, vacío y error con «Reintentar». «Actualizar» vuelve a pedir los cinco; sin polling (`staleTime` de 60 s). Cada gráfico es decorativo (`aria-hidden`) y tiene su alternativa «Ver como tabla».
+- **Clave de caché**: `['estadisticas', reporte, parámetros]` es **privada** (se descarta al cerrar sesión). Los importes llegan como texto decimal y se formatean con `formatearPrecio` de `entities/producto`; estados y formas de pago reutilizan `entities/pedido`.
+- **Tests**: `src/test/msw/estadisticas.ts` (estado en memoria y registro de pedidos) y `montarDashboard` en `src/test/render-dashboard.ts` (stub de `ResizeObserver` para recharts en jsdom).
+
 ## Productos y stock (C-17b)
 
 - **Slices**: `src/pages/admin-productos/` (`ui/`: página, filtros, lista, fila con stock e interruptor, formulario, secciones de categorías e ingredientes, diálogo de baja; `model/`: permisos por rol, validación, diff de edición, filtros de URL) y, en `src/entities/producto/api/`, `producto-gestion-api.ts`, `productoGestionQueries` y `producto-mutations.ts`.

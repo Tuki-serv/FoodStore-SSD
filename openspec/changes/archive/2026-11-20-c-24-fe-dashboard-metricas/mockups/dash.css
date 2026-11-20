@@ -1,0 +1,130 @@
+/* Mockups C-24: solo lo nuevo del Dashboard, encima de mockup.css (shell, .seg, .btn, .field, .input, .state, .badge, .skel, .note).
+   Los valores salen de design-system/tokens.css; los colores de estados, de los distintivos de C-22 (--state-*). */
+
+.page.page-dash{max-width:1180px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Distintivos de estado (de C-22) y marca de actualización */
+.b-confirmado{color:var(--state-confirmado-fg);background:var(--state-confirmado-bg)}
+.b-en-prep{color:var(--state-en-prep-fg);background:var(--state-en-prep-bg)}
+.b-en-camino{color:var(--state-en-camino-fg);background:var(--state-en-camino-bg)}
+.b-entregado{color:var(--state-entregado-fg);background:var(--state-entregado-bg)}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;display:inline-block;flex:none;animation:boot-spin .8s linear infinite}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.refresh{display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-sm);color:var(--color-text-muted);flex-wrap:wrap}
+.refresh .btn svg.ico{width:16px;height:16px}
+.refresh .when{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.refresh .when svg.ico{width:16px;height:16px}
+.refresh .btn[disabled]{cursor:progress}
+
+/* Selector de período */
+.periodo{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+.periodo-fila{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-4) var(--space-5)}
+.grupo{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
+.grupo-lbl{font-weight:600;font-size:var(--text-sm)}
+.seg-atajos{flex-wrap:wrap}
+.periodo-fechas{align-items:flex-start}
+.periodo .field{flex:0 1 190px}
+.fecha{position:relative}
+.fecha svg.ico{position:absolute;left:var(--space-3);top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--color-text-muted);pointer-events:none}
+.fecha .input{padding-left:40px;font-variant-numeric:tabular-nums}
+.utc{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);color:var(--color-text-muted);align-self:flex-end;min-height:var(--tap-min)}
+.utc svg.ico{width:16px;height:16px}
+.err-rango{display:flex;align-items:center;gap:var(--space-2);color:var(--color-danger);font-weight:700;font-size:var(--text-sm);margin-top:calc(var(--space-2) * -1)}
+.err-rango svg.ico{width:18px;height:18px;flex:none}
+.stale-note{font-size:var(--text-sm);color:var(--color-text-muted);margin-top:calc(var(--space-3) * -1)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4)}
+.kpi{position:relative;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:2px;min-width:0;text-decoration:none;color:inherit}
+.kpi-ico{width:36px;height:36px;border-radius:var(--radius-md);background:var(--color-primary-soft);color:var(--color-primary);display:grid;place-items:center;margin-bottom:var(--space-2)}
+.kpi-ico svg.ico{width:20px;height:20px}
+.kpi-tit{font-size:var(--text-sm);font-weight:700;color:var(--color-text-muted)}
+.kpi-val{font-size:var(--text-2xl);font-weight:800;font-family:var(--font-display);line-height:var(--leading-tight);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi-nota{font-size:var(--text-xs);color:var(--color-text-muted)}
+.kpi-link{border-color:var(--color-accent);transition:box-shadow var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out)}
+.kpi-link:hover{box-shadow:var(--shadow-md)}
+.kpi-link:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.kpi-link .kpi-ico{background:var(--color-accent-soft);color:var(--color-accent)}
+.kpi-go{display:inline-flex;align-items:center;gap:6px;margin-top:var(--space-2);font-size:var(--text-sm);font-weight:700;color:var(--color-accent)}
+.kpi-go svg.ico{width:16px;height:16px}
+.kpi .sk-ico{width:36px;height:36px;border-radius:var(--radius-md);margin-bottom:var(--space-2)}
+.kpi .sk-val{height:28px;width:60%;margin:4px 0}
+.kpi .skel-line{height:12px}
+
+/* Bloques de gráficos: grilla 2x2 en desktop, una columna en mobile */
+.grilla{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4);transition:opacity var(--motion-base) var(--ease-out)}
+.grilla.is-stale{opacity:.62}
+.bloque{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
+.bloque-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+.bloque-head h2{font-size:var(--text-lg)}
+.bloque-sub{font-size:var(--text-sm);color:var(--color-text-muted);margin-top:2px}
+.toggle{flex:none;border:1px solid var(--color-border)}
+.toggle svg.ico{width:16px;height:16px}
+.chart-box{position:relative;width:100%;min-height:200px}
+.chart{display:block;max-width:100%;overflow:visible}
+.chart .ax{font:500 11px var(--font-sans);fill:var(--color-text-muted)}
+.chart .lb{font:600 13px var(--font-sans);fill:var(--color-text)}
+.chart .lb-m{font:500 12px var(--font-sans);fill:var(--color-text-muted)}
+.chart .val{font:700 12px var(--font-sans);fill:var(--color-text);font-variant-numeric:tabular-nums}
+.chart .dona-t,.dona .dona-t{font:800 17px var(--font-display);fill:var(--color-text)}
+.dona .ax{font:500 12px var(--font-sans);fill:var(--color-text-muted)}
+.tip{position:absolute;z-index:2;pointer-events:none;width:150px;background:var(--color-text);color:#fff;border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow-md)}
+.tip strong{font-size:var(--text-sm)}
+.tip span{color:#fff;opacity:.92}
+
+/* Formas de pago: dona + leyenda con porcentaje */
+.pagos{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-4) var(--space-5);min-height:200px}
+.dona-box{flex:none}
+.leyenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-3);flex:1 1 200px;min-width:0}
+.leyenda li{display:flex;align-items:center;gap:var(--space-3)}
+.leyenda .sw{width:14px;height:14px;border-radius:4px;flex:none}
+.leyenda .ln{display:flex;flex-direction:column;min-width:0;flex:1}
+.leyenda .ln small{color:var(--color-text-muted);font-size:var(--text-sm);font-variant-numeric:tabular-nums}
+.leyenda .pct{font-weight:800;font-size:var(--text-lg);font-variant-numeric:tabular-nums}
+
+/* Tabla equivalente */
+.dtabla-wrap{max-height:330px;overflow:auto;border:1px solid var(--color-border);border-radius:var(--radius-md)}
+.dtabla-wrap:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.dtabla{width:100%;border-collapse:collapse;font-size:var(--text-sm);font-variant-numeric:tabular-nums}
+.dtabla thead th{position:sticky;top:0;background:var(--color-surface-alt);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);text-align:left;padding:var(--space-2) var(--space-3)}
+.dtabla tbody th,.dtabla tbody td{padding:var(--space-2) var(--space-3);border-top:1px solid var(--color-border);text-align:left;font-weight:400}
+.dtabla tbody th{font-weight:600}
+.dtabla .r{text-align:right}
+.tlink{text-decoration:none;color:inherit;display:inline-flex}
+.tlink:hover .badge{box-shadow:0 0 0 2px var(--color-border)}
+.tlink:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-pill)}
+
+/* Esqueleto y vacíos por bloque */
+.skel-chart{height:220px;display:flex;align-items:flex-end;gap:var(--space-3);padding:var(--space-2) 0}
+.skel-chart .skel{flex:1;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.skel-chart .skel:nth-child(1){height:45%}.skel-chart .skel:nth-child(2){height:70%}.skel-chart .skel:nth-child(3){height:55%}
+.skel-chart .skel:nth-child(4){height:90%}.skel-chart .skel:nth-child(5){height:60%}.skel-chart .skel:nth-child(6){height:75%}
+.vacio-bloque{padding:var(--space-6) var(--space-4);min-height:200px;justify-content:center}
+.vacio-bloque h3{font-size:var(--text-base)}
+.vacio-bloque .badge-ico{width:48px;height:48px;border-radius:50%;background:var(--color-primary-soft);color:var(--color-primary);display:grid;place-items:center}
+.vacio-bloque .badge-ico svg.ico{width:24px;height:24px;color:inherit;stroke-width:2}
+.state.is-error .badge-ico{background:var(--color-danger-bg);color:var(--color-danger)}
+.vacio-bloque .btn svg.ico{width:16px;height:16px;color:inherit}
+
+@media (max-width:1099.98px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:899.98px){
+  .grilla{grid-template-columns:1fr}
+}
+@media (max-width:719.98px){
+  .periodo{padding:var(--space-4)}
+  .seg-atajos{display:grid;grid-template-columns:1fr 1fr;border-radius:var(--radius-lg);width:100%}
+  .grupo{width:100%}
+  .grupo .seg{width:100%}
+  .grupo .seg button{flex:1 1 0;padding:0 var(--space-2)}
+  .periodo .field{flex:1 1 140px}
+  .kpis{gap:var(--space-3)}
+  .kpi{padding:var(--space-3) var(--space-4)}
+  .kpi-val{font-size:var(--text-xl)}
+  .bloque{padding:var(--space-4)}
+  .page-head-row .refresh{width:100%;justify-content:space-between}
+  .toggle .lbl{display:none}
+  .toggle{min-width:44px;min-height:44px;padding:0}
+}

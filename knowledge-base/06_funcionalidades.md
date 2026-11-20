@@ -143,7 +143,7 @@ Detalle en [11](11_pagos_mercadopago.md).
 **Reglas**: RN-US-01..03, RN-US-06..07
 
 ### US-028 — Dashboard de métricas (ADMIN)
-- [ ] KPIs: ventas, ticket promedio, pedidos activos, ingresos; ventas por período (`day`...), productos top, pedidos por estado, ingresos por forma de pago; gráficos recharts `[Pendiente-FE]`
+- [x] KPIs: ventas, ticket promedio, pedidos activos, ingresos; ventas por período (`day`/`week`/`month`), productos top, pedidos por estado, ingresos por forma de pago; gráficos recharts con «Ver como tabla» y período en la URL (`/admin/dashboard`, solo ADMIN) — implementado en C-24. Una venta es un pedido en `CONFIRMADO`/`EN_PREP`/`EN_CAMINO`/`ENTREGADO` de cualquier forma de pago (RN-ES-01); fechas UTC inclusivas, máximo 366 días (RN-ES-02).
 
 ## Épica 8: Plataforma y calidad
 

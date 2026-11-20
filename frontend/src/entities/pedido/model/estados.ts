@@ -45,3 +45,18 @@ const CLASES_ESTADO: Readonly<Record<string, string>> = {
 export function claseEstado(codigo: string): string {
   return CLASES_ESTADO[codigo] ?? 'b-neutro';
 }
+
+/** Color de texto del distintivo de cada estado (token del design system), para los gráficos: el mismo de `.b-<estado>`. */
+export const COLOR_ESTADO: Readonly<Record<string, string>> = {
+  PENDIENTE: 'var(--state-pendiente-fg)',
+  CONFIRMADO: 'var(--state-confirmado-fg)',
+  EN_PREP: 'var(--state-en-prep-fg)',
+  EN_CAMINO: 'var(--state-en-camino-fg)',
+  ENTREGADO: 'var(--state-entregado-fg)',
+  CANCELADO: 'var(--state-cancelado-fg)',
+};
+
+/** Color del estado para un gráfico; el gris neutro del distintivo para un estado desconocido. */
+export function colorEstado(codigo: string): string {
+  return COLOR_ESTADO[codigo] ?? 'var(--color-text-muted)';
+}

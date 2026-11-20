@@ -82,6 +82,13 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 - **RN-PE-13**: Listado: CLIENT ve solo los propios; ADMIN/PEDIDOS ven todos; filtros por estado/fecha (UTC) y paginación `page/size` (C-11).
 - **RN-PE-14** (PA-07 parcial, DD-23): `EN_PREP→EN_CAMINO` y `EN_CAMINO→ENTREGADO` los hacen ADMIN y PEDIDOS. Implementado en C-09 (`EN_CAMINO` ya existe en la FSM). El rol `COCINA` (extra del código, no especificado) no se toca: se decide al final (Fase 2).
 
+## Dominio: Estadísticas (RN-ES)
+
+> **C-24:** definición de venta y rango de los reportes del dashboard del ADMIN (`backend/app/modules/pedidos/repository.py`, `condiciones_vendido`).
+
+- **RN-ES-01**: Un pedido cuenta como **venta** si su estado actual es `CONFIRMADO`, `EN_PREP`, `EN_CAMINO` o `ENTREGADO`, sea cual sea la forma de pago (no se exige un `Pago` aprobado: `EFECTIVO`/`TRANSFERENCIA` se confirman a mano, RN-PE-02). `PENDIENTE` y `CANCELADO` no cuentan. El importe de la venta es el `total` del pedido y se ubica en el tiempo por su `created_at` en UTC.
+- **RN-ES-02**: Los reportes exigen `desde` y `hasta` (inclusivos); `desde > hasta` → 422 (`field` `desde`) y más de 366 días → 422 (`field` `hasta`). No llevan `page`/`size`.
+
 ## Dominio: Stock (RN-ST)
 
 - **RN-ST-00** (spec `[INT]`): al crear el pedido se valida que el producto esté `disponible` y con stock suficiente (errores claros: no disponible, sin stock). La spec no define cuándo se descuenta: lo decidió el usuario (PA-03, DD-20, ver abajo).

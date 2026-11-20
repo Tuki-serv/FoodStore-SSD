@@ -73,7 +73,7 @@ def create_app() -> FastAPI:
     # ── Dominio 3 ──────────────────────────────────────
     app.include_router(pedido_router,
                        prefix="/api/v1/pedidos",        tags=["Pedidos"])
-    app.include_router(estadisticas_router)
+    app.include_router(estadisticas_router, prefix="/api/v1")
     app.include_router(pago_router)
 
 

@@ -1,18 +1,24 @@
-from decimal import Decimal
-from pydantic import BaseModel
 from datetime import date
+from decimal import Decimal
+from typing import Annotated
+
+from pydantic import BaseModel, PlainSerializer
+
+# Importe monetario: en JSON viaja como texto decimal con 2 decimales ("1500.00"), nunca como float.
+Monto = Annotated[Decimal, PlainSerializer(lambda valor: f"{valor:.2f}", return_type=str, when_used="json")]
 
 
 class VentasPeriodoItem(BaseModel):
     fecha: date
-    total_ventas: Decimal
+    total_ventas: Monto
     cantidad_pedidos: int
 
 
 class ProductoTopItem(BaseModel):
+    producto_id: int
     nombre: str
-    ingresos: Decimal
     cantidad_vendida: int
+    ingresos: Monto
 
 
 class PedidosEstadoItem(BaseModel):
@@ -21,13 +27,13 @@ class PedidosEstadoItem(BaseModel):
 
 
 class ResumenResponse(BaseModel):
-    ventas_hoy: Decimal
-    ticket_promedio: Decimal
+    ventas: int
+    ingresos: Monto
+    ticket_promedio: Monto
     pedidos_activos: int
-    ingresos_mes: Decimal
 
 
 class IngresosResponse(BaseModel):
     forma_pago_codigo: str
-    total: Decimal
+    total: Monto
     cantidad: int
