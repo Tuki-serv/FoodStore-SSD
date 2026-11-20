@@ -600,6 +600,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - US-019 cancelar mi pedido (solo PENDIENTE/CONFIRMADO, motivo obligatorio).
   - Tests: timeline, cancelación.
   - Punto de partida (C-19): existe `src/entities/pedido/` con `pedidoQueries.todas()` (`['pedidos']`, que `useCrearPedido` invalida al crear un pedido: el listado se vuelve a pedir al abrirlo), `pedidoQueries.detalle(id)` (`GET /pedidos/{id}`), los tipos `PedidoDetalle`/`DetallePedido`, `BadgeEstado`/`etiquetaEstado`/`claseEstado` (estados `PENDIENTE`…`CANCELADO`), `EtiquetaFormaPago` y `FORMAS_PAGO`. La confirmación `/finalizar-compra/pedido/:id` enlaza «Ver mis pedidos» a `/mis-pedidos` (hoy provisoria, dueño `C-21`). Falta el listado paginado (`pedidoQueries.lista`), el timeline, la cancelación y el seguimiento.
+  - Punto de partida (C-22): `pedidoQueries.lista(filtros)` (listado paginado con `keepPreviousData`, acepta `estado`/`desde`/`hasta`/`page`/`size`) y `pedidoQueries.historial(id)`; `LineaTiempoHistorial`, `tituloEvento`/`autorEvento` y `EntregaDelPedido` en `entities/pedido`; `accionesGestion`/`proximoAvance` (`transiciones.ts`) espejan la FSM de gestión (la del cliente es otra); `clasificarErrorCambioEstado`; `HistorialEstadoPedidoRead.usuario_nombre`, `PedidoDetalle.direccion`; `Dialogo` y `DialogoBaja` (con `children`) y la variante de botón `peligroContorno`; las rutas `/gestion-pedidos` usan `RequiereAcceso` con `ACCESO_RUTAS`.
 - **Dependencias**: `C-19, C-11`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` mis pedidos, detalle y timeline.
@@ -609,13 +610,14 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/07_flujos_principales.md` §Cancelación
 
 ### [C-22] `fe-gestion-operativa-pedidos`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-19). Verify: PASS WITH FINDINGS (frontend 1464/1464, backend 1759 passed, typecheck y lint limpios). Major corregido en el mismo change (byte NUL en las comillas del historial, `pedido.css`, test `pedido-css.test.ts`). Visual verify: passed with differences (minor: el envío de $50 en retiros viene del backend, derivado a C-25b). Backend aditivo: `direccion` en el detalle y `usuario_nombre` en el historial. RN-PE-12 corregida (no hay borrado, solo cancelar). Archivado en `openspec/changes/archive/2026-11-19-c-22-fe-gestion-operativa-pedidos/`; spec principal nueva `frontend-order-management`, y `order-api` ampliada.
 - **Scope**:
   - US-020 avanzar estado (PEDIDOS/ADMIN) con motivo/observación, incluye EN_CAMINO (despachado por ADMIN/PEDIDOS, DD-23); US-021 todos los pedidos con filtros estado/fecha e historial; US-022 cancelar/eliminar (ADMIN/PEDIDOS).
   - Confirmación manual PENDIENTE→CONFIRMADO visible solo para pedidos `EFECTIVO`/`TRANSFERENCIA` (DD-22), con el error de «sin stock» si el backend la rechaza (DD-20).
   - Acciones visibles según FSM, rol y forma de pago.
   - Tests: botones según estado/rol/forma de pago, historial.
   - Punto de partida (C-11): contrato de pedidos: `GET /pedidos` (scoped), `GET /pedidos/{id}`, `PATCH /pedidos/{id}/estado` con `{nuevo_estado, motivo}`, `DELETE /pedidos/{id}` con body OPCIONAL `{motivo}` (por defecto «Cancelado por el cliente»); paginación `{items,total,page,size,pages}`; errores `{detail, code, field}` con códigos de negocio.
+  - Implementado y verificado (2026-11-19): `/gestion-pedidos` (listado con filtros en la URL, polling 30 s, próxima acción por fila) y `/gestion-pedidos/:pedidoId` (entrega, ítems, acciones, historial); backend aditivo `PedidoDetalle.direccion` e `historial[].usuario_nombre` (sin migración); `features/cambiar-estado-pedido` (diálogos de avance y de cancelación con motivo). Sin borrado de pedidos (OQ-4).
 - **Dependencias**: `C-13b, C-09, C-11`
 - **Governance**: MEDIO
 - **UI**: `[UI-MOCKUP]` tablero de gestión de pedidos.
@@ -645,6 +647,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - Verificar endpoints de estadísticas actuales y ajustarlos al contrato (page/size, errores).
   - Tests: endpoints de métricas y render de gráficos.
 - **Dependencias**: `C-22`
+  - Punto de partida (C-22): `pedidoQueries.lista` pide `GET /pedidos/` paginado con filtros `estado`/`desde`/`hasta` (fechas UTC); el listado de gestión y el dashboard comparten `BadgeEstado`/`etiquetaEstado`/`EtiquetaFormaPago`, los íconos y los estilos de `.badge` del design system.
 - **Governance**: BAJO
 - **UI**: `[UI-MOCKUP]` dashboard.
 - **Leer antes**:
@@ -679,6 +682,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - **Heredado de C-13a** (menores del verify 2026-11-15): favicon (hoy `/favicon.ico` da 404 en consola); accesibilidad del drawer mobile (`role="dialog"`/`aria-modal`, trampa de foco, contenido `inert` detrás del scrim); test que exija `index.ts` en cada slice/segmento FSD; título del 404 en mobile (una línea en la app, dos en el mockup); decidir si se quita la escala por defecto de Tailwind (hoy `h-10` sale como `2.5rem` literal, fuera de los tokens); sumar los íconos `obra`, `brujula` y `alerta` al sprite de `design-system/components.html` (cambio visual del design system: requiere revisión del usuario); test de `readConfig` con valor vacío que no distingue del caso URL inválida; imagen de producción del frontend (el Dockerfile actual es solo servidor de desarrollo).
   - **Heredado de C-15** (deuda sugerida, 2026-11-17): índice único parcial de `es_principal` (`WHERE es_principal AND deleted_at IS NULL`, por usuario) en `direcciones`, porque la regla «solo una principal» (RN-DI-01) la garantiza solo el service y dos `PATCH /direcciones/{id}/principal` simultáneos podrían dejar dos principales (R3; requiere migración Alembic, governance BAJO); sumar al sprite de `design-system/components.html` los íconos `editar`, `basura`, `estrella`, `mas` y `tienda` que usa el frontend (cambio visual del design system: requiere revisión del usuario); decidir con OQ-1 de C-15 si al eliminar la principal el backend promueve otra.
   - **Heredado de C-19** (deuda de backend detectada, 2026-11-19; el frontend la compensa): R1 `POST /pedidos/` devuelve todos sus rechazos como `HTTP_400`/`HTTP_404` sin código estable ni línea afectada (el frontend clasifica por el texto de `detail` en `clasificarErrorCreacion`); sumar `ErrorCode` estables (`PRODUCT_NOT_FOUND`, `PRODUCT_UNAVAILABLE`, `PAYMENT_METHOD_UNAVAILABLE`, `DUPLICATE_ITEM`) con `field` y el `producto_id` afectado y simplificar el clasificador; R2 sin idempotencia de creación (un timeout tras el commit + «Reintentar» puede crear dos pedidos `PENDIENTE`); R3 `direccion_id` no se valida (inexistente o de otro usuario → FK/500 o pedido a dirección ajena); R4 los ids de `personalizacion` no se validan como ingredientes removibles del producto; además no hay endpoint que liste las formas de pago habilitadas (el frontend usa un catálogo local, OQ-2) y no hay datos bancarios en el sistema para la transferencia (OQ-5).
+  - **Heredado de C-22** (deuda detectada, 2026-11-19): R1 el costo de envío fijo de $50 (`COSTO_ENVIO_FIJO`) se cobra también a los pedidos para retirar en el local (`crear_pedido` lo aplica siempre; sin `direccion_id` debería ser 0); R2 los filtros de fecha del listado son UTC (el gestor ve días locales); R6 el filtro de estado acepta un solo valor y no hay búsqueda por cliente o número; OQ-7 considerar varios estados, «activos» y zona horaria; el rol `COCINA`/KDS y el WebSocket siguen sin tocarse (PA-07, C-26/C-27); los íconos `moto`, `flecha`, `nota` y `calendario` de `shared/ui/icon` son provisionales y faltan en el sprite de `design-system/components.html`.
 - **Dependencias**: `C-01 a C-24, C-25a`
 - **Governance**: MEDIO
 - **Decisión pendiente**: PA-16, PA-17, PA-18
@@ -748,7 +752,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 18 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 25** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-25a). **Pendientes obligatorios: 5** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
+**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 26** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-22, C-25a). **Pendientes obligatorios: 4** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
