@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-21 - Mis pedidos (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="gestion.css">
+<link rel="stylesheet" href="mis-pedidos.css">
+</head>
+<body>
+<main class="page page-wide" id="main">
+  <div class="page-head-row" id="cabecera">
+    <div class="page-head">
+      <h1>Mis pedidos</h1>
+      <p>Seguí cada pedido y cancelalo mientras esté pendiente o confirmado.</p>
+    </div>
+  </div>
+  <form class="gp-filters mp-filters" id="filtros" aria-label="Filtro de mis pedidos" onsubmit="return false"></form>
+  <div class="gp-bar" id="barra"></div>
+  <div id="aviso"></div>
+  <div id="contenido"></div>
+  <div class="gp-foot" id="pie"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="mis-pedidos.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Parámetros (?estado=):
+   (sin parámetro) listado con datos, página 1 de 3 · pagina (página 3 de 3) · carga · vacio (sin pedidos, sin filtro) · error
+   filtro (estado «Entregado», 12 pedidos, página 1 de 2) · filtro-vacio (filtro «En camino» sin resultados)
+   actualizando («Actualizar» girando) · aviso (falló una actualización periódica, se conservan los datos)
+   ?nav=drawer | collapsed (de mockup.js) */
+(function () {
+  var M = MOCK, ico = M.ico, est = M.estado, P = M.PEDIDOS;
+  var $ = function (id) { return document.getElementById(id); };
+  function resumen(texto) { return '<p class="admin-summary" role="status">' + texto + '</p>'; }
+  function barra(texto, marcaOpts) { M.llenar('barra', resumen(texto) + M.marca(marcaOpts)); }
+  var PAGINA1 = [63, 58, 57, 54, 53, 50, 46, 44, 41, 39].map(function (id) { return P[id]; });
+
+  /* FiltroMisPedidos (OQ-4): select nativo «Estado» (SelectorEstadoPedido de entities/pedido, compartido con gestión, D11) + «Limpiar filtro» */
+  function filtro(estado) {
+    var opts = '<option value="">Todos</option>' + Object.keys(M.ESTADOS).map(function (k) { return '<option value="' + k + '"' + (estado === k ? ' selected' : '') + '>' + M.ESTADOS[k] + '</option>'; }).join('');
+    return '<div class="gp-filters-row">' +
+      '<div class="field f-estado"><label for="f-estado">Estado</label><select id="f-estado" class="input">' + opts + '</select></div>' +
+      (estado ? '<button class="link-btn clear" type="button">Limpiar filtro</button>' : '<span></span>') + '</div>';
+  }
+  M.llenar('filtros', filtro(est === 'filtro' ? 'ENTREGADO' : est === 'filtro-vacio' ? 'EN_CAMINO' : null));
+
+  if (est === 'carga') {
+    M.banner('Mockup C-21 · Mis pedidos: primera carga');
+    $('barra').innerHTML = resumen('<span class="skel skel-line" style="display:inline-block;width:120px"></span>');
+    M.llenar('contenido', M.esqueletoLista(5));
+    M.nota('skeleton solo en la primera carga · las actualizaciones no vacían la lista');
+  } else if (est === 'vacio') {
+    M.banner('Mockup C-21 · Mis pedidos: todavía no hiciste pedidos');
+    M.llenar('contenido', M.estadoVista('vacio', 'i-pedidos', 'Todavía no hiciste pedidos', 'Cuando hagas tu primer pedido lo vas a poder seguir desde acá.', '<a class="btn btn-primary" href="#/catalogo">' + ico('i-catalogo') + 'Ver catálogo</a>'));
+    M.nota('un ADMIN o PEDIDOS sin pedidos propios ve lo mismo (propios=true, OQ-1)');
+  } else if (est === 'error') {
+    M.banner('Mockup C-21 · Mis pedidos: falló la carga (500 o sin conexión)');
+    M.llenar('contenido', M.estadoVista('error', 'i-alerta', 'No pudimos cargar tus pedidos', 'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.', '<button class="btn btn-secondary" type="button">' + ico('i-reintentar') + 'Reintentar</button>'));
+  } else if (est === 'filtro') {
+    M.banner('Mockup C-21 · Mis pedidos: filtro «Entregado», página 1 de 2');
+    barra('<strong>12 pedidos</strong> en «Entregado»');
+    var entregados = [P[46], P[41], P[39]].concat([
+      { id: 36, forma: 'EFECTIVO', fecha: '15/11/2026', hora: '21:02', items: [[2, 'Burger Vegana', 1800]] },
+      { id: 31, forma: 'MERCADOPAGO', fecha: '14/11/2026', hora: '13:40', items: [[1, 'Hamburguesa Clásica', 1500], [1, 'Coca-Cola 500ml', 800]] },
+      { id: 27, forma: 'TRANSFERENCIA', fecha: '12/11/2026', hora: '20:15', items: [[1, 'Burger Sin TACC', 1700]] },
+      { id: 22, forma: 'EFECTIVO', fecha: '10/11/2026', hora: '21:48', items: [[3, 'Hamburguesa Clásica', 1500]] },
+      { id: 18, forma: 'MERCADOPAGO', fecha: '07/11/2026', hora: '12:55', items: [[1, 'Burger Vegana', 1800], [2, 'Coca-Cola 500ml', 800]] },
+      { id: 15, forma: 'EFECTIVO', fecha: '05/11/2026', hora: '20:30', items: [[1, 'Hamburguesa Clásica', 1500]] },
+      { id: 12, forma: 'EFECTIVO', fecha: '02/11/2026', hora: '21:30', items: [[1, 'Burger Vegana', 1800]] }
+    ].map(function (p) { p.estado = 'ENTREGADO'; return p; }));
+    M.llenar('contenido', M.lista(entregados));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–10 de 12</span>' + M.paginacion(1, 2));
+    M.nota('URL: /mis-pedidos?estado=ENTREGADO · GET /pedidos?propios=true&estado=ENTREGADO&page=1&size=10 · cambiar el estado vuelve a la página 1 · sin pedidos en curso: no se actualiza sola');
+  } else if (est === 'filtro-vacio') {
+    M.banner('Mockup C-21 · Mis pedidos: filtro «En camino» sin resultados');
+    barra('<strong>0 pedidos</strong> en «En camino»');
+    M.llenar('contenido', M.estadoVista('vacio', 'i-buscar', 'No tenés pedidos en ese estado', 'Probá con otro estado o mirá todos tus pedidos.', '<button class="btn btn-secondary" type="button">Limpiar filtro</button>'));
+    M.nota('distinto de «Todavía no hiciste pedidos»: sin «Ver catálogo» · «Limpiar filtro» lleva a /mis-pedidos (Todos, página 1)');
+  } else if (est === 'pagina') {
+    M.banner('Mockup C-21 · Mis pedidos: página 3 de 3');
+    barra('<strong>23 pedidos</strong>');
+    var viejos = [
+      { id: 12, forma: 'EFECTIVO', estado: 'ENTREGADO', fecha: '02/11/2026', hora: '21:30', items: [[1, 'Burger Vegana', 1800]] },
+      { id: 9, forma: 'MERCADOPAGO', estado: 'CANCELADO', fecha: '01/11/2026', hora: '13:05', items: [[2, 'Hamburguesa Clásica', 1500]] },
+      { id: 4, forma: 'TRANSFERENCIA', estado: 'ENTREGADO', fecha: '28/10/2026', hora: '20:12', items: [[1, 'Burger Sin TACC', 1700], [2, 'Coca-Cola 500ml', 800]] }
+    ];
+    M.llenar('contenido', M.lista(viejos));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 21–23 de 23</span>' + M.paginacion(3, 3));
+    M.nota('URL: /mis-pedidos?page=3 · 10 por página · sin pedidos en curso en la página: no se actualiza sola, pero «Actualizar» sigue');
+  } else if (est === 'aviso') {
+    M.banner('Mockup C-21 · Mis pedidos: falló una actualización periódica (se conservan los datos)');
+    barra('<strong>23 pedidos</strong>', { hora: '12:52' });
+    M.llenar('aviso', M.avisoFallo('12:52'));
+    M.llenar('contenido', M.lista(PAGINA1));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–10 de 23</span>' + M.paginacion(1, 3));
+  } else if (est === 'actualizando') {
+    M.banner('Mockup C-21 · Mis pedidos: actualizando (la lista no se vacía)');
+    barra('<strong>23 pedidos</strong>', { girando: true });
+    M.llenar('contenido', M.lista(PAGINA1, true));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–10 de 23</span>' + M.paginacion(1, 3));
+    M.nota('mismo indicador en la actualización automática cada 30 s (pestaña visible y algún pedido «En curso» en la página)');
+  } else {
+    M.banner('Mockup C-21 · Mis pedidos: listado con datos, página 1 de 3');
+    barra('<strong>23 pedidos</strong>');
+    M.llenar('contenido', M.lista(PAGINA1));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–10 de 23</span>' + M.paginacion(1, 3));
+    M.nota('solo los pedidos propios (GET /pedidos?propios=true&page=1&size=10) · más nuevos primero · «En curso» = no entregado ni cancelado · el número o «Ver detalle» abre /mis-pedidos/:id');
+  }
+})();
+</script>
+</body>
+</html>

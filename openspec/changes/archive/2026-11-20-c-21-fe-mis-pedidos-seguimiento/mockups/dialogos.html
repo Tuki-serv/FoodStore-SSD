@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-21 - Cancelar mi pedido (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="gestion.css">
+<link rel="stylesheet" href="mis-pedidos.css">
+</head>
+<body>
+<main class="page page-wide" id="main">
+  <div id="contenido" style="display:flex;flex-direction:column;gap:var(--space-5)"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="mis-pedidos.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Parámetros (?dialogo=), sobre el detalle del pedido correspondiente:
+   cancelar (#58 PENDIENTE, vacío, defecto) · cancelar-sin-motivo · cancelar-enviando
+   cancelar-mp (#57 CONFIRMADO MERCADOPAGO: aviso de reintegro) · transicion (409 INVALID_TRANSITION: el local ya lo pasó a preparación)
+   conexion (sin red: «Reintentar» con el motivo intacto) · exito (toast + detalle cancelado) */
+(function () {
+  var M = MOCK, ico = M.ico, d = M.params.get('dialogo') || 'cancelar';
+  var MOTIVO = 'Me equivoqué de dirección';
+
+  if (d === 'exito') {
+    var c = M.pedido(58, { estado: 'CANCELADO', hist: M.PEDIDOS[58].hist.concat([['PENDIENTE', 'CANCELADO', 'Vos', '19/11/2026 12:46', MOTIVO]]) });
+    M.banner('Mockup C-21 · Éxito: #58 cancelado (progreso, acciones e historial al día)');
+    M.llenar('contenido', M.detalle(c));
+    M.toast('Pedido #58 cancelado', 'No se te va a cobrar nada.');
+    M.nota('el foco va al título «Pedido #58» (el botón ya no existe) · CONFIRMADO con Mercado Pago: «Pedido #57 cancelado» + «El reintegro lo gestionás con el local.»');
+    return;
+  }
+  var id = d === 'cancelar-mp' ? 57 : 58;
+  var p = M.pedido(id);
+  if (d === 'transicion') p = M.pedido(58, { estado: 'EN_PREP', hist: M.PEDIDOS[58].hist.concat([['PENDIENTE', 'CONFIRMADO', 'El local', '19/11/2026 12:44', 'Paga en efectivo al recibir'], ['CONFIRMADO', 'EN_PREP', 'El local', '19/11/2026 12:45', null]]) });
+  M.llenar('contenido', M.detalle(p));
+
+  function alerta(titulo, texto) { return '<div class="dlg-alert" role="alert">' + ico('i-alerta') + '<div><span><strong>' + titulo + '</strong>' + texto + '</span></div></div>'; }
+  var sinMotivo = d === 'cancelar-sin-motivo', enviando = d === 'cancelar-enviando', trans = d === 'transicion', red = d === 'conexion';
+  var valor = sinMotivo || d === 'cancelar' || d === 'cancelar-mp' ? '' : MOTIVO;
+  var avisos = trans ? '' : '<div class="warn is-danger">' + ico('i-alerta') + '<span>La cancelación no se puede deshacer.</span></div>' +
+    (d === 'cancelar-mp' ? '<div class="warn is-info">' + ico('i-tarjeta') + '<span>Si ya pagaste con Mercado Pago, el reintegro no es automático: lo gestionás con el local.</span></div>' : '');
+  var error = trans ? alerta('Tu pedido ya avanzó y no se puede cancelar', 'El local lo pasó a preparación. Ya actualizamos el pedido para que veas su estado actual.')
+    : red ? alerta('No se canceló el pedido', 'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.') : '';
+  var campo = '<div class="field"><div class="label-row"><label for="motivo">Motivo</label><span class="counter" id="mot-c">' + valor.length + '/300</span></div>' +
+    '<textarea id="motivo" class="input" maxlength="300" required aria-describedby="' + (sinMotivo ? 'mot-err ' : '') + 'mot-c"' + (sinMotivo ? ' aria-invalid="true"' : '') + (trans || enviando ? ' disabled' : '') + ' placeholder="Por ejemplo: me equivoqué de dirección">' + valor + '</textarea>' +
+    (sinMotivo ? '<span class="err" id="mot-err" role="alert">Escribí el motivo de la cancelación</span>' : '<span class="hint">El local lo ve en el historial del pedido.</span>') + '</div>';
+  var pie;
+  if (trans) pie = '<div class="modal-actions"><button class="btn btn-primary" type="button">Cerrar</button></div>';
+  else if (enviando) pie = '<div class="modal-actions"><button class="btn btn-ghost" type="button" disabled>Volver</button><button class="btn btn-danger is-busy" type="button" disabled aria-busy="true"><span class="spin" aria-hidden="true"></span>Cancelando…</button></div>';
+  else pie = '<div class="modal-actions"><button class="btn btn-ghost" type="button">Volver</button><button class="btn btn-danger" type="button">' + ico(red ? 'i-reintentar' : 'i-cerrar') + (red ? 'Reintentar' : 'Cancelar pedido') + '</button></div>';
+  M.dialogo('<h2 id="dlg-titulo">Cancelar el pedido #' + id + '</h2>' + error + avisos + campo + pie);
+
+  var BAN = { cancelar: 'vacío', 'cancelar-sin-motivo': 'sin motivo', 'cancelar-enviando': 'enviando (Escape y cierre bloqueados)', 'cancelar-mp': 'CONFIRMADO + MERCADOPAGO', transicion: '409 INVALID_TRANSITION', conexion: 'error de conexión' };
+  M.banner('Mockup C-21 · Diálogo «Cancelar pedido» · ' + BAN[d]);
+  var NOTA = {
+    cancelar: 'envía DELETE /pedidos/58 con {"motivo": "…"} recortado · Escape o «Volver» cierran y el foco vuelve a «Cancelar pedido»',
+    'cancelar-sin-motivo': 'vacío o solo espacios: no se envía nada y el foco va al campo (OQ-2: obligatorio en la UI)',
+    'cancelar-enviando': 'doble clic → un solo DELETE',
+    'cancelar-mp': 'PENDIENTE no descontó stock y CONFIRMADO lo devuelve, pero eso no se le explica al cliente · el reintegro de MP no es automático (KB/07)',
+    transicion: 'el detalle de fondo ya muestra «En preparación» sin «Cancelar pedido» · el motivo queda escrito pero deshabilitado',
+    conexion: '«Reintentar» reenvía el mismo motivo · 5xx igual · 403/404: «Este pedido no está disponible»'
+  };
+  M.nota(NOTA[d]);
+})();
+</script>
+</body>
+</html>
