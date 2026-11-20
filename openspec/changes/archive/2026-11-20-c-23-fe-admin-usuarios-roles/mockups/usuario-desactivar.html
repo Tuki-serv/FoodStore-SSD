@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-23 - Desactivar usuario (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="users.css">
+</head>
+<body data-roles="ADMIN CLIENT" data-current="usuarios">
+<main class="page" id="main" aria-hidden="true">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Usuarios</h1>
+      <p>Administrá las cuentas de la tienda: sus datos, sus roles y quién puede ingresar.</p>
+    </div>
+    <button class="btn btn-primary" type="button"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nuevo usuario</button>
+  </div>
+  <div class="toolbar"><div id="filtro"></div><p class="admin-summary"><strong>8 usuarios</strong></p></div>
+  <div id="contenido"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="users.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* ?estado=reposo (por defecto) | enviando | error (&error=last-admin para el 409) | inactivo (404: ya no estaba activo) */
+(function () {
+  var M = MOCK, ico = M.ico;
+  var MARCA = ' · ADMIN (Ana Gómez, ejemplo) · Revision 2 · pendiente de aprobación';
+  M.llenar('filtro', M.filtroRol(''));
+  M.llenar('contenido', M.listaUsuarios(M.LISTA));
+  var quien = '<div class="who"><strong>Carla Gómez</strong><span>carla@example.com</span></div>';
+  var efectos = '<ul class="effects"><li>Se cierran sus sesiones abiertas: queda fuera de la tienda enseguida.</li><li>No va a poder ingresar con esa cuenta.</li><li>Su email queda libre para una cuenta nueva.</li></ul>';
+  var estado = M.estado || 'reposo';
+  if (estado === 'inactivo') {
+    M.banner('Mockup C-23 · Desactivar: el servidor respondió 404, el usuario ya no estaba activo' + MARCA);
+    M.dialogo(
+      '<h2 id="dlg-titulo">Carla Gómez ya no estaba activo</h2>' +
+      '<div class="warn" role="alert">' + ico('i-alerta') + '<span>Otra persona ya lo desactivó<small>Actualizamos el listado para que veas el estado real.</small></span></div>' +
+      '<div class="modal-actions"><button class="btn btn-primary" type="button">Entendido</button></div>');
+    return;
+  }
+  var cuerpo = '<h2 id="dlg-titulo">¿Desactivar a Carla Gómez?</h2>' + quien + efectos;
+  if (estado === 'enviando') {
+    M.banner('Mockup C-23 · Desactivar: enviando (botones bloqueados, Escape no cierra)' + MARCA);
+    M.dialogo(cuerpo + '<div class="modal-actions"><button class="btn btn-ghost" type="button" disabled>Cancelar</button>' +
+      '<button class="btn btn-danger" type="button" disabled aria-busy="true"><span class="spin" aria-hidden="true"></span>Desactivando…</button></div>');
+  } else if (estado === 'error') {
+    var last = M.error === 'last-admin';
+    M.banner('Mockup C-23 · Desactivar: ' + (last ? 'el servidor rechazó la baja (409 LAST_ADMIN)' : 'el servidor no respondió') + MARCA);
+    if (last) {
+      cuerpo = '<h2 id="dlg-titulo">¿Desactivar a Marcos Peralta?</h2><div class="who"><strong>Marcos Peralta</strong><span>marcos.peralta@example.com</span></div>' + efectos;
+    }
+    M.dialogo(cuerpo + '<div class="warn is-danger" role="alert">' + ico('i-alerta') + '<span>No pudimos desactivar al usuario<small>' +
+      (last ? 'Tiene que quedar al menos un administrador activo.' : 'No pudimos conectar con el servidor. Probá de nuevo.') + '</small></span></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Desactivar</button></div>');
+  } else {
+    M.banner('Mockup C-23 · Desactivar: confirmación' + MARCA);
+    M.dialogo(cuerpo + '<div class="modal-actions"><button class="btn btn-ghost" type="button">Cancelar</button><button class="btn btn-danger" type="button">Desactivar</button></div>');
+  }
+})();
+</script>
+</body>
+</html>

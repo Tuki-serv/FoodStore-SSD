@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-23 - Formulario de usuario (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="users.css">
+</head>
+<body data-roles="ADMIN CLIENT" data-current="usuarios">
+<main class="page" id="main">
+  <a class="back-link" href="#/admin/usuarios"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Volver a Usuarios</a>
+  <section class="form-card" aria-labelledby="form-titulo">
+    <h2 id="form-titulo" tabindex="-1"></h2>
+    <p id="form-sub" class="admin-summary" hidden></p>
+    <div id="alerta"></div>
+    <form class="form-grid" novalidate id="form"></form>
+  </section>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="users.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* ?modo=alta (por defecto) | edicion (Carla Gómez) | propia (Ana Gómez, la sesión)
+   ?error=campos (alta: nombre vacío, email inválido, contraseña corta, sin roles) | email (409) | conexion | last-admin (edicion de Marcos) | self (propia) */
+(function () {
+  var M = MOCK, ico = M.ico, esc = M.esc;
+  var modo = M.modo || 'alta', error = M.error;
+  var MARCA = ' · ADMIN (Ana Gómez, ejemplo) · Revision 2 · pendiente de aprobación';
+  var U = M.U;
+  var u = modo === 'propia' ? U.ana : modo === 'edicion' ? (error === 'last-admin' ? U.marcos : U.carla) : null;
+
+  /* Valores y errores según el estado */
+  var v = { nombre: '', apellido: '', email: '', celular: '', password: '', roles: ['CLIENT'] };
+  var e = {};
+  var alerta = null;
+  if (u) { v = { nombre: u.nombre, apellido: u.apellido, email: u.email, celular: u.celular, password: '', roles: u.roles.slice() }; }
+  if (modo === 'alta' && error === 'campos') {
+    v = { nombre: '', apellido: 'Gómez', email: 'carla@', celular: '', password: 'abc123', roles: [] };
+    e = { nombre: 'Ingresá el nombre', email: 'Ingresá un email válido', password: 'Usá al menos 8 caracteres', roles: 'Elegí al menos un rol.' };
+  } else if (modo === 'alta' && error === 'email') {
+    v = { nombre: 'Carla', apellido: 'Gómez', email: 'ana.gomez@foodstore.com', celular: '', password: 'claveinicial1', roles: ['PEDIDOS', 'STOCK'] };
+    e = { email: 'Ya existe un usuario con ese email.' };
+  } else if (error === 'conexion') {
+    if (modo === 'alta') v = { nombre: 'Carla', apellido: 'Gómez', email: 'carla@example.com', celular: '', password: 'claveinicial1', roles: ['PEDIDOS', 'STOCK'] };
+    else v.roles = ['PEDIDOS'];
+    alerta = ['No pudimos guardar el usuario', 'No pudimos conectar con el servidor. Probá de nuevo; lo que escribiste se conserva.'];
+  } else if (error === 'last-admin') {
+    v.roles = ['PEDIDOS'];
+    alerta = ['No pudimos guardar los cambios', 'Tiene que quedar al menos un administrador activo.'];
+  } else if (error === 'self') {
+    alerta = ['No pudimos guardar los cambios', 'No podés quitarte tu propio rol de administrador.'];
+  }
+
+  function campo(id, etiqueta, cls, extra) {
+    extra = extra || {};
+    var val = v[id], err = e[id];
+    var hint = extra.hint ? '<span id="' + id + '-hint" class="hint">' + extra.hint + '</span>' : '';
+    var errEl = err ? '<span id="' + id + '-err" class="err">' + esc(err) + '</span>' : '';
+    var desc = [extra.hint ? id + '-hint' : '', err ? id + '-err' : ''].filter(Boolean).join(' ');
+    return '<div class="field ' + cls + '">' +
+      '<label for="' + id + '">' + etiqueta + (extra.opcional ? ' <small>(opcional)</small>' : '') + '</label>' +
+      '<input id="' + id + '" class="input" type="' + (extra.tipo || 'text') + '"' + (extra.auto ? ' autocomplete="' + extra.auto + '"' : '') +
+        ' value="' + esc(val) + '"' + (extra.readonly ? ' readonly aria-readonly="true"' : '') +
+        (err ? ' aria-invalid="true"' : '') + (desc ? ' aria-describedby="' + desc + '"' : '') + '>' +
+      hint + errEl + '</div>';
+  }
+  function rol(codigo) {
+    var on = v.roles.indexOf(codigo) !== -1;
+    var bloqueado = modo === 'propia' && codigo === 'ADMIN';
+    return '<label class="check' + (on ? ' is-checked' : '') + (bloqueado ? ' is-disabled' : '') + '">' +
+      '<input type="checkbox" name="roles" value="' + codigo + '"' + (on ? ' checked' : '') + (bloqueado ? ' disabled aria-describedby="admin-why"' : '') + '>' +
+      '<span>' + M.NOMBRE_ROL[codigo] + '<small>' + M.DESC_ROL[codigo] + '</small>' +
+      (bloqueado ? '<span class="why" id="admin-why">' + ico('i-candado') + 'No podés quitarte tu propio rol de administrador</span>' : '') + '</span></label>';
+  }
+
+  var html = '';
+  html += campo('nombre', 'Nombre', 'c-3', { auto: 'off' });
+  html += campo('apellido', 'Apellido', 'c-3', { auto: 'off' });
+  if (u) html += campo('email', 'Email', 'c-3', { tipo: 'email', readonly: true, hint: 'El email no se puede cambiar.' });
+  else html += campo('email', 'Email', 'c-3', { tipo: 'email', auto: 'off' });
+  html += campo('celular', 'Celular', 'c-3', { tipo: 'tel', opcional: true, auto: 'off' });
+  if (!u) html += campo('password', 'Contraseña inicial', 'c-3', { tipo: 'password', auto: 'new-password', hint: 'Mínimo 8 caracteres. Se la tenés que pasar vos al usuario.' });
+  html += '<div class="field c-6"><fieldset class="roles' + (e.roles ? ' has-error' : '') + '"' + (e.roles ? ' aria-describedby="roles-err"' : '') + '>' +
+    '<legend>Roles <small>(elegí al menos uno)</small></legend>' +
+    '<div class="roles-grid">' + M.ORDEN.map(rol).join('') + '</div>' +
+    (e.roles ? '<span id="roles-err" class="roles-err">' + e.roles + '</span>' : '') + '</fieldset></div>';
+  html += '<div class="form-actions c-6"><button class="btn btn-ghost" type="button">Cancelar</button>' +
+    '<button class="btn btn-primary" type="submit">' + (u ? 'Guardar cambios' : 'Crear usuario') + '</button></div>';
+  document.getElementById('form').innerHTML = html;
+
+  var titulo = !u ? 'Nuevo usuario' : 'Editar a ' + M.nombreCompleto(u);
+  document.getElementById('form-titulo').textContent = titulo;
+  if (modo === 'propia') { var s = document.getElementById('form-sub'); s.hidden = false; s.textContent = 'Es tu propia cuenta.'; }
+  if (alerta) M.llenar('alerta', M.alerta(alerta[0], alerta[1]));
+
+  var nombres = {
+    alta: 'Nuevo usuario vacío (Cliente viene marcado)',
+    'alta|campos': 'Nuevo usuario con errores de campos y sin roles',
+    'alta|email': 'Nuevo usuario: el email ya está registrado (409)',
+    'alta|conexion': 'Nuevo usuario: el servidor no respondió',
+    edicion: 'Editar a Carla Gómez (email no editable, sin contraseña)',
+    'edicion|last-admin': 'Editar a Marcos Peralta: 409 LAST_ADMIN al quitarle «Administrador»',
+    'edicion|conexion': 'Editar a Carla Gómez: el servidor no respondió',
+    propia: 'Editar la propia cuenta (casilla «Administrador» deshabilitada)',
+    'propia|self': 'Editar la propia cuenta: 409 SELF_ACTION_NOT_ALLOWED'
+  };
+  M.banner('Mockup C-23 · ' + (nombres[modo + (error ? '|' + error : '')] || titulo) + MARCA);
+  var notas = {
+    alta: 'sin errores hasta pulsar «Crear usuario»; con datos inválidos no se envía nada · el alta envía nombre, apellido, email, celular, contraseña y la lista de roles',
+    edicion: 'el PATCH lleva solo los campos cambiados (los roles, como lista completa) · al guardar vuelve al listado con «Usuario actualizado»',
+    propia: 'al guardar con éxito se refresca la sesión (GET /auth/me) para que el panel lateral refleje los roles · puede sumarse o quitarse los otros roles'
+  };
+  M.nota(notas[modo] || '');
+})();
+</script>
+</body>
+</html>
