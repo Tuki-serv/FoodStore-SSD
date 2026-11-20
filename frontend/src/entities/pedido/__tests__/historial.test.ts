@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { autorEvento, tituloEvento, type EventoHistorial } from '../model';
+import { autorEvento, autorEventoCliente, tituloEvento, type EventoHistorial } from '../model';
 
 const evento = (cambios: Partial<EventoHistorial>): EventoHistorial => ({
   id: 1,
@@ -38,5 +38,23 @@ describe('autorEvento', () => {
 
   it('con usuario pero sin nombre muestra su número', () => {
     expect(autorEvento(evento({ usuario_id: 7, usuario_nombre: null }))).toBe('Usuario #7');
+  });
+});
+
+describe('autorEventoCliente (lo que ve el cliente, design D8)', () => {
+  it('un evento propio es «Vos»', () => {
+    expect(autorEventoCliente(evento({ usuario_id: 1, usuario_nombre: 'Ana López' }), 1)).toBe('Vos');
+  });
+
+  it('un evento sin usuario es «Automático»', () => {
+    expect(autorEventoCliente(evento({ usuario_id: null, usuario_nombre: null }), 1)).toBe('Automático');
+  });
+
+  it('un evento de otro usuario es «El local» y no muestra su nombre', () => {
+    expect(autorEventoCliente(evento({ usuario_id: 9, usuario_nombre: 'Carla' }), 1)).toBe('El local');
+  });
+
+  it('un evento de otro usuario sin nombre también es «El local»', () => {
+    expect(autorEventoCliente(evento({ usuario_id: 9, usuario_nombre: null }), 1)).toBe('El local');
   });
 });

@@ -6,6 +6,7 @@ import postcssImport from 'postcss-import';
 import tailwindcss from 'tailwindcss';
 import { describe, expect, it } from 'vitest';
 import config from '../../tailwind.config';
+import { claseEstado, ESTADOS_PEDIDO } from '../../src/entities/pedido/model/estados';
 
 const RAIZ = process.cwd();
 const ENTRADA = resolve(RAIZ, 'src/app/styles/index.css');
@@ -74,5 +75,11 @@ describe('hoja de estilos de la app', () => {
     expect(css).toMatch(/\.p-4\s*\{[^}]*padding:\s*var\(--space-4\)/);
     expect(css).toMatch(/\.rounded-md\s*\{[^}]*border-radius:\s*var\(--radius-md\)/);
     expect(css).toMatch(/\.text-text-muted\s*\{[^}]*color:\s*var\(--color-text-muted\)/);
+  });
+
+  it.each(ESTADOS_PEDIDO)('el distintivo de %s conserva su color: la clase dinámica no se purga (verify C-21)', async (estado) => {
+    const css = await compilar();
+
+    expect(css).toContain(`.${claseEstado(estado)}{`);
   });
 });

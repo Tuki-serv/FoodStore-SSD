@@ -58,8 +58,12 @@ export interface PedidoResumen {
   cliente_nombre: string;
 }
 
-/** Filtros del listado de pedidos: sin `estado`/`desde`/`hasta` significa «todos» (fechas `YYYY-MM-DD`, UTC). */
+/**
+ * Filtros del listado de pedidos: sin `estado`/`desde`/`hasta` significa «todos» (fechas `YYYY-MM-DD`, UTC).
+ * `propios` limita el listado a los pedidos del usuario aunque tenga rol de gestión («Mis pedidos»).
+ */
 export interface FiltrosListadoPedidos {
+  propios?: true;
   estado?: EstadoPedidoCodigo;
   desde?: string;
   hasta?: string;

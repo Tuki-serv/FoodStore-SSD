@@ -1,16 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { textoPersonalizacion } from '@/entities/cart';
-import { pagoQueries } from '@/entities/payment';
+import { LineaEstadoPago, pagoQueries, PagoEnConfirmacion, TraspasoPago, vistaPagoDelPedido } from '@/entities/payment';
 import { BadgeEstado, EtiquetaFormaPago, esConfirmacionManual, pedidoQueries, type PedidoDetalle } from '@/entities/pedido';
 import { formatearPrecio } from '@/entities/producto';
 import { aCentavos } from '@/shared/lib';
 import { RUTAS } from '@/shared/config';
 import { claseBoton, EstadoError, Icon } from '@/shared/ui';
 import { EntregaPedido } from './entrega-pedido';
-import { LineaEstadoPago, PagoEnConfirmacion } from './estado-pago';
 import { PasosConfirmacionManual } from './pasos-confirmacion-manual';
-import { TraspasoPago } from './traspaso-pago';
 
 const CONTENEDOR = 'mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
 
@@ -61,9 +59,7 @@ function Contenido({ pedido, totalEstimado }: { pedido: PedidoDetalle; totalEsti
   const consultaPago = useQuery({ ...pagoQueries.estado(pedido.id), enabled: pagaConTarjeta });
   const pago = consultaPago.data;
   const estadoPago = pago?.estado ?? null;
-  const pagoEnCurso = estadoPago === 'pendiente' || estadoPago === 'aprobado' || estadoPago === 'a_devolver';
-  const consultandoPago = pagaConTarjeta && consultaPago.isPending;
-  const ofrecerPago = pagaConTarjeta && pendiente && !consultandoPago && !pagoEnCurso;
+  const vistaPago = vistaPagoDelPedido(pedido, pago ?? null, { consultando: pagaConTarjeta && consultaPago.isPending });
 
   return (
     <div className={CONTENEDOR}>
@@ -88,8 +84,8 @@ function Contenido({ pedido, totalEstimado }: { pedido: PedidoDetalle; totalEsti
         ) : null}
         <div className="done-grid">
           <div className="done-col">
-            {ofrecerPago ? <TraspasoPago pedidoId={pedido.id} total={pedido.total} reintento={estadoPago === 'rechazado'} /> : null}
-            {pagaConTarjeta && pendiente && estadoPago === 'pendiente' ? <PagoEnConfirmacion pedidoId={pedido.id} /> : null}
+            {vistaPago === 'traspaso' || vistaPago === 'reintento' ? <TraspasoPago pedidoId={pedido.id} total={formatearPrecio(pedido.total)} reintento={vistaPago === 'reintento'} /> : null}
+            {vistaPago === 'en-confirmacion' ? <PagoEnConfirmacion pedidoId={pedido.id} /> : null}
             {esConfirmacionManual(pedido.forma_pago_codigo) && pendiente ? <PasosConfirmacionManual formaPago={pedido.forma_pago_codigo} /> : null}
             <section className="pcard" aria-labelledby="detalle-titulo">
               <h2 id="detalle-titulo">Detalle</h2>

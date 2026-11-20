@@ -165,6 +165,14 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - **Contrato** (aditivo, sin migración): `GET /pedidos/{id}` suma `direccion` (también si se dio de baja después) y `GET /pedidos/{id}/historial` suma `usuario_nombre`.
 - **Tests**: el doble de red es `src/test/msw/pedidos.ts` (estado en memoria con la FSM) y `montarGestion` en `src/test/render-gestion.ts`.
 
+## Mis pedidos (C-21)
+
+- **Rutas** (cualquier sesión): `/mis-pedidos` (listado) y `/mis-pedidos/:pedidoId` (detalle; `rutaMiPedido(id)`). Slice `src/pages/mis-pedidos/` (listado con filtro `?estado=&page=`, tamaño de página 10; detalle con progreso, pago, entrega, ítems e historial). El listado pide `GET /pedidos?propios=true`.
+- **Actualización**: polling cada 30 s solo con la pestaña visible y mientras el pedido no esté terminado; botón «Actualizar» (`MarcaActualizacion`, ahora en `shared/ui`); sin WebSocket (C-26/C-27).
+- **Cancelar**: `CancelarMiPedido` de `features/cambiar-estado-pedido` (mismo diálogo que la gestión con `destinatario="cliente"`, `DELETE /pedidos/{id}` con motivo obligatorio en la UI).
+- **Pago**: `vistaPagoDelPedido` (`entities/payment`) decide traspaso, reintento o en confirmación; lo usan la confirmación y el detalle.
+- **Tests**: `src/test/msw/pedidos.ts` (incluye `DELETE` y `propios`) y `montarMisPedidos` en `src/test/render-mis-pedidos.ts`.
+
 ## Productos y stock (C-17b)
 
 - **Slices**: `src/pages/admin-productos/` (`ui/`: página, filtros, lista, fila con stock e interruptor, formulario, secciones de categorías e ingredientes, diálogo de baja; `model/`: permisos por rol, validación, diff de edición, filtros de URL) y, en `src/entities/producto/api/`, `producto-gestion-api.ts`, `productoGestionQueries` y `producto-mutations.ts`.

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { etiquetaEstado, type EstadoPedidoCodigo } from '@/entities/pedido';
+import { SelectorEstadoPedido } from '@/entities/pedido';
 import { Campo, Icon } from '@/shared/ui';
-import { ESTADOS_FILTRABLES, validarRango, type FiltrosUrl } from '../model';
+import { validarRango, type FiltrosUrl } from '../model';
 
 export interface FiltrosPedidosProps {
   filtros: FiltrosUrl;
@@ -9,8 +9,6 @@ export interface FiltrosPedidosProps {
   onCambiar: (cambios: Partial<Pick<FiltrosUrl, 'estado' | 'desde' | 'hasta'>>) => void;
   onLimpiar: () => void;
 }
-
-const esEstado = (valor: string): valor is EstadoPedidoCodigo => ESTADOS_FILTRABLES.some((estado) => estado === valor);
 
 /** Estado y rango de fechas con etiquetas visibles; un rango invertido muestra su error y no cambia el listado. */
 export function FiltrosPedidos({ filtros, onCambiar, onLimpiar }: FiltrosPedidosProps) {
@@ -32,16 +30,7 @@ export function FiltrosPedidos({ filtros, onCambiar, onLimpiar }: FiltrosPedidos
     <form className="gp-filters" aria-label="Filtros de pedidos" onSubmit={(evento) => evento.preventDefault()}>
       <div className="gp-filters-row">
         <Campo etiqueta="Estado" className="f-estado">
-          {({ id }) => (
-            <select id={id} className="input" value={filtros.estado ?? ''} onChange={(evento) => onCambiar({ estado: esEstado(evento.target.value) ? evento.target.value : null })}>
-              <option value="">Todos</option>
-              {ESTADOS_FILTRABLES.map((estado) => (
-                <option key={estado} value={estado}>
-                  {etiquetaEstado(estado)}
-                </option>
-              ))}
-            </select>
-          )}
+          {({ id }) => <SelectorEstadoPedido id={id} valor={filtros.estado} onCambiar={(estado) => onCambiar({ estado })} />}
         </Campo>
         <Campo etiqueta="Desde">
           {({ id }) => <input id={id} className="input" type="date" value={rango.desde} {...propsError} onChange={(evento) => cambiarFecha('desde', evento.target.value)} />}

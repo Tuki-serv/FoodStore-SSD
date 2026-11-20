@@ -13,6 +13,8 @@ export { AvisoDesactualizado, EsqueletoFilas, EstadoError, EstadoVacio } from '.
 export type { EsqueletoFilasProps, EstadoErrorProps, EstadoVacioProps } from './estados';
 export { DialogoBaja } from './dialogo-baja';
 export type { AvisoBaja, DialogoBajaProps } from './dialogo-baja';
+export { AvisoActualizacionFallida, MarcaActualizacion } from './marca-actualizacion';
+export type { MarcaActualizacionProps } from './marca-actualizacion';
 export { SelectorCantidad } from './selector-cantidad';
 export type { SelectorCantidadProps } from './selector-cantidad';
 export { TarjetaAuth } from './tarjeta-auth';

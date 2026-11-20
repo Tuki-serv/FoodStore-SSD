@@ -10,12 +10,14 @@ export interface PieDialogoProps {
   etiqueta: string;
   icono: IconName;
   peligro?: boolean;
+  /** Texto del botón mientras se envía (por defecto «Guardando…»). */
+  etiquetaPendiente?: string;
   onConfirmar: () => void;
   onCerrar: () => void;
 }
 
 /** Acciones del diálogo: «Volver» + acción principal («Guardando…» al enviar, «Reintentar» si falló la conexión) o solo «Cerrar» tras un rechazo. */
-export function PieDialogo({ clase, pendiente, etiqueta, icono, peligro = false, onConfirmar, onCerrar }: PieDialogoProps) {
+export function PieDialogo({ clase, pendiente, etiqueta, icono, peligro = false, etiquetaPendiente = 'Guardando…', onConfirmar, onCerrar }: PieDialogoProps) {
   if (clase !== null && SOLO_CERRAR.includes(clase)) {
     return (
       <div className="modal-actions">
@@ -34,7 +36,7 @@ export function PieDialogo({ clase, pendiente, etiqueta, icono, peligro = false,
       {pendiente ? (
         <button type="button" className={`${claseBoton(variante)} is-busy${peligro ? ' is-danger' : ''}`} disabled aria-busy="true">
           <span className="spin" aria-hidden="true" />
-          Guardando…
+          {etiquetaPendiente}
         </button>
       ) : (
         <button type="button" className={claseBoton(variante)} onClick={onConfirmar}>

@@ -4,11 +4,9 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { BadgeEstado, fechaLocal, horaLocal, LineaTiempoHistorial, pedidoQueries, type PedidoDetalle } from '@/entities/pedido';
 import { CambioEstadoPedido, type SolicitudCambio } from '@/features/cambiar-estado-pedido';
 import { aApiError } from '@/shared/api';
-import { RUTAS } from '@/shared/config';
-import { claseBoton, EstadoError, Icon } from '@/shared/ui';
-import { INTERVALO_ACTUALIZACION_MS } from '../model';
+import { INTERVALO_ACTUALIZACION_MS, RUTAS } from '@/shared/config';
+import { claseBoton, EstadoError, Icon, MarcaActualizacion } from '@/shared/ui';
 import { AccionesPedido } from './acciones-pedido';
-import { MarcaActualizacion } from './marca-actualizacion';
 import { TarjetaEntrega, TarjetaProductos } from './tarjetas-pedido';
 
 const CONTENEDOR = 'mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';

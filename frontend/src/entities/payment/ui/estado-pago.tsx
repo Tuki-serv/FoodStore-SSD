@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { motivoRechazo, type EstadoPagoPedido } from '@/entities/payment';
+import { motivoRechazo, type EstadoPagoPedido } from '../model';
 import { rutaPagoPedido } from '@/shared/config';
 import { claseBoton, Icon } from '@/shared/ui';
 
@@ -32,11 +32,15 @@ export function LineaEstadoPago({ pago }: { pago: EstadoPagoPedido & { estado: N
   );
 }
 
-/** Pago `pendiente`: no se ofrece pagar de nuevo; se lleva a la página de pago, que sigue el estado. */
-export function PagoEnConfirmacion({ pedidoId }: { pedidoId: number }) {
+/**
+ * Pago `pendiente`: no se ofrece pagar de nuevo; se lleva a la página de pago, que sigue el estado.
+ * `integrado` lo muestra como bloque dentro de otra tarjeta (sin título de sección propio).
+ */
+export function PagoEnConfirmacion({ pedidoId, integrado = false }: { pedidoId: number; integrado?: boolean }) {
+  const Titulo = integrado ? 'strong' : 'h2';
   return (
-    <section className="pcard" aria-labelledby="pago-confirmacion-titulo">
-      <h2 id="pago-confirmacion-titulo">Pago en confirmación</h2>
+    <section className={integrado ? 'pcard-in' : 'pcard'} aria-labelledby="pago-confirmacion-titulo">
+      <Titulo id="pago-confirmacion-titulo">Pago en confirmación</Titulo>
       <p>No lo pagues de nuevo: si Mercado Pago aprueba el pago, el pedido se confirma solo.</p>
       <div>
         <Link className={claseBoton('secundario')} to={rutaPagoPedido(pedidoId)}>

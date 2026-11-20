@@ -16,6 +16,14 @@ export interface FallosPedidos {
   historial?: FalloPedidos;
   /** `PATCH /pedidos/:id/estado` (p. ej. 409 `INSUFFICIENT_STOCK`, 409 `INVALID_TRANSITION`, 403, 404, 422, 500, red). */
   estado?: FalloPedidos;
+  /** `DELETE /pedidos/:id` (cancelación del cliente: 409 `INVALID_TRANSITION`, 403, 404, 500, red). */
+  cancelar?: FalloPedidos;
+}
+
+/** Cuerpo recibido por `DELETE /pedidos/:id` (cancelación del cliente). */
+export interface CancelacionRecibida {
+  id: number;
+  cuerpo: { motivo?: string };
 }
 
 /** Cuerpo recibido por `PATCH /pedidos/:id/estado`. */
@@ -57,6 +65,12 @@ export interface EstadoPedidos {
   demoraLista: number | undefined;
   /** Demora (ms) de `PATCH /pedidos/:id/estado`, para ver «Guardando…» y el doble clic. */
   demoraEstado: number | undefined;
+  /** Cuerpos recibidos por `DELETE /pedidos/:id`, en orden (incluye los rechazados). */
+  cancelaciones: CancelacionRecibida[];
+  /** Demora (ms) de `DELETE /pedidos/:id`, para ver «Cancelando…» y el doble clic. */
+  demoraCancelar: number | undefined;
+  /** Id del usuario de la sesión simulada (`GET /auth/me`): dueño de «Mis pedidos» y autor de las cancelaciones del cliente. */
+  usuarioSesion: { id: number; nombre: string };
   /** Quién hace los cambios de estado en el historial (el gestor de la sesión). */
   actor: { id: number; nombre: string };
 }
@@ -77,6 +91,9 @@ export function crearEstadoPedidos(parcial: Partial<EstadoPedidos> = {}): Estado
     fallos: {},
     demoraLista: undefined,
     demoraEstado: undefined,
+    cancelaciones: [],
+    demoraCancelar: undefined,
+    usuarioSesion: { id: 1, nombre: 'Ana Gómez' },
     actor: { id: 9, nombre: 'Carla' },
     ...parcial,
   };
@@ -178,6 +195,9 @@ function pedidoDesdeCuerpo(id: number, cuerpo: CuerpoCrear): PedidoDetalle {
   });
 }
 
+/** Estados desde los que el `CLIENT` dueño puede cancelar (copia independiente de `TRANSICIONES[CLIENT]` en `fsm.py`). */
+const CANCELABLES_CLIENTE = ['PENDIENTE', 'CONFIRMADO'];
+
 /** Destinos que la FSM del backend permite a `PEDIDOS`/`ADMIN` (copia independiente de `fsm.py` para el doble de red). */
 const DESTINOS_GESTION: Record<string, string[]> = {
   PENDIENTE: ['CONFIRMADO', 'CANCELADO'],
@@ -229,7 +249,7 @@ function aResumen(pedido: PedidoDetalle): PedidoResumen {
   };
 }
 
-/** `GET /pedidos/` (filtros y paginación reales sobre el estado), `GET /pedidos/:id`, `GET /pedidos/:id/historial`, `PATCH /pedidos/:id/estado` y `POST /pedidos/`. */
+/** `GET /pedidos/` (filtros —incluido `propios` sobre el usuario de la sesión— y paginación reales sobre el estado), `GET /pedidos/:id`, `GET /pedidos/:id/historial`, `PATCH /pedidos/:id/estado` y `POST /pedidos/`. */
 export function handlersPedidos(estado: EstadoPedidos) {
   return [
     http.post(`${API}/pedidos/`, async ({ request }) => {
@@ -258,6 +278,7 @@ export function handlersPedidos(estado: EstadoPedidos) {
       const page = Number(params.page ?? 1);
       const size = Number(params.size ?? 20);
       const filtrados = [...estado.pedidos.values()]
+        .filter((pedido) => params.propios !== 'true' || pedido.usuario_id === estado.usuarioSesion.id)
         .filter((pedido) => params.estado === undefined || pedido.estado_codigo === params.estado)
         .filter((pedido) => params.desde === undefined || pedido.created_at.slice(0, 10) >= params.desde)
         .filter((pedido) => params.hasta === undefined || pedido.created_at.slice(0, 10) <= params.hasta)
@@ -315,6 +336,41 @@ export function handlersPedidos(estado: EstadoPedidos) {
         }),
       );
       const actualizado = { ...pedido, estado_codigo: cuerpo.nuevo_estado };
+      estado.pedidos.set(id, actualizado);
+      return HttpResponse.json(actualizado);
+    }),
+    http.delete(`${API}/pedidos/:id`, async ({ params, request }) => {
+      const id = Number(params.id);
+      const texto = await request.text();
+      const cuerpo = (texto === '' ? {} : JSON.parse(texto)) as CancelacionRecibida['cuerpo'];
+      estado.cancelaciones.push({ id, cuerpo });
+      if (estado.demoraCancelar !== undefined) await delay(estado.demoraCancelar);
+      if (estado.fallos.cancelar !== undefined) return respuestaDeFallo(estado.fallos.cancelar);
+      const pedido = estado.pedidos.get(id);
+      if (pedido === undefined) return noEncontrado();
+      if (pedido.usuario_id !== estado.usuarioSesion.id) {
+        return HttpResponse.json({ detail: 'No tenés permiso sobre este pedido', code: 'HTTP_403', field: null }, { status: 403 });
+      }
+      if (!CANCELABLES_CLIENTE.includes(pedido.estado_codigo)) {
+        return HttpResponse.json(
+          { detail: `No se puede cambiar de ${pedido.estado_codigo} a CANCELADO`, code: 'INVALID_TRANSITION', field: null },
+          { status: 409 },
+        );
+      }
+      const historial = historialDe(estado, pedido);
+      historial.push(
+        eventoDto({
+          id: pedido.id * 100 + historial.length,
+          pedido_id: id,
+          estado_desde: pedido.estado_codigo,
+          estado_hacia: 'CANCELADO',
+          motivo: cuerpo.motivo ?? 'Cancelado por el cliente',
+          usuario_id: estado.usuarioSesion.id,
+          usuario_nombre: estado.usuarioSesion.nombre,
+          created_at: new Date().toISOString(),
+        }),
+      );
+      const actualizado = { ...pedido, estado_codigo: 'CANCELADO' };
       estado.pedidos.set(id, actualizado);
       return HttpResponse.json(actualizado);
     }),

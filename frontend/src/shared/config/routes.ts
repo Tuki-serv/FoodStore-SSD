@@ -27,6 +27,11 @@ export const RUTA_GESTION_PEDIDO = '/gestion-pedidos/:pedidoId';
 
 export const rutaGestionPedido = (id: number): string => `${RUTAS.gestionPedidos}/${id}`;
 
+/** Detalle de un pedido propio (C-21): sub-ruta de `misPedidos`, mismo acceso (cualquier sesión); fuera de `RUTAS` y `ACCESO_RUTAS`. */
+export const RUTA_MI_PEDIDO = '/mis-pedidos/:pedidoId';
+
+export const rutaMiPedido = (id: number): string => `${RUTAS.misPedidos}/${id}`;
+
 /** Checkout de C-19: sub-rutas solo para `CLIENT`, fuera de `RUTAS` y `ACCESO_RUTAS` (no son secciones de navegación). */
 export const RUTA_FINALIZAR_COMPRA = '/finalizar-compra';
 export const RUTA_PEDIDO_CREADO = '/finalizar-compra/pedido/:pedidoId';

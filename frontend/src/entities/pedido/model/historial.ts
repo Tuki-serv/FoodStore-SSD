@@ -11,3 +11,9 @@ export function autorEvento(evento: EventoHistorial): string {
   if (evento.usuario_nombre !== null) return evento.usuario_nombre;
   return evento.usuario_id === null ? 'Sistema' : `Usuario #${evento.usuario_id}`;
 }
+
+/** Quién hizo el cambio, visto por el cliente dueño: «Vos», «Automático» (sin usuario: pago aprobado) o «El local» (nunca el nombre del personal). */
+export function autorEventoCliente(evento: EventoHistorial, usuarioId: number): string {
+  if (evento.usuario_id === null) return 'Automático';
+  return evento.usuario_id === usuarioId ? 'Vos' : 'El local';
+}

@@ -11,6 +11,7 @@ import { FinalizarCompraPage } from '@/pages/finalizar-compra';
 import { GestionPedidoDetallePage, GestionPedidosPage } from '@/pages/gestion-pedidos';
 import { IngresarPage } from '@/pages/ingresar';
 import { MiCuentaPage } from '@/pages/mi-cuenta';
+import { MiPedidoDetallePage, MisPedidosPage } from '@/pages/mis-pedidos';
 import { ErrorPage } from '@/pages/error';
 import { NotFoundPage } from '@/pages/not-found';
 import { PagoPedidoPage } from '@/pages/pago-pedido';
@@ -18,7 +19,7 @@ import { PedidoCreadoPage } from '@/pages/pedido-creado';
 import { PlaceholderPage } from '@/pages/placeholder';
 import { ProductoPage } from '@/pages/producto';
 import { RegistrarsePage } from '@/pages/registrarse';
-import { ACCESO_RUTAS, RUTA_FINALIZAR_COMPRA, RUTA_GESTION_PEDIDO, RUTA_PAGO_PEDIDO, RUTA_PEDIDO_CREADO, RUTA_PRODUCTO, RUTAS, type Acceso, type Ruta } from '@/shared/config';
+import { ACCESO_RUTAS, RUTA_FINALIZAR_COMPRA, RUTA_GESTION_PEDIDO, RUTA_MI_PEDIDO, RUTA_PAGO_PEDIDO, RUTA_PEDIDO_CREADO, RUTA_PRODUCTO, RUTAS, type Acceso, type Ruta } from '@/shared/config';
 import { FUTURO_ROUTER } from './future';
 import { RequiereAcceso } from './requiere-acceso';
 import { MAPA_RUTAS } from './route-map';
@@ -34,6 +35,7 @@ const PAGINAS: Partial<Record<Ruta, ComponentType>> = {
   [RUTAS.carrito]: CarritoPage,
   [RUTAS.direcciones]: DireccionesPage,
   [RUTAS.miCuenta]: MiCuentaPage,
+  [RUTAS.misPedidos]: MisPedidosPage,
   [RUTAS.gestionPedidos]: GestionPedidosPage,
   [RUTAS.adminCategorias]: AdminCategoriasPage,
   [RUTAS.adminIngredientes]: AdminIngredientesPage,
@@ -64,6 +66,7 @@ export const routes: RouteObject[] = [
               ),
             };
           }),
+          { path: RUTA_MI_PEDIDO, element: <RequiereAcceso acceso={ACCESO_RUTAS[RUTAS.misPedidos]}><MiPedidoDetallePage /></RequiereAcceso> },
           { path: RUTA_GESTION_PEDIDO, element: <RequiereAcceso acceso={ACCESO_RUTAS[RUTAS.gestionPedidos]}><GestionPedidoDetallePage /></RequiereAcceso> },
           { path: RUTA_PRODUCTO, element: <RequiereAcceso acceso="publica"><ProductoPage /></RequiereAcceso> },
           // Checkout (C-19): solo clientes; fuera del mapa de navegación. La ruta de pago (C-20a) lleva a la página real de pago con tarjeta.

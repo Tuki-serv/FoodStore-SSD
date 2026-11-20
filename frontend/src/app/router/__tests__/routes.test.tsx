@@ -11,19 +11,19 @@ describe('rutas de la aplicación', () => {
   });
 
   it('una sección sin pantalla muestra la página provisoria dentro del shell', async () => {
-    renderApp('/mis-pedidos', { sesion: { roles: ['CLIENT'] } });
+    renderApp('/admin/usuarios', { sesion: { roles: ['ADMIN'] } });
 
-    expect(await screen.findByRole('heading', { name: 'Mis pedidos', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Usuarios', level: 1 })).toBeInTheDocument();
     const principal = screen.getByRole('main');
     expect(within(principal).getByText('Estamos preparando esta sección.')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument();
   });
 
   it('cada página provisoria declara su dueño en data-owner, no en el texto visible', async () => {
-    renderApp('/mis-pedidos', { sesion: { roles: ['CLIENT'] } });
+    renderApp('/admin/usuarios', { sesion: { roles: ['ADMIN'] } });
 
-    const pagina = (await screen.findByRole('heading', { name: 'Mis pedidos', level: 1 })).closest('[data-owner]');
-    expect(pagina).toHaveAttribute('data-owner', 'C-21');
-    expect(screen.queryByText(/C-21/)).not.toBeInTheDocument();
+    const pagina = (await screen.findByRole('heading', { name: 'Usuarios', level: 1 })).closest('[data-owner]');
+    expect(pagina).toHaveAttribute('data-owner', 'C-23');
+    expect(screen.queryByText(/C-23/)).not.toBeInTheDocument();
   });
 });

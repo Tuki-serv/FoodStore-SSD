@@ -1,7 +1,7 @@
+import type { UseMutationResult } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
-import { clasificarErrorCambioEstado, type CambioEstadoPedido, type ClaseErrorCambioEstado } from '@/entities/pedido';
+import { clasificarErrorCambioEstado, type CambioEstadoPedido, type ClaseErrorCambioEstado, type PedidoDetalle } from '@/entities/pedido';
 import { aApiError, type ApiError } from '@/shared/api';
-import { useCambiarEstadoPedido } from './use-cambiar-estado-pedido';
 
 export interface EnvioCambio {
   enviar: (cambio: CambioEstadoPedido) => void;
@@ -10,9 +10,13 @@ export interface EnvioCambio {
   clase: ClaseErrorCambioEstado | null;
 }
 
-/** Envío de un cambio desde un diálogo: un solo PATCH a la vez (aunque haya doble clic) y el error clasificado para mostrarlo ahí mismo. */
-export function useEnvioCambio(pedidoId: number, onExito: () => void): EnvioCambio {
-  const mutacion = useCambiarEstadoPedido(pedidoId);
+export type MutacionCambio = UseMutationResult<PedidoDetalle, unknown, CambioEstadoPedido>;
+
+/**
+ * Envío de un cambio desde un diálogo con la mutación dada (`useCambiarEstadoPedido` o `useCancelarMiPedido`): una sola
+ * petición a la vez (aunque haya doble clic) y el error clasificado para mostrarlo ahí mismo.
+ */
+export function useEnvioCambio(mutacion: MutacionCambio, onExito: () => void): EnvioCambio {
   const [error, setError] = useState<ApiError | null>(null);
   const enviando = useRef(false);
 

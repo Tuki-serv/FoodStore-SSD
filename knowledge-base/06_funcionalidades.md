@@ -96,10 +96,10 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 **Reglas**: RN-PE-06, RN-PE-09, RN-ST-00, RN-ST-01
 
 ### US-018 — Ver mis pedidos y seguimiento
-- [ ] Listado paginado y detalle propio (ítems con snapshots, totales); timeline de estados con polling 30 s en spec o WebSocket `[Pendiente-FE]`
+- [x] Listado paginado y detalle propio (ítems con snapshots, totales); timeline de estados con polling 30 s con la pestaña visible (C-21: `/mis-pedidos` con filtro por estado en la URL y `/mis-pedidos/:pedidoId`; el WebSocket queda para C-26/C-27)
 
 ### US-019 — Cancelar mi pedido
-- [ ] Solo en PENDIENTE/CONFIRMADO, con motivo obligatorio; devuelve el stock solo si estaba CONFIRMADO (DD-20)
+- [x] Solo en PENDIENTE/CONFIRMADO, con motivo obligatorio en la UI (el backend lo acepta opcional); devuelve el stock solo si estaba CONFIRMADO (DD-20) (C-21)
 **Reglas**: RN-PE-07, RN-PE-10, RN-ST-02
 
 ## Épica 5: Gestión operativa de pedidos

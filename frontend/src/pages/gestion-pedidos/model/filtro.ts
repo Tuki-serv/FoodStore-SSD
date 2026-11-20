@@ -1,10 +1,7 @@
-import type { EstadoPedidoCodigo } from '@/entities/pedido';
+import { esEstadoPedido, type EstadoPedidoCodigo } from '@/entities/pedido';
 
 /** Pedidos por página (el defecto del backend). */
 export const TAMANO_PAGINA = 20;
-
-/** Cada cuánto se vuelve a pedir lo que se ve (design D6); solo con la pestaña visible. */
-export const INTERVALO_ACTUALIZACION_MS = 30_000;
 
 export const MENSAJE_RANGO_INVERTIDO = 'La fecha "Desde" no puede ser posterior a "Hasta"';
 
@@ -16,10 +13,6 @@ export interface FiltrosUrl {
   hasta: string;
   page: number;
 }
-
-export const ESTADOS_FILTRABLES: readonly EstadoPedidoCodigo[] = ['PENDIENTE', 'CONFIRMADO', 'EN_PREP', 'EN_CAMINO', 'ENTREGADO', 'CANCELADO'];
-
-const esEstado = (valor: string | null): valor is EstadoPedidoCodigo => ESTADOS_FILTRABLES.some((estado) => estado === valor);
 
 /** `YYYY-MM-DD` de un día que existe en el calendario; cualquier otra cosa es `''`. */
 function fechaValida(valor: string | null): string {
@@ -37,7 +30,7 @@ function paginaValida(valor: string | null): number {
 export function leerFiltrosPedidos(parametros: URLSearchParams): FiltrosUrl {
   const estado = parametros.get('estado');
   return {
-    estado: esEstado(estado) ? estado : null,
+    estado: esEstadoPedido(estado) ? estado : null,
     desde: fechaValida(parametros.get('desde')),
     hasta: fechaValida(parametros.get('hasta')),
     page: paginaValida(parametros.get('page')),

@@ -8,5 +8,7 @@ export type { ConfiguracionPagos, CrearPagoBody, EstadoPagoPedido, PagoEstado, R
 export { selectEstadoPago, selectPagoEnCurso, selectPedidoEnPago, usePaymentStore } from './payment-store';
 export type { EstadoPago, PaymentState, ResultadoPago } from './payment-store';
 export { vistaPago } from './vista-pago';
+export { vistaPagoDelPedido } from './vista-pago-pedido';
+export type { VistaPagoDelPedido } from './vista-pago-pedido';
 export type { PedidoParaVista, VistaPago } from './vista-pago';
 export { INTERVALO_SEGUIMIENTO_MS, TOPE_SEGUIMIENTO_MS, intervaloSeguimiento } from './seguimiento-pago';

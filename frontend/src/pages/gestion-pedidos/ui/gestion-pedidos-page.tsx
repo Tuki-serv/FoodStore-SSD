@@ -4,11 +4,11 @@ import { useSearchParams } from 'react-router-dom';
 import { pedidoQueries } from '@/entities/pedido';
 import { CambioEstadoPedido, type SolicitudCambio } from '@/features/cambiar-estado-pedido';
 import { aApiError } from '@/shared/api';
-import { claseBoton, EstadoError, EstadoVacio, Paginacion } from '@/shared/ui';
-import { aParametros, INTERVALO_ACTUALIZACION_MS, leerFiltrosPedidos, TAMANO_PAGINA, type FiltrosUrl } from '../model';
+import { INTERVALO_ACTUALIZACION_MS } from '@/shared/config';
+import { AvisoActualizacionFallida, claseBoton, EstadoError, EstadoVacio, MarcaActualizacion, Paginacion } from '@/shared/ui';
+import { aParametros, leerFiltrosPedidos, TAMANO_PAGINA, type FiltrosUrl } from '../model';
 import { AccionFila } from './accion-fila';
 import { FiltrosPedidos } from './filtros-pedidos';
-import { AvisoActualizacionFallida, MarcaActualizacion } from './marca-actualizacion';
 import { EsqueletoPedidos, TablaPedidos } from './tabla-pedidos';
 
 const SIN_FILTROS: FiltrosUrl = { estado: null, desde: '', hasta: '', page: 1 };
