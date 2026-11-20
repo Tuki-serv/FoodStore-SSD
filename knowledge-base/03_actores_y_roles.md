@@ -16,6 +16,8 @@ Un usuario puede tener **múltiples roles** (N:M `UsuarioRol`, p. ej. ADMIN + ST
 
 > **Autoridad y unión de roles (C-08, DD-24):** los permisos de un usuario con varios roles son la **unión** de los de cada rol (`union_por_roles` en `core/permissions.py`), nunca `roles[0]`. La fuente de autoridad de los roles es **la BD en cada pedido**; el claim `roles` del access es informativo (UI) y no autoriza. Un rol sin fila en la FSM (`STOCK`, `COCINA`) responde 409, no 500.
 
+> **Protecciones del `ADMIN` (C-23, RN-US-06 / RN-US-07):** un `ADMIN` no puede desactivarse ni quitarse su propio rol `ADMIN` (409 `SELF_ACTION_NOT_ALLOWED`; sí puede editar sus datos y sumarse o quitarse otros roles) y ninguna operación puede dejar el sistema sin `ADMIN` activos (409 `LAST_ADMIN`, serializado con un bloqueo sobre la fila del rol). Las verifica el backend; la pantalla «Usuarios» solo las anticipa (fila propia sin «Desactivar», casilla «Administrador» bloqueada). Desactivar a un usuario cierra sus sesiones (motivo `BAJA`). El alta y la edición exigen al menos un rol válido (`COCINA` no está sembrado: 400).
+
 ## RBAC — Matriz de permisos (objetivo: spec `[INT]`)
 
 > **Regla de la KB (DD-16/DD-17):** la spec (integrador v5.0) es el objetivo; el código actual es el estado actual con deuda técnica. Tabla consolidada: [09](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada).

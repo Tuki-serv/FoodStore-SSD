@@ -4,6 +4,7 @@ import {
   cerrarSesionRemota,
   cerrarTodasLasSesionesRemota,
   iniciarSesionRemota,
+  obtenerUsuarioActual,
   registrarUsuarioRemoto,
   type CredencialesIngreso,
   type DatosRegistro,
@@ -73,6 +74,17 @@ export function useActualizarPerfil() {
       const { roles } = useAuthStore.getState().usuario ?? { roles: [] };
       useAuthStore.getState().establecerUsuario({ ...usuario, roles });
     },
+  });
+}
+
+/**
+ * Vuelve a pedir `GET /auth/me` y reemplaza el usuario de la sesión (el access no cambia). Lo usa quien edita sus propios roles
+ * (C-23): el panel lateral deriva sus secciones de los roles de la sesión.
+ */
+export function useRefrescarSesion() {
+  return useMutation({
+    mutationFn: obtenerUsuarioActual,
+    onSuccess: (usuario) => useAuthStore.getState().establecerUsuario(usuario),
   });
 }
 

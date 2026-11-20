@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-23 - Usuarios (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="users.css">
+</head>
+<body data-roles="ADMIN CLIENT" data-current="usuarios">
+<main class="page" id="main">
+  <div class="page-head-row">
+    <div class="page-head">
+      <h1>Usuarios</h1>
+      <p>Administrá las cuentas de la tienda: sus datos, sus roles y quién puede ingresar.</p>
+    </div>
+    <button class="btn btn-primary" type="button"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Nuevo usuario</button>
+  </div>
+  <div class="toolbar">
+    <div id="filtro"></div>
+    <p class="admin-summary" id="resumen" role="status"></p>
+  </div>
+  <div id="contenido"></div>
+  <div id="paginacion"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="users.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Sin parámetro: listado con datos (Ana = «Vos», sin «Desactivar»).
+   ?estado=filtrado (rol=STOCK, página 2 de 2) | cargando | vacio (filtro sin resultados) | error
+   ?estado=creado | actualizado | desactivado  (listado + aviso) */
+(function () {
+  var M = MOCK, U = M.U;
+  var MARCA = ' · ADMIN (Ana Gómez, ejemplo) · Revision 2 · pendiente de aprobación';
+  function resumen(t) { M.llenar('resumen', t); }
+  switch (M.estado) {
+    case 'filtrado':
+      M.banner('Mockup C-23 · Usuarios filtrados por «Gestor de stock», página 2 · URL: ?rol=STOCK&page=2' + MARCA);
+      M.llenar('filtro', M.filtroRol('STOCK'));
+      resumen('<strong>27 usuarios</strong> con el rol Gestor de stock');
+      var stock = [['Brenda', 'Acosta'], ['Camilo', 'Duarte'], ['Elena', 'Ibarra'], ['Fabián', 'Luna'], ['Gisela', 'Maldonado'], ['Hernán', 'Ortiz'], ['Irene', 'Quiroga']].map(function (n, i) {
+        return { id: 30 + i, nombre: n[0], apellido: n[1], email: n[0].toLowerCase().replace('á', 'a') + '.' + n[1].toLowerCase() + '@example.com', celular: i % 3 === 0 ? '' : '+54 9 11 5555-02' + (10 + i), roles: i % 2 ? ['STOCK', 'CLIENT'] : ['STOCK'] };
+      });
+      M.llenar('contenido', M.listaUsuarios(stock));
+      M.llenar('paginacion', M.pager(2, 2));
+      M.nota('20 por página en el orden del servidor · cambiar el filtro vuelve a la página 1 · «?rol=COCINA» (desconocido) se trata como «Todos»');
+      break;
+    case 'cargando':
+      M.banner('Mockup C-23 · Usuarios: cargando (esqueleto)' + MARCA);
+      M.llenar('filtro', M.filtroRol(''));
+      M.llenar('contenido', M.esqueleto(6));
+      break;
+    case 'vacio':
+      M.banner('Mockup C-23 · Usuarios: el filtro «Gestor de pedidos» no trajo resultados' + MARCA);
+      M.llenar('filtro', M.filtroRol('PEDIDOS'));
+      resumen('<strong>0 usuarios</strong> con el rol Gestor de pedidos');
+      M.llenar('contenido', M.estadoVista('vacio', 'i-usuarios', 'No hay usuarios con ese rol',
+        'Cuando le des el rol Gestor de pedidos a alguien va a aparecer acá.',
+        '<button class="btn btn-secondary" type="button">Ver todos</button>'));
+      break;
+    case 'error':
+      M.banner('Mockup C-23 · Usuarios: falló la carga (500 o sin conexión)' + MARCA);
+      M.llenar('filtro', M.filtroRol(''));
+      M.llenar('contenido', M.estadoVista('error', 'i-alerta', 'No pudimos cargar los usuarios',
+        'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.',
+        '<button class="btn btn-secondary" type="button">' + M.ico('i-reintentar') + 'Reintentar</button>'));
+      break;
+    case 'creado':
+      M.banner('Mockup C-23 · Usuario creado: aparece en el listado sin recargar' + MARCA);
+      M.llenar('filtro', M.filtroRol(''));
+      var nuevo = { id: 9, nombre: 'Carla', apellido: 'Gómez', email: 'carla@example.com', celular: '', roles: ['PEDIDOS', 'STOCK'] };
+      var l1 = M.LISTA.filter(function (u) { return u.id !== 2; }).concat([nuevo]);
+      resumen('<strong>' + l1.length + ' usuarios</strong>');
+      M.llenar('contenido', M.listaUsuarios(l1, { nuevoId: 9 }));
+      M.toast('Usuario creado', 'Carla Gómez · Gestor de pedidos y Gestor de stock');
+      break;
+    case 'actualizado':
+      M.banner('Mockup C-23 · Usuario actualizado: la fila refleja los roles nuevos' + MARCA);
+      M.llenar('filtro', M.filtroRol(''));
+      var carla = { id: 2, nombre: 'Carla', apellido: 'Gómez', email: 'carla@example.com', celular: '', roles: ['PEDIDOS'] };
+      var l2 = M.LISTA.map(function (u) { return u.id === 2 ? carla : u; });
+      resumen('<strong>' + l2.length + ' usuarios</strong>');
+      M.llenar('contenido', M.listaUsuarios(l2, { cambioId: 2 }));
+      M.toast('Usuario actualizado', 'Carla Gómez · ahora solo Gestor de pedidos');
+      break;
+    case 'desactivado':
+      M.banner('Mockup C-23 · Usuario desactivado: la fila ya no se muestra' + MARCA);
+      M.llenar('filtro', M.filtroRol(''));
+      var l3 = M.LISTA.filter(function (u) { return u.id !== 2; });
+      resumen('<strong>' + l3.length + ' usuarios</strong>');
+      M.llenar('contenido', M.listaUsuarios(l3));
+      M.toast('Usuario desactivado', 'Carla Gómez ya no puede ingresar');
+      break;
+    default:
+      M.banner('Mockup C-23 · Usuarios con datos: varios roles por usuario, celular vacío y fila propia «Vos»' + MARCA);
+      M.llenar('filtro', M.filtroRol(''));
+      resumen('<strong>' + M.LISTA.length + ' usuarios</strong>');
+      M.llenar('contenido', M.listaUsuarios(M.LISTA));
+      M.nota('en la fila de Ana (la sesión) no hay «Desactivar» · desktop: tabla · mobile: tarjetas · los datos son de ejemplo');
+  }
+})();
+</script>
+</body>
+</html>

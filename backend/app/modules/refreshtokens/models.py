@@ -22,7 +22,7 @@ class Sesion(SQLModel, table=True):
     def __table_args__(cls):
         return (
             ForeignKeyConstraint(["usuario_id"], ["usuario.id"], name="fk_sesion_usuario_id_usuario"),
-            CheckConstraint("revoked_reason IN ('LOGOUT','LOGOUT_ALL','REUSO')", name="ck_sesion_revoked_reason"),
+            CheckConstraint("revoked_reason IN ('LOGOUT','LOGOUT_ALL','REUSO','BAJA')", name="ck_sesion_revoked_reason"),
             CheckConstraint(
                 "(revoked_at IS NULL) = (revoked_reason IS NULL)", name="ck_sesion_revocacion_consistente"
             ),

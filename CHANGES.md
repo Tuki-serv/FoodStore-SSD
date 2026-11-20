@@ -58,12 +58,12 @@ C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        │           └── C-19 ✓ fe-checkout-pedido (+C-10, C-11, C-15)
        │                 ├── C-20a ✓ fe-pago-tarjeta (+C-12)
        │                 │     └── C-20b ✓ fe-pago-seguimiento
-       │                 └── C-21 fe-mis-pedidos-seguimiento (+C-11)
+       │                 └── C-21 ✓ fe-mis-pedidos-seguimiento (+C-11)
        ├── C-17a ✓ fe-admin-categorias-ingredientes (+C-08)
        │     └── C-17b ✓ fe-admin-productos-stock (+C-08)
-       ├── C-22 fe-gestion-operativa-pedidos (+C-09, C-11)
+       ├── C-22 ✓ fe-gestion-operativa-pedidos (+C-09, C-11)
        │     └── C-24 fe-dashboard-metricas
-       └── C-23 fe-admin-usuarios-roles (+C-08)
+       └── C-23 ✓ fe-admin-usuarios-roles (+C-08)
 C-25a ✓ backend-capas-y-renombres (C-01..C-12; en paralelo con el frontend)
  └── C-16a ✓ backend-catalogo-filtros (C-08, C-11, C-25a; backend, en paralelo con el frontend; antes de C-16b)
 C-25b entrega-docs-video (todo lo anterior)
@@ -107,12 +107,12 @@ GATE 5: C-13b ✓                                         ← FORK
   → C-16b ✓ fe-catalogo-publico               [Agente C — si C-16a ✓]
   → C-15 ✓ fe-direcciones                     [Agente B]
   → C-17a ✓ fe-admin-categorias-ingredientes    [Agente A — si C-08 ✓]; luego C-17b ✓
-  → C-22 fe-gestion-operativa-pedidos         [Agente B — si C-09, C-11 ✓]
-  → C-23 fe-admin-usuarios-roles              [Agente A — si C-08 ✓]
+  → C-22 ✓ fe-gestion-operativa-pedidos         [Agente B — si C-09, C-11 ✓]
+  → C-23 ✓ fe-admin-usuarios-roles           [Agente A — si C-08 ✓]
 
 GATE 6: C-16b ✓ → C-18 ; C-18 + C-15 + C-10 ✓ → C-19 ; C-19 ✓ →
   → C-20a ✓ fe-pago-tarjeta                     [Agente B — si C-12 ✓]; luego C-20b ✓ fe-pago-seguimiento
-  → C-21 fe-mis-pedidos-seguimiento           [Agente C]
+  → C-21 ✓ fe-mis-pedidos-seguimiento           [Agente C]
   → C-24 fe-dashboard-metricas                [Agente A — si C-22 ✓]
 
 GATE 7: Fase 0 y Fase 1 ✓ (incl. C-25a) → C-25b entrega-docs-video (todos)
@@ -135,11 +135,11 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 4 | C-08 ✓ | — | C-13a ✓ |
 | 5 | C-09 ✓ | — | — |
 | 6 | C-10 ✓ | C-12 ✓ | C-11 ✓ |
-| 7 | C-25a ✓ | — | C-13b |
-| 8 | C-16a ✓ → C-17a ✓ | C-15 | C-14 + C-16b ✓ |
-| 9 | C-17b ✓ | C-22 | C-18 ✓ |
-| 10 | C-23 | C-24 | C-19 ✓ |
-| 11 | — | C-20a → C-20b | C-21 |
+| 7 | C-25a ✓ | — | C-13b ✓ |
+| 8 | C-16a ✓ → C-17a ✓ | C-15 ✓ | C-14 ✓ + C-16b ✓ |
+| 9 | C-17b ✓ | C-22 ✓ | C-18 ✓ |
+| 10 | C-23 ✓ | C-24 | C-19 ✓ |
+| 11 | — | C-20a ✓ → C-20b ✓ | C-21 ✓ |
 | 12 | C-25b | C-25b | C-25b |
 
 (C-03 no bloquea nada y puede moverse a cualquier hueco del Agente A. C-13a no depende del backend: puede correr en cualquier hueco del Agente C desde ya. En el paso 8, C-17a y C-15 requieren C-13b: ajustar si C-13b aún no terminó. C-16b requiere C-16a: el Agente A hace C-16a primero en el paso 8 (es corto, solo backend) y el Agente C arranca C-14 mientras tanto. C-25a solo exige C-01..C-12: puede adelantarse o retrasarse según huecos, siempre antes de C-25b.)
@@ -627,10 +627,11 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - `knowledge-base/07_flujos_principales.md` §Ciclo operativo
 
 ### [C-23] `fe-admin-usuarios-roles`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` cerrado (2026-11-20). Verify: PASS (frontend 1723/1723, backend 1810 passed, typecheck y lint limpios). Visual verify: passed with differences; las 3 menores corregidas en el mismo change (viñetas del diálogo, spinner de «Desactivando…», tamaño de errores del formulario; ver `design.md` `## UI Mockups`). OQ-1..OQ-10 aceptadas por defecto; migración `006_sesion_motivo_baja` (motivo de sesión `BAJA`); protecciones `SELF_ACTION_NOT_ALLOWED` y `LAST_ADMIN` (409, bloqueo `FOR UPDATE`). Archivado en `openspec/changes/archive/2026-11-20-c-23-fe-admin-usuarios-roles/`; specs principales nuevas `user-administration` y `frontend-admin-users`, y `frontend-app-shell` ampliada.
 - **Scope**:
   - US-027 ADMIN: crear usuario con roles (multi-rol), listar paginado con filtro por rol, actualizar roles, desactivar (soft delete).
   - Tests: asignación multi-rol, filtros.
+  - Implementación (C-23, apply): backend con migración `006` (motivo de sesión `BAJA`), roles validados y con `asignado_por_id`, protecciones `SELF_ACTION_NOT_ALLOWED`/`LAST_ADMIN` y baja con cierre de sesiones; frontend con `entities/usuario`, `pages/admin-usuarios` y `useRefrescarSesion`; la ruta `/admin/usuarios` ya no es provisoria (el dueño de las provisorias que quedan es C-24).
   - Punto de partida (C-14): el alta ADMIN (`UserCreateAdmin`) hereda el endurecimiento de `UserCreate`: `nombre`/`apellido` recortados y obligatorios (422 con `field`) y el email normalizado (recortado y en minúsculas; `ck_usuario_email_normalizado`, migración `005`); `UserUpdateAdmin` hereda el rechazo de `nombre`/`apellido` en `null`. `GET /usuarios/me` ya no existe (`GET /auth/me` lee el usuario autenticado).
 - **Dependencias**: `C-13b, C-08`
 - **Governance**: CRITICO
@@ -683,6 +684,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - **Heredado de C-15** (deuda sugerida, 2026-11-17): índice único parcial de `es_principal` (`WHERE es_principal AND deleted_at IS NULL`, por usuario) en `direcciones`, porque la regla «solo una principal» (RN-DI-01) la garantiza solo el service y dos `PATCH /direcciones/{id}/principal` simultáneos podrían dejar dos principales (R3; requiere migración Alembic, governance BAJO); sumar al sprite de `design-system/components.html` los íconos `editar`, `basura`, `estrella`, `mas` y `tienda` que usa el frontend (cambio visual del design system: requiere revisión del usuario); decidir con OQ-1 de C-15 si al eliminar la principal el backend promueve otra.
   - **Heredado de C-19** (deuda de backend detectada, 2026-11-19; el frontend la compensa): R1 `POST /pedidos/` devuelve todos sus rechazos como `HTTP_400`/`HTTP_404` sin código estable ni línea afectada (el frontend clasifica por el texto de `detail` en `clasificarErrorCreacion`); sumar `ErrorCode` estables (`PRODUCT_NOT_FOUND`, `PRODUCT_UNAVAILABLE`, `PAYMENT_METHOD_UNAVAILABLE`, `DUPLICATE_ITEM`) con `field` y el `producto_id` afectado y simplificar el clasificador; R2 sin idempotencia de creación (un timeout tras el commit + «Reintentar» puede crear dos pedidos `PENDIENTE`); R3 `direccion_id` no se valida (inexistente o de otro usuario → FK/500 o pedido a dirección ajena); R4 los ids de `personalizacion` no se validan como ingredientes removibles del producto; además no hay endpoint que liste las formas de pago habilitadas (el frontend usa un catálogo local, OQ-2) y no hay datos bancarios en el sistema para la transferencia (OQ-5).
   - **Heredado de C-22** (deuda detectada, 2026-11-19): R1 el costo de envío fijo de $50 (`COSTO_ENVIO_FIJO`) se cobra también a los pedidos para retirar en el local (`crear_pedido` lo aplica siempre; sin `direccion_id` debería ser 0); R2 los filtros de fecha del listado son UTC (el gestor ve días locales); R6 el filtro de estado acepta un solo valor y no hay búsqueda por cliente o número; OQ-7 considerar varios estados, «activos» y zona horaria; el rol `COCINA`/KDS y el WebSocket siguen sin tocarse (PA-07, C-26/C-27); los íconos `moto`, `flecha`, `nota` y `calendario` de `shared/ui/icon` son provisionales y faltan en el sprite de `design-system/components.html`.
+  - **Punto de partida (C-23)**: la pantalla «Usuarios» queda lista para capturas y video (listado con filtro por rol, alta multi-rol, edición propia con la casilla «Administrador» bloqueada, diálogo de desactivación). Deuda a documentar en la entrega: la contraseña inicial del alta ADMIN la elige el administrador y no hay cambio de contraseña (DT-28); recuperación sin `ADMIN` con `python -m app.db.seed`; ver «Usuarios y roles (C-23)» en `frontend/README.md`.
 - **Dependencias**: `C-01 a C-24, C-25a`
 - **Governance**: MEDIO
 - **Decisión pendiente**: PA-16, PA-17, PA-18
@@ -752,7 +754,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 18 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 27** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21, C-22, C-25a). **Pendientes obligatorios: 3** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
+**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 28** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21, C-22, C-23, C-25a). **Pendientes obligatorios: 2** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado).
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 

@@ -7,6 +7,7 @@ import { handlerMe } from '@/test/msw/auth';
 import { crearEstadoCatalogo, handlersCatalogo, productoDto } from '@/test/msw/catalogo';
 import { API, server } from '@/test/msw/server';
 import { renderApp } from '@/test/render-app';
+import { montarUsuarios } from '@/test/render-usuarios';
 
 type Router = ReturnType<typeof renderApp>['router'];
 
@@ -84,7 +85,7 @@ describe('usuario con sesión y rol insuficiente', () => {
   });
 
   it('ADMIN en /admin/usuarios ve «Usuarios»', async () => {
-    renderApp('/admin/usuarios', { sesion: { roles: ['CLIENT', 'ADMIN'] } });
+    montarUsuarios('/admin/usuarios', { roles: ['CLIENT', 'ADMIN'] });
 
     expect(await titulo('Usuarios')).toBeInTheDocument();
   });

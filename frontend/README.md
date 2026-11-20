@@ -173,6 +173,15 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - **Pago**: `vistaPagoDelPedido` (`entities/payment`) decide traspaso, reintento o en confirmación; lo usan la confirmación y el detalle.
 - **Tests**: `src/test/msw/pedidos.ts` (incluye `DELETE` y `propios`) y `montarMisPedidos` en `src/test/render-mis-pedidos.ts`.
 
+## Usuarios y roles (C-23)
+
+- **Ruta** (solo `ADMIN`, con `RequiereAcceso`): `/admin/usuarios` (`AdminUsuariosPage`). Slices: `src/pages/admin-usuarios/` (`ui/`: página, `ListaUsuarios`, `FiltroRol`, `FormularioUsuario` para alta y edición, `DialogoDesactivarUsuario`; `model/`: filtro de URL `?rol=&page=`, validación, diff de edición `cambiosUsuario`, `clasificarErrorUsuario`) y `src/entities/usuario/` (`usuarioQueries.lista`, `useCrearUsuario`, `useActualizarUsuario`, `useDesactivarUsuario`; la clave `['usuarios', …]` es **privada**: se descarta al cerrar sesión).
+- **Comportamiento**: listado paginado (20) con filtro por un rol (rol desconocido en la URL = «Todos»); alta con varios roles («Cliente» viene marcado; los códigos viajan ordenados alfabéticamente); edición solo con los campos cambiados (email y contraseña no se editan); baja con confirmación. La fila y el formulario del propio administrador llevan «Vos», sin «Desactivar» y con la casilla «Administrador» bloqueada; al guardarse a sí mismo se refresca la sesión (`useRefrescarSesion` de `entities/session`, `GET /auth/me`) para que el panel lateral refleje los roles.
+- **Protecciones**: viven en el backend (409 `SELF_ACTION_NOT_ALLOWED` y `LAST_ADMIN`, baja con sesiones cerradas con motivo `BAJA`); la UI solo las anticipa y muestra sus mensajes por `code`, no por el texto de `detail`.
+- **Recuperación sin administrador**: si por un error operativo no quedara ningún `ADMIN` activo, se recupera desde `backend/` con `python -m app.db.seed` (idempotente; recrea el administrador inicial del seed).
+- **Compartido nuevo**: `DialogoBaja` acepta `etiquetaConfirmar`, `etiquetaPendiente` y `cuerpo`; los estilos `.seg`/`.ilist` pasaron a `shared/ui/lista-admin`.
+- **Tests**: `src/test/msw/usuarios.ts` (estado en memoria con filtro por rol, paginación y registro de pedidos) y `montarUsuarios` en `src/test/render-usuarios.ts`.
+
 ## Productos y stock (C-17b)
 
 - **Slices**: `src/pages/admin-productos/` (`ui/`: página, filtros, lista, fila con stock e interruptor, formulario, secciones de categorías e ingredientes, diálogo de baja; `model/`: permisos por rol, validación, diff de edición, filtros de URL) y, en `src/entities/producto/api/`, `producto-gestion-api.ts`, `productoGestionQueries` y `producto-mutations.ts`.

@@ -1,4 +1,4 @@
-/* Piezas comunes de los listados de administración (categorías e ingredientes): reglas aprobadas en los mockups de C-17a (design-system Revision 2). Solo tokens. */
+/* Piezas comunes de los listados de administración (categorías, ingredientes y usuarios): reglas aprobadas en los mockups de C-17a (design-system Revision 2). Solo tokens. */
 @layer components {
   .admin-summary{font-size:var(--text-sm);color:var(--color-text-muted);font-weight:600;margin:0}
   .admin-summary strong{color:var(--color-text)}
@@ -12,6 +12,21 @@
   .skel-row .sq{width:40px;height:40px;border-radius:var(--radius-md)}
   .skel-row .ln{display:grid;gap:var(--space-2)}
   .skel-line{display:block;height:12px}
+  .seg{display:inline-flex;gap:var(--space-1);padding:4px;background:var(--color-surface-alt);border-radius:var(--radius-pill);border:1px solid var(--color-border)}
+  .seg button{min-height:40px;padding:0 var(--space-4);border:0;border-radius:var(--radius-pill);background:transparent;font:inherit;font-weight:700;font-size:var(--text-sm);color:var(--color-text-muted);cursor:pointer}
+  .seg button:hover{color:var(--color-text)}
+  .seg button[aria-pressed=true]{background:var(--color-surface);color:var(--color-text);box-shadow:var(--shadow-sm)}
+  .seg button:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+  .ilist{list-style:none;margin:0;padding:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+  .ilist > li + li{border-top:1px solid var(--color-border)}
+  .ihead{background:var(--color-surface-alt);min-height:0;padding-top:var(--space-2);padding-bottom:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted)}
+  .iname{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .iname-top{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)}
+  .iname small{color:var(--color-text-muted);font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @media (max-width:719.98px){
+    .seg{width:100%}
+    .seg button{flex:1;padding:0 var(--space-2)}
+  }
   .is-new{animation:rowin 900ms var(--ease-out)}
   @keyframes rowin{from{background:var(--color-accent-soft)}to{background:transparent}}
   @media (prefers-reduced-motion:reduce){.is-new{animation:none;background:var(--color-accent-soft)}}

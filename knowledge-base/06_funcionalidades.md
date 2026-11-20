@@ -139,8 +139,8 @@ Detalle en [11](11_pagos_mercadopago.md).
 ## Épica 7: Administración y métricas
 
 ### US-027 — Gestión de usuarios y roles (ADMIN)
-- [ ] Crear usuario con roles, listar paginado con filtro por rol, actualizar roles, desactivar (soft delete)
-**Reglas**: RN-US-01..03
+- [x] Crear usuario con roles, listar paginado con filtro por rol, actualizar roles, desactivar (soft delete) — backend y pantalla «Usuarios» (`/admin/usuarios`) por C-23: alta con uno o más roles, edición de datos y roles, baja que cierra sus sesiones, protecciones de la propia cuenta y del último `ADMIN`
+**Reglas**: RN-US-01..03, RN-US-06..07
 
 ### US-028 — Dashboard de métricas (ADMIN)
 - [ ] KPIs: ventas, ticket promedio, pedidos activos, ingresos; ventas por período (`day`...), productos top, pedidos por estado, ingresos por forma de pago; gráficos recharts `[Pendiente-FE]`

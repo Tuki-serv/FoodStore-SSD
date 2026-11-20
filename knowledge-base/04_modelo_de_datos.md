@@ -32,9 +32,9 @@ Ingrediente N──1 UnidadMedida ; Producto N──0..1 UnidadMedida (unidad_ve
 
 **Rol** (`rol`): PK semántica `codigo` VARCHAR(20) (`ADMIN|STOCK|PEDIDOS|CLIENT`); `nombre` único; `descripcion`. (`[DESC]` usa id numérico 1..4: IN-02.)
 
-**UsuarioRol** (`usuario_rol`): PK compuesta `(usuario_id, rol_codigo)`; `asignado_por_id` FK usuario opcional; `expires_at` opcional; `created_at`.
+**UsuarioRol** (`usuario_rol`): PK compuesta `(usuario_id, rol_codigo)`; `asignado_por_id` FK usuario opcional (el `ADMIN` que asignó el rol en el alta/edición por admin, C-23; NULL en el registro propio y en el seed); `expires_at` opcional; `created_at`.
 
-**Sesion** (`sesion`, C-02): `id` UUID v4 PK (es el claim `sid` del access token); `usuario_id` BIGINT FK `usuario.id` (indexado); `expires_at` TIMESTAMPTZ (login + 7 días, **fijo**: la rotación no lo extiende); `revoked_at` NULL = abierta; `revoked_reason` `LOGOUT|LOGOUT_ALL|REUSO` (NULL si abierta; CHECK de consistencia con `revoked_at`); `created_at`; `ip` VARCHAR(45) y `user_agent` solo para auditoría. Nunca se borra: se marca.
+**Sesion** (`sesion`, C-02): `id` UUID v4 PK (es el claim `sid` del access token); `usuario_id` BIGINT FK `usuario.id` (indexado); `expires_at` TIMESTAMPTZ (login + 7 días, **fijo**: la rotación no lo extiende); `revoked_at` NULL = abierta; `revoked_reason` `LOGOUT|LOGOUT_ALL|REUSO|BAJA` (`BAJA` = desactivación del usuario por un `ADMIN`, C-23, migración `006`; NULL si abierta; CHECK de consistencia con `revoked_at`); `created_at`; `ip` VARCHAR(45) y `user_agent` solo para auditoría. Nunca se borra: se marca.
 
 **RefreshToken** (`refresh_token`, C-02): `id`; `sesion_id` UUID FK `sesion.id` (indexado); `token_hash` CHAR(64) único (SHA-256 del valor opaco; el valor en claro nunca se guarda); `revoked_at` significa **«rotado»** (NULL = activo); `created_at`. Índice único parcial `uq_refresh_token_sesion_activo` (un solo activo por sesión). Los motivos de cierre viven en la sesión.
 

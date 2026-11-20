@@ -13,6 +13,10 @@
   .modal .warn .ico{width:18px;height:18px;margin-top:2px}
   .modal .warn span{display:flex;flex-direction:column;gap:2px}
   .modal .warn span small{color:var(--color-text);font-weight:400;font-size:var(--text-sm)}
+  /* Spinner decorativo dentro de un botón en curso (DialogoBaja, MarcaActualizacion); aprobado en los mockups de C-22/C-23. */
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:giro-boton 800ms linear infinite;flex:none}
+  @keyframes giro-boton{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spin{animation:none;border-right-color:currentColor;opacity:.6}}
   .modal .mlist{margin:0;padding-left:1.2em;color:var(--color-text);font-size:var(--text-sm)}
   @media (max-width:719.98px){
     .modal-scrim{align-items:flex-end;padding:0}
