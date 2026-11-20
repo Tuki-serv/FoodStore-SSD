@@ -17,4 +17,10 @@ describe('claseBoton', () => {
     expect(resultado).not.toContain('min-h-tap');
     expect(resultado).not.toContain('px-5');
   });
+
+  it('peligroContorno es una acción destructiva con borde y fondo claro, distinta del peligro relleno', () => {
+    const contorno = clases(claseBoton('peligroContorno'));
+    expect(contorno).toEqual(expect.arrayContaining(['border-danger', 'bg-surface', 'text-danger']));
+    expect(clases(claseBoton('peligro'))).not.toContain('border-danger');
+  });
 });

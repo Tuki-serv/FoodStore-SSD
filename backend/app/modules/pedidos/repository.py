@@ -145,6 +145,16 @@ class HistorialEstadoPedidoRepository(BaseRepository[HistorialEstadoPedido]):
         )
         return self.session.exec(statement).all()
 
+    def get_all_con_usuario_by_pedido_id(self, pedido_id: int) -> list[tuple[HistorialEstadoPedido, str | None]]:
+        """Historial con el nombre de quien hizo cada cambio (`LEFT JOIN`, un solo query): `[(evento, nombre | None)]`."""
+        statement = (
+            select(HistorialEstadoPedido, Usuario.nombre)
+            .join(Usuario, Usuario.id == HistorialEstadoPedido.usuario_id, isouter=True)
+            .where(HistorialEstadoPedido.pedido_id == pedido_id)
+            .order_by(HistorialEstadoPedido.created_at.asc(), HistorialEstadoPedido.id.asc())
+        )
+        return [(evento, nombre) for evento, nombre in self.session.exec(statement).all()]
+
     def update(self, data: HistorialEstadoPedido) -> HistorialEstadoPedido:
         raise HistorialInmutableError("El historial de estados es append-only: no se puede modificar")
 

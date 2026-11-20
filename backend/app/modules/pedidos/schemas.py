@@ -18,6 +18,7 @@ class HistorialEstadoPedidoRead(SQLModel):
     estado_hacia: str
     motivo: Optional[str] = None
     usuario_id: Optional[int] = None
+    usuario_nombre: Optional[str] = None
     created_at: datetime
 
 
@@ -106,7 +107,19 @@ class PedidoResumen(PedidoRead):
     cliente_nombre: str
 
 
+class DireccionPedidoRead(SQLModel):
+    """Resumen de la dirección de entrega de un pedido (la ve el dueño y los gestores)."""
+    id: int
+    alias: Optional[str] = None
+    linea1: str
+    linea2: Optional[str] = None
+    ciudad: str
+    provincia: Optional[str] = None
+    codigo_postal: Optional[str] = None
+
+
 class PedidoDetalle(PedidoResumen):
     """Detalle completo: el resumen más la dirección de entrega y los ítems."""
     direccion_id: Optional[int] = None
+    direccion: Optional[DireccionPedidoRead] = None
     items: List[DetallePedidoRead] = Field(default_factory=list)

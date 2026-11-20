@@ -23,6 +23,7 @@ from app.core.schemas import PaginatedResponse
 from app.modules.pedidos.filtros import FiltrosPedidos
 from app.modules.pedidos.models import Pedido
 from app.modules.pedidos.schemas import (
+    DireccionPedidoRead,
     PedidoCambioEstado,
     PedidoCreate,
     PedidoDetalle,
@@ -196,10 +197,9 @@ class PedidoService:
     ) -> list[HistorialEstadoPedidoRead]:
         with self._uow as uow:
             self._obtener_pedido_visible(uow, pedido_id, usuario_id, roles)
-            historial = uow.historial.get_all_by_pedido_id(pedido_id)
             return [
-                HistorialEstadoPedidoRead.model_validate(evento)
-                for evento in historial
+                HistorialEstadoPedidoRead.model_validate(evento).model_copy(update={"usuario_nombre": nombre})
+                for evento, nombre in uow.historial.get_all_con_usuario_by_pedido_id(pedido_id)
             ]
     
     #Queda como una función asincrona 
@@ -379,9 +379,12 @@ class PedidoService:
             DetallePedidoRead.model_validate(detalle)
             for detalle in detalles
         ]
+        # Sin filtrar `deleted_at`: la dirección de un pedido ya hecho se sigue viendo aunque el cliente la borre.
+        direccion = uow.direcciones.get_by_id(pedido.direccion_id) if pedido.direccion_id is not None else None
         return PedidoDetalle(
             **self._armar_resumen(pedido, cliente_nombre).model_dump(),
             direccion_id=pedido.direccion_id,
+            direccion=DireccionPedidoRead.model_validate(direccion) if direccion is not None else None,
             items=detalles_read,
         )
 

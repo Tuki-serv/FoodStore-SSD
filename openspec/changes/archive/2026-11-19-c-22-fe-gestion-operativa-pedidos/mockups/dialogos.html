@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-22 - Diálogos de cambio de estado (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="gestion.css">
+</head>
+<body>
+<main class="page page-wide" id="main">
+  <div id="contenido" style="display:flex;flex-direction:column;gap:var(--space-5)"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="gestion.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Parámetros (?dialogo=), sobre el detalle del pedido correspondiente:
+   confirmar-pago (#58, defecto) · confirmar-pago-enviando · confirmar-pago-sin-stock (409 INSUFFICIENT_STOCK)
+   avance (#57 «Pasar a preparación» con observación) · despachar (#54, muestra la entrega) · entregar (#53)
+   transicion (409 INVALID_TRANSITION) · conexion (sin red, «Reintentar», observación intacta)
+   cancelar (#58 vacío) · cancelar-sin-motivo · cancelar-sin-stock (motivo «Sin stock» precargado)
+   cancelar-confirmado (#57 CONFIRMADO MERCADOPAGO: stock devuelto + reintegro) · exito (toast tras el avance) */
+(function () {
+  var M = MOCK, ico = M.ico, d = M.params.get('dialogo') || 'confirmar-pago';
+  var FONDO = { avance: 57, transicion: 57, conexion: 57, 'cancelar-confirmado': 57, despachar: 54, entregar: 53 };
+  var id = FONDO[d] || 58;
+  var p = M.pedido(id);
+  if (d === 'exito') {
+    p = M.pedido(57, { estado: 'EN_PREP', hist: M.PEDIDOS[57].hist.concat([['CONFIRMADO', 'EN_PREP', M.rol === 'ADMIN' ? 'Laura Méndez' : 'Carla Ruiz', '19/11/2026 12:44', 'Sale en 20 min']]) });
+    M.banner('Mockup C-22 · Éxito: #57 pasó a preparación (estado, acciones e historial al día)');
+    M.llenar('contenido', M.detalle(p, { marca: { hora: '12:44' } }));
+    M.toast('Pedido #57 en preparación', 'Ahora podés despacharlo cuando esté listo.');
+    M.nota('el foco vuelve a «Despachar» (la acción nueva) · otros textos: «Pedido #58 confirmado», «Pedido #54 en camino», «Pedido #53 entregado», «Pedido #58 cancelado»');
+    return;
+  }
+  M.llenar('contenido', M.detalle(p));
+
+  function trans(desde, hacia) { return '<p class="trans">' + M.badge(desde) + ico('i-flecha') + M.badge(hacia) + '<span class="sr-only">' + M.ESTADOS[desde] + ' → ' + M.ESTADOS[hacia] + '</span></p>'; }
+  function obs(valor, deshabilitado) {
+    return '<div class="field"><div class="label-row"><label for="obs">Observación <small>(opcional)</small></label><span class="counter" id="obs-c">' + (valor || '').length + '/300</span></div>' +
+      '<textarea id="obs" class="input" maxlength="300" aria-describedby="obs-c" placeholder="Por ejemplo: sale en 20 minutos"' + (deshabilitado ? ' disabled' : '') + '>' + (valor || '') + '</textarea><span class="hint">Queda en el historial del pedido.</span></div>';
+  }
+  function pie(primario, opts) {
+    opts = opts || {};
+    var btnP = opts.enviando
+      ? '<button class="btn ' + (opts.peligro ? 'btn-danger' : 'btn-primary') + ' is-busy" type="button" disabled aria-busy="true"><span class="spin" aria-hidden="true"></span>Guardando…</button>'
+      : '<button class="btn ' + (opts.peligro ? 'btn-danger' : 'btn-primary') + '" type="button">' + primario + '</button>';
+    return '<div class="modal-actions"><button class="btn btn-ghost" type="button"' + (opts.enviando ? ' disabled' : '') + '>' + (opts.secundario || 'Volver') + '</button>' + btnP + '</div>';
+  }
+  function alerta(titulo, texto, extra) { return '<div class="dlg-alert" role="alert">' + ico('i-alerta') + '<div><span><strong>' + titulo + '</strong>' + texto + '</span>' + (extra || '') + '</div></div>'; }
+  var AYUDA_PAGO = '<p class="help">Confirmás que el local recibió el pago en efectivo. Al confirmar se descuenta el stock de los productos.</p>';
+
+  if (d === 'confirmar-pago' || d === 'confirmar-pago-enviando') {
+    var env = d === 'confirmar-pago-enviando';
+    M.banner('Mockup C-22 · Diálogo «Confirmar pago» ' + (env ? 'enviando (Escape y cierre bloqueados)' : 'en reposo'));
+    M.dialogo('<h2 id="dlg-titulo">Confirmar pago del pedido #58</h2>' + trans('PENDIENTE', 'CONFIRMADO') + AYUDA_PAGO + obs(env ? 'Pagó con $ 5.000, lleva vuelto' : '', env) + pie(ico('i-ok') + 'Confirmar pago', { enviando: env }));
+    M.nota('TRANSFERENCIA: «…recibió el pago por transferencia…» · doble clic → un solo PATCH');
+  } else if (d === 'confirmar-pago-sin-stock') {
+    M.banner('Mockup C-22 · «Confirmar pago» rechazado: 409 INSUFFICIENT_STOCK (el pedido sigue Pendiente)');
+    M.dialogo('<h2 id="dlg-titulo">Confirmar pago del pedido #58</h2>' + trans('PENDIENTE', 'CONFIRMADO') +
+      alerta('No se pudo confirmar', 'No hay stock suficiente para Hamburguesa Clásica. El pedido sigue pendiente.',
+        '<button class="btn btn-danger-outline btn-sm" type="button">' + ico('i-cerrar') + 'Cancelar por falta de stock</button>') +
+      AYUDA_PAGO + obs('') + '<div class="modal-actions"><button class="btn btn-secondary" type="button">Cerrar</button></div>');
+    M.nota('el texto viene del «detail» del servidor · «Cancelar por falta de stock» cierra este diálogo y abre la cancelación con «Sin stock»');
+  } else if (d === 'avance') {
+    M.banner('Mockup C-22 · Diálogo «Pasar a preparación» con observación');
+    M.dialogo('<h2 id="dlg-titulo">Pasar a preparación el pedido #57</h2>' + trans('CONFIRMADO', 'EN_PREP') + obs('Sale en 20 min') + pie(ico('i-plato') + 'Pasar a preparación'));
+    M.nota('sin observación se envía {"nuevo_estado":"EN_PREP"} (sin «motivo») · Escape cierra y el foco vuelve al botón que lo abrió');
+  } else if (d === 'despachar') {
+    M.banner('Mockup C-22 · Diálogo «Despachar» con la entrega a la vista');
+    var dir = p.dir;
+    M.dialogo('<h2 id="dlg-titulo">Despachar el pedido #54</h2>' + trans('EN_PREP', 'EN_CAMINO') +
+      '<div class="dlg-deliv">' + ico('i-direcciones') + '<div><small>Entregar en</small><strong>' + dir.alias + ' · ' + p.cliente + '</strong><span>' + dir.linea1 + ', ' + dir.linea2 + '</span><span>' + dir.ciudad + ', ' + dir.provincia + ' · CP ' + dir.cp + '</span></div></div>' +
+      obs('') + pie(ico('i-moto') + 'Despachar'));
+    M.nota('pedido sin dirección: «Retiro en el local» en el mismo bloque');
+  } else if (d === 'entregar') {
+    M.banner('Mockup C-22 · Diálogo «Marcar entregado»');
+    M.dialogo('<h2 id="dlg-titulo">Marcar entregado el pedido #53</h2>' + trans('EN_CAMINO', 'ENTREGADO') + '<p class="help">El pedido queda terminado y ya no admite cambios.</p>' + obs('') + pie(ico('i-ok') + 'Marcar entregado'));
+  } else if (d === 'transicion') {
+    M.banner('Mockup C-22 · Diálogo con 409 INVALID_TRANSITION: otro gestor lo movió antes');
+    M.dialogo('<h2 id="dlg-titulo">Pasar a preparación el pedido #57</h2>' + trans('CONFIRMADO', 'EN_PREP') +
+      alerta('El pedido cambió mientras lo mirabas', 'No se puede cambiar de EN_PREP a EN_PREP. Ya actualizamos el pedido para que veas su estado actual.') +
+      obs('Sale en 20 min', true) + '<div class="modal-actions"><button class="btn btn-primary" type="button">Cerrar</button></div>');
+    M.nota('detalle, historial y listado se vuelven a pedir · el botón primario pasa a «Cerrar»');
+  } else if (d === 'conexion') {
+    M.banner('Mockup C-22 · Diálogo con error de conexión: «Reintentar» sin perder lo escrito');
+    M.dialogo('<h2 id="dlg-titulo">Pasar a preparación el pedido #57</h2>' + trans('CONFIRMADO', 'EN_PREP') +
+      alerta('No se guardó el cambio', 'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.') +
+      obs('Sale en 20 min') + pie(ico('i-reintentar') + 'Reintentar'));
+    M.nota('«Reintentar» reenvía el mismo cuerpo · 5xx igual · 403 «No tenés permiso para cambiar este pedido» · 404 «Este pedido ya no existe»');
+  } else if (d.indexOf('cancelar') === 0) {
+    var conf = d === 'cancelar-confirmado', sinMotivo = d === 'cancelar-sin-motivo', sinStock = d === 'cancelar-sin-stock';
+    var nro = conf ? 57 : 58;
+    M.banner('Mockup C-22 · Diálogo «Cancelar pedido» · ' + ({ cancelar: 'vacío', 'cancelar-sin-motivo': 'sin motivo', 'cancelar-sin-stock': 'motivo «Sin stock» precargado', 'cancelar-confirmado': 'CONFIRMADO + MERCADOPAGO' })[d]);
+    var avisos = '<div class="warn is-danger">' + ico('i-alerta') + '<span>La cancelación no se puede deshacer.' + (conf ? '<small>El stock de sus productos se devuelve.</small>' : '') + '</span></div>' +
+      (conf ? '<div class="warn is-info">' + ico('i-tarjeta') + '<span>Si el cliente ya pagó con tarjeta, el reintegro se gestiona aparte en Mercado Pago.</span></div>' : '');
+    var valor = sinStock ? 'Sin stock' : '';
+    var campo = '<div class="field"><div class="label-row"><label for="motivo">Motivo</label><span class="counter" id="mot-c">' + valor.length + '/300</span></div>' +
+      '<textarea id="motivo" class="input" maxlength="300" required aria-describedby="' + (sinMotivo ? 'mot-err ' : '') + 'mot-c"' + (sinMotivo ? ' aria-invalid="true"' : '') + ' placeholder="Por ejemplo: el cliente no responde">' + valor + '</textarea>' +
+      (sinMotivo ? '<span class="err" id="mot-err" role="alert">Escribí el motivo de la cancelación</span>' : '<span class="hint">Queda en el historial del pedido.</span>') + '</div>';
+    M.dialogo('<h2 id="dlg-titulo">Cancelar el pedido #' + nro + '</h2>' + avisos + campo + pie(ico('i-cerrar') + 'Cancelar pedido', { peligro: true, secundario: 'Volver' }));
+    M.nota(sinStock ? 'llega desde «Cancelar por falta de stock»: mismo texto que usa el Sistema' : sinMotivo ? 'vacío o solo espacios: no se envía nada y el foco va al campo' : conf ? 'EN_PREP: mismo aviso de stock devuelto (sin el de Mercado Pago si no es MP)' : 'PENDIENTE: no se descontó stock, por eso no hay aviso de devolución');
+  }
+})();
+</script>
+</body>
+</html>

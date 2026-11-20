@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ICON_NAMES, Icon } from '../icon';
 
 describe('Icon', () => {
-  it('incluye los 17 íconos del design system, los 3 de los mockups de C-13a, el candado de C-13b los 5 de C-15 (editar, basura, estrella, mas, tienda) los 5 de C-16b (buscar, filtros, menos, volver, plato) los 3 de C-17a (subcategoria, alergeno, reintentar) el de C-17b (guardar) y los 6 de C-19 (tarjeta, efectivo, transferencia, reloj, info, exito)', () => {
+  it('incluye los 17 íconos del design system, los 3 de los mockups de C-13a, el candado de C-13b los 5 de C-15 (editar, basura, estrella, mas, tienda) los 5 de C-16b (buscar, filtros, menos, volver, plato) los 3 de C-17a (subcategoria, alergeno, reintentar) el de C-17b (guardar) los 6 de C-19 (tarjeta, efectivo, transferencia, reloj, info, exito) y los 4 de C-22 (moto, flecha, nota, calendario; provisorios TBD)', () => {
     expect([...ICON_NAMES].sort()).toEqual(
       [
         'catalogo', 'carrito', 'pedidos', 'direcciones', 'cuenta', 'gestion', 'categorias', 'ingredientes',
@@ -11,6 +11,7 @@ describe('Icon', () => {
         'obra', 'brujula', 'alerta', 'candado', 'editar', 'basura', 'estrella', 'mas', 'tienda',
         'buscar', 'filtros', 'menos', 'volver', 'plato', 'subcategoria', 'alergeno', 'reintentar', 'guardar',
         'tarjeta', 'efectivo', 'transferencia', 'reloj', 'info', 'exito',
+        'moto', 'flecha', 'nota', 'calendario',
       ].sort(),
     );
   });

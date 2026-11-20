@@ -1,4 +1,4 @@
-export type VarianteBoton = 'primario' | 'secundario' | 'fantasma' | 'fantasmaPeligro' | 'peligro';
+export type VarianteBoton = 'primario' | 'secundario' | 'fantasma' | 'fantasmaPeligro' | 'peligro' | 'peligroContorno';
 
 const BASE =
   'inline-flex items-center justify-center gap-2 rounded-md border-2 font-bold no-underline cursor-pointer ' +
@@ -12,6 +12,8 @@ const VARIANTES: Record<VarianteBoton, string> = {
   /** Acción destructiva discreta (por ejemplo, «Eliminar» en la fila de un listado). */
   fantasmaPeligro: 'border-transparent bg-transparent text-danger hover:bg-danger-bg',
   peligro: 'border-transparent bg-danger text-white',
+  /** Acción destructiva visible pero secundaria (por ejemplo, «Cancelar pedido» junto a la acción principal). */
+  peligroContorno: 'border-danger bg-surface text-danger hover:bg-danger-bg',
 };
 
 /** Tamaño normal: alto táctil y padding de 20 px. Va en lugar de `COMPACTO` (dos clases de tamaño juntas se pisan según el orden del CSS). */

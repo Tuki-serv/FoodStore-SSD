@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-22 - Gestión de pedidos (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="gestion.css">
+</head>
+<body>
+<main class="page page-wide" id="main">
+  <div class="page-head-row" id="cabecera">
+    <div class="page-head">
+      <h1>Gestión de pedidos</h1>
+      <p>Confirmá los pagos en efectivo o transferencia y llevá cada pedido hasta la entrega.</p>
+    </div>
+  </div>
+  <form class="gp-filters" id="filtros" aria-label="Filtros de pedidos" onsubmit="return false"></form>
+  <div class="gp-bar" id="barra"></div>
+  <div id="aviso"></div>
+  <div id="contenido"></div>
+  <div class="gp-foot" id="pie"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="gestion.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Parámetros (?estado=):
+   (sin parámetro) listado con datos, página 1 de 3 · filtros (estado + fechas, página 2 de 2) · rango (Desde > Hasta)
+   carga · vacio (sin filtros) · sin-resultados (con filtros) · error (500 / red) · aviso (falló una actualización periódica)
+   actualizando («Actualizar» girando) · avance (fila #57 recién avanzada + toast)
+   ?rol=pedidos (defecto) | admin | client ("Sin permiso") · ?nav=drawer | collapsed (de mockup.js) */
+(function () {
+  var M = MOCK, ico = M.ico, est = M.estado, P = M.PEDIDOS;
+  var $ = function (id) { return document.getElementById(id); };
+
+  if (M.rol === 'CLIENT') {
+    M.banner('Mockup C-22 · /gestion-pedidos con sesión CLIENT: «Sin permiso» (la URL no cambia, no se pide nada)');
+    ['cabecera', 'filtros', 'barra', 'aviso', 'pie'].forEach(function (id) { $(id).remove(); });
+    M.llenar('contenido', M.sinPermiso());
+    M.nota('pantalla 403 de C-13b dentro del shell · el panel del CLIENT no tiene «Gestión de pedidos»');
+    return;
+  }
+
+  function filtros(f) {
+    f = f || {};
+    var opts = '<option value="">Todos</option>' + Object.keys(M.ESTADOS).map(function (k) { return '<option value="' + k + '"' + (f.estado === k ? ' selected' : '') + '>' + M.ESTADOS[k] + '</option>'; }).join('');
+    var err = f.error ? ' aria-invalid="true" aria-describedby="rango-err"' : '';
+    return '<div class="gp-filters-row">' +
+      '<div class="field f-estado"><label for="f-estado">Estado</label><select id="f-estado" class="input">' + opts + '</select></div>' +
+      '<div class="field"><label for="f-desde">Desde</label><input id="f-desde" class="input" type="date" value="' + (f.desde || '') + '"' + err + '></div>' +
+      '<div class="field"><label for="f-hasta">Hasta</label><input id="f-hasta" class="input" type="date" value="' + (f.hasta || '') + '"' + err + '></div>' +
+      (f.estado || f.desde || f.hasta ? '<button class="link-btn clear" type="button">Limpiar filtros</button>' : '<span></span>') +
+      (f.error ? '<p class="range-err" id="rango-err" role="alert">' + ico('i-alerta') + 'La fecha "Desde" no puede ser posterior a "Hasta"</p>' : '') + '</div>' +
+      '<p class="gp-legend">' + ico('i-calendario') + 'Fechas según el día del servidor (UTC)</p>';
+  }
+  function resumen(texto) { return '<p class="admin-summary" role="status">' + texto + '</p>'; }
+  function barra(texto, marcaOpts) { M.llenar('barra', resumen(texto) + M.marca(marcaOpts)); }
+  var PAGINA1 = [58, 57, 56, 55, 54, 53, 52, 51].map(function (id) { return P[id]; });
+
+  if (est === 'carga') {
+    M.banner('Mockup C-22 · Gestión de pedidos: primera carga');
+    M.llenar('filtros', filtros());
+    $('barra').innerHTML = resumen('<span class="skel skel-line" style="display:inline-block;width:120px"></span>');
+    M.llenar('contenido', M.esqueletoLista(6));
+    M.nota('skeleton solo en la primera carga · las actualizaciones periódicas no vacían la lista (keepPreviousData)');
+  } else if (est === 'vacio') {
+    M.banner('Mockup C-22 · Gestión de pedidos: todavía no hay pedidos (sin filtros)');
+    M.llenar('filtros', filtros());
+    barra('<strong>0 pedidos</strong>');
+    M.llenar('contenido', M.estadoVista('vacio', 'i-pedidos', 'Todavía no hay pedidos', 'Cuando un cliente haga un pedido va a aparecer acá. La lista se actualiza sola cada 30 segundos.'));
+  } else if (est === 'sin-resultados') {
+    M.banner('Mockup C-22 · Gestión de pedidos: sin resultados con filtros');
+    M.llenar('filtros', filtros({ estado: 'EN_CAMINO', desde: '2026-11-18', hasta: '2026-11-18' }));
+    barra('<strong>0 pedidos</strong> con estos filtros');
+    M.llenar('contenido', M.estadoVista('vacio', 'i-buscar', 'No hay pedidos con estos filtros', 'Probá con otro estado u otras fechas.', '<button class="btn btn-secondary" type="button">Limpiar filtros</button>'));
+    M.nota('URL: ?estado=EN_CAMINO&desde=2026-11-18&hasta=2026-11-18');
+  } else if (est === 'error') {
+    M.banner('Mockup C-22 · Gestión de pedidos: falló la carga (500 o sin conexión)');
+    M.llenar('filtros', filtros());
+    $('barra').remove();
+    M.llenar('contenido', M.estadoVista('error', 'i-alerta', 'No pudimos cargar los pedidos', 'No pudimos conectar con el servidor. Revisá tu conexión y probá de nuevo.', '<button class="btn btn-secondary" type="button">' + ico('i-reintentar') + 'Reintentar</button>'));
+  } else if (est === 'rango') {
+    M.banner('Mockup C-22 · Gestión de pedidos: rango de fechas invertido (no se pide al servidor)');
+    M.llenar('filtros', filtros({ desde: '2026-11-19', hasta: '2026-11-18', error: true }));
+    barra('<strong>45 pedidos</strong>');
+    M.llenar('contenido', M.lista(PAGINA1));
+    M.llenar('pie', '<span></span>' + M.paginacion(1, 3));
+    M.nota('el listado queda como estaba hasta que el rango sea válido · la URL no cambia');
+  } else if (est === 'filtros') {
+    M.banner('Mockup C-22 · Gestión de pedidos: filtro «Pendiente» + fechas, página 2 de 2');
+    M.llenar('filtros', filtros({ estado: 'PENDIENTE', desde: '2026-11-18', hasta: '2026-11-19' }));
+    barra('<strong>23 pedidos</strong> pendientes del 18/11 al 19/11');
+    var viejos = [
+      { id: 39, cliente: 'Ignacio Ruiz', forma: 'TRANSFERENCIA', estado: 'PENDIENTE', fecha: '18/11/2026', hora: '21:47', items: [[1, 'Burger Vegana', 1800]] },
+      { id: 37, cliente: 'Julieta Funes', forma: 'MERCADOPAGO', estado: 'PENDIENTE', fecha: '18/11/2026', hora: '20:12', items: [[2, 'Hamburguesa Clásica', 1500]] },
+      { id: 34, cliente: 'Kevin Ortiz', forma: 'EFECTIVO', estado: 'PENDIENTE', fecha: '18/11/2026', hora: '19:30', items: [[1, 'Burger Sin TACC', 1700], [2, 'Coca-Cola 500ml', 800]] }
+    ];
+    M.llenar('contenido', M.lista(viejos));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 21–23 de 23</span>' + M.paginacion(2, 2));
+    M.nota('URL: ?estado=PENDIENTE&desde=2026-11-18&hasta=2026-11-19&page=2 · cambiar un filtro vuelve a la página 1 · 20 por página');
+  } else if (est === 'aviso') {
+    M.banner('Mockup C-22 · Gestión de pedidos: falló una actualización periódica (se conservan los datos)');
+    M.llenar('filtros', filtros());
+    barra('<strong>45 pedidos</strong>', { hora: '12:41' });
+    M.llenar('aviso', '<div class="refresh-fail" role="status">' + ico('i-alerta') + 'No pudimos actualizar<span>Mostramos los pedidos de las 12:41. Se vuelve a intentar solo en 30 segundos.</span><button class="link-btn" type="button">Reintentar ahora</button></div>');
+    M.llenar('contenido', M.lista(PAGINA1));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–20 de 45</span>' + M.paginacion(1, 3));
+  } else if (est === 'actualizando') {
+    M.banner('Mockup C-22 · Gestión de pedidos: «Actualizar» en curso (la lista no se vacía)');
+    M.llenar('filtros', filtros());
+    barra('<strong>45 pedidos</strong>', { girando: true, hora: '12:41' });
+    M.llenar('contenido', M.lista(PAGINA1));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–20 de 45</span>' + M.paginacion(1, 3));
+    M.nota('mismo indicador en la actualización automática cada 30 s (solo con la pestaña visible) · al volver: «Actualizado a las 12:42»');
+  } else if (est === 'avance') {
+    M.banner('Mockup C-22 · Gestión de pedidos: #57 pasó a preparación desde la fila');
+    M.llenar('filtros', filtros());
+    barra('<strong>45 pedidos</strong>', { hora: '12:44' });
+    var items = PAGINA1.map(function (p) { return p.id === 57 ? M.pedido(57, { estado: 'EN_PREP' }) : p; });
+    M.llenar('contenido', M.lista(items, { 57: { nuevo: true } }));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–20 de 45</span>' + M.paginacion(1, 3));
+    M.toast('Pedido #57 en preparación', 'Ahora podés despacharlo cuando esté listo.');
+    M.nota('el foco vuelve al botón de la fila (ahora «Despachar») · la cancelación solo se ofrece en el detalle');
+  } else {
+    M.banner('Mockup C-22 · Gestión de pedidos: listado con datos, página 1 de 3 · ' + (M.rol === 'ADMIN' ? 'panel con «Administración»' : 'panel sin «Administración»'));
+    M.llenar('filtros', filtros());
+    barra('<strong>45 pedidos</strong>');
+    M.llenar('contenido', M.lista(PAGINA1));
+    M.llenar('pie', '<span class="admin-summary">Mostrando 1–20 de 45</span>' + M.paginacion(1, 3));
+    M.nota('más nuevos primero · se muestran 8 de las 20 filas de la página · el número abre el detalle · próxima acción por fila (abre el mismo diálogo del detalle) · ADMIN y PEDIDOS ven lo mismo');
+  }
+})();
+</script>
+</body>
+</html>

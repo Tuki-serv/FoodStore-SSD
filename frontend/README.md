@@ -157,6 +157,14 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - **Probar en sandbox** (con el backend, ngrok para el webhook y credenciales de **prueba** propias): el pagador debe ser un comprador de prueba distinto del usuario de Food Store (no se precarga el email). Con las tarjetas de prueba de Mercado Pago, el nombre del titular decide el resultado: `APRO` (aprobado), `FUND` (fondos insuficientes), `OTHE` (rechazo general) y `CONT` (queda pendiente: esta pantalla no se actualiza sola; el seguimiento es C-20b).
 - **Tests**: el único `vi.mock` es el del SDK, con el doble `src/test/mp-sdk-doble.tsx` (botones «Simular pago», «Simular brick listo» y «Simular error del brick»); la red va por MSW (`src/test/msw/pagos.ts`) y `montarPago` en `src/test/render-pago.ts`.
 
+## Gestión de pedidos (C-22)
+
+- **Rutas** (solo `PEDIDOS`/`ADMIN`, con `RequiereAcceso`): `/gestion-pedidos` (listado) y `/gestion-pedidos/:pedidoId` (detalle). Slices: `src/pages/gestion-pedidos/` (listado, filtros en la URL, detalle), `src/features/cambiar-estado-pedido/` (diálogos de avance y de cancelación; los comparten el listado y el detalle) y `src/entities/pedido/` ampliada (`pedidoQueries.lista/historial`, `cambiarEstadoPedido`, `accionesGestion`, `clasificarErrorCambioEstado`, `LineaTiempoHistorial`, `EntregaDelPedido`).
+- **Actualización**: polling cada 30 s solo con la pestaña visible (`refetchIntervalInBackground: false`), botón «Actualizar» y hora de la última actualización; no hay WebSocket (C-26/C-27).
+- **Acciones**: la UI muestra solo lo que permite la FSM de gestión según estado y forma de pago (`transiciones.ts` es una copia de `backend/app/modules/pedidos/fsm.py`); el backend decide y los rechazos se clasifican por `code` (`INSUFFICIENT_STOCK` ofrece «Cancelar por falta de stock»; `INVALID_TRANSITION` vuelve a pedir el pedido). Cancelar exige motivo; no hay borrado de pedidos.
+- **Contrato** (aditivo, sin migración): `GET /pedidos/{id}` suma `direccion` (también si se dio de baja después) y `GET /pedidos/{id}/historial` suma `usuario_nombre`.
+- **Tests**: el doble de red es `src/test/msw/pedidos.ts` (estado en memoria con la FSM) y `montarGestion` en `src/test/render-gestion.ts`.
+
 ## Productos y stock (C-17b)
 
 - **Slices**: `src/pages/admin-productos/` (`ui/`: página, filtros, lista, fila con stock e interruptor, formulario, secciones de categorías e ingredientes, diálogo de baja; `model/`: permisos por rol, validación, diff de edición, filtros de URL) y, en `src/entities/producto/api/`, `producto-gestion-api.ts`, `productoGestionQueries` y `producto-mutations.ts`.

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup C-22 - Detalle del pedido (Rev 2, pendiente de aprobación)</title>
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="gestion.css">
+</head>
+<body>
+<main class="page page-wide" id="main">
+  <div id="contenido" style="display:flex;flex-direction:column;gap:var(--space-5)"></div>
+  <p id="nota"></p>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="gestion.js"></script>
+<script src="mockup.js"></script>
+<script>
+/* Parámetros (?estado=):
+   pendiente-efectivo (defecto, #58) · pendiente-mp (#55) · confirmado (#57, MP confirmado por el Sistema, retiro + nota)
+   en-prep (#54, efectivo, con envío) · en-camino (#53, historial con evento del Sistema y de ADMIN) · entregado (#52) · cancelado (#51)
+   carga · no-encontrado (/gestion-pedidos/999) · historial-error (detalle bien, historial con 500)
+   ?id=NN abre ese pedido directamente (enlace desde el listado) · ?rol=pedidos | admin | client */
+(function () {
+  var M = MOCK, ico = M.ico, est = M.estado;
+  var MAPA = { 'pendiente-efectivo': 58, 'pendiente-mp': 55, confirmado: 57, 'en-prep': 54, 'en-camino': 53, entregado: 52, cancelado: 51, 'historial-error': 58 };
+  var DESCR = { 58: 'PENDIENTE · EFECTIVO: «Confirmar pago» + «Cancelar pedido»', 55: 'PENDIENTE · MERCADOPAGO: solo «Cancelar pedido» + aviso', 57: 'CONFIRMADO · MERCADOPAGO por el Sistema · retiro en el local + nota', 54: 'EN_PREP · EFECTIVO: «Despachar» + «Cancelar pedido»', 53: 'EN_CAMINO: solo «Marcar entregado»', 52: 'ENTREGADO: sin acciones', 51: 'CANCELADO: sin acciones, cancelación resaltada' };
+
+  if (M.rol === 'CLIENT') {
+    M.banner('Mockup C-22 · /gestion-pedidos/57 con sesión CLIENT: «Sin permiso», sin pedir el pedido');
+    M.llenar('contenido', M.sinPermiso());
+    return;
+  }
+  if (est === 'carga') {
+    M.banner('Mockup C-22 · Detalle del pedido: cargando');
+    M.llenar('contenido', M.esqueletoDetalle());
+    return;
+  }
+  if (est === 'no-encontrado') {
+    M.banner('Mockup C-22 · Detalle del pedido: /gestion-pedidos/999 respondió 404');
+    M.llenar('contenido', '<div class="nf"><section class="state" aria-labelledby="nf-t"><span class="badge-ico" aria-hidden="true">' + ico('i-pedidos') + '</span>' +
+      '<h1 id="nf-t">No encontramos este pedido</h1><p>Puede que el número esté mal. Volvé al listado para buscarlo.</p>' +
+      '<div class="actions"><a class="btn btn-primary" href="gestion-pedidos.html">' + ico('i-volver') + 'Volver a pedidos</a></div></section></div>');
+    M.nota('«Volver a pedidos» conserva los filtros con los que se abrió el pedido · red/5xx: mismo bloque con «No pudimos cargar el pedido» + «Reintentar»');
+    return;
+  }
+  var id = Number(M.params.get('id')) || MAPA[est] || 58;
+  var p = M.pedido(id);
+  M.banner('Mockup C-22 · Detalle #' + id + ' · ' + (est === 'historial-error' ? 'el historial falló aparte (500)' : DESCR[id] || p.estado));
+  M.llenar('contenido', M.detalle(p, { histError: est === 'historial-error', volver: '?estado=PENDIENTE' }));
+  var notas = {
+    58: 'dirección del pedido visible (aunque no sea del gestor) · ítems con «Sin …» · historial de 1 evento',
+    55: 'PEDIDOS no ve el estado del pago (sin acceso a /pagos) · el Sistema lo confirma al aprobarse',
+    57: 'autor «Sistema» cuando el cambio no tuvo usuario · nota del cliente · sin dirección = «Retiro en el local»',
+    54: 'observaciones de cada avance en el historial',
+    53: 'EN_CAMINO no se cancela (FSM) · autor = nombre del usuario (PEDIDOS o ADMIN)',
+    52: 'sin acciones', 51: 'cancelación resaltada con el color de peligro y su motivo'
+  };
+  M.nota(est === 'historial-error' ? 'el detalle se muestra igual; el bloque de historial tiene su propio error y «Reintentar»' : (notas[id] || '') + ' · se actualiza cada 30 s con la pestaña visible');
+})();
+</script>
+</body>
+</html>

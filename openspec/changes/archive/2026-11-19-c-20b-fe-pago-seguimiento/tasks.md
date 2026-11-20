@@ -40,7 +40,7 @@
 
 ## 6. Verificación con el usuario
 
-- [ ] 6.1 Prueba manual en sandbox con el backend, ngrok y credenciales de prueba del usuario (con su permiso para levantar servidores): `CONT` → pendiente → webhook → la vista pasa sola al estado final; recarga tras `APRO` y tras `FUND` reconstruye la vista; la confirmación muestra la línea de estado. Verificación: resultados anotados en `design.md`. **Diferida (2026-11-19, decisión del usuario):** se archiva sin probar el webhook con ngrok; las transiciones pendiente→aprobado/rechazado quedan cubiertas solo por tests. Retomar cuando haya ngrok configurado en el panel de MP.
+- [x] 6.1 Prueba manual en sandbox con el backend, ngrok y credenciales de prueba del usuario (con su permiso para levantar servidores): `CONT` → pendiente → webhook → la vista pasa sola al estado final; recarga tras `APRO` y tras `FUND` reconstruye la vista; la confirmación muestra la línea de estado. Verificación: resultados anotados en `design.md`. **Diferida (2026-11-19, decisión del usuario):** se archiva sin probar el webhook con ngrok; las transiciones pendiente→aprobado/rechazado quedan cubiertas solo por tests. Retomar cuando haya ngrok configurado en el panel de MP. **Hecha (2026-11-19):** webhook recibido y firmado (200) para FUND y APRO; CONT queda en proceso en sandbox sin webhook (ver `design.md` § Prueba en sandbox con webhook).
 - [x] 6.2 Visual verify contra los mockups aprobados (1440x900 y 390x844) en `mockups/verify/`; registrar `Visual verify` en `design.md`. Verificación: capturas y reporte de diferencias.
 
 ## Workflow follow-up

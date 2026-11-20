@@ -22,6 +22,11 @@ export const RUTA_PRODUCTO = '/catalogo/:productoId';
 
 export const rutaProducto = (id: number): string => `${RUTAS.catalogo}/${id}`;
 
+/** Detalle operativo de un pedido (C-22): sub-ruta de `gestionPedidos`, mismo acceso (`PEDIDOS`/`ADMIN`); fuera de `RUTAS` y `ACCESO_RUTAS`. */
+export const RUTA_GESTION_PEDIDO = '/gestion-pedidos/:pedidoId';
+
+export const rutaGestionPedido = (id: number): string => `${RUTAS.gestionPedidos}/${id}`;
+
 /** Checkout de C-19: sub-rutas solo para `CLIENT`, fuera de `RUTAS` y `ACCESO_RUTAS` (no son secciones de navegación). */
 export const RUTA_FINALIZAR_COMPRA = '/finalizar-compra';
 export const RUTA_PEDIDO_CREADO = '/finalizar-compra/pedido/:pedidoId';

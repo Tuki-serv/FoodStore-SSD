@@ -213,6 +213,26 @@ const TRAZOS = {
       <path d="M8 12.5l2.7 2.7L16 9.8" />
     </>
   ),
+  moto: (
+    <>
+      <circle cx="6" cy="17" r="3" />
+      <circle cx="18" cy="17" r="3" />
+      <path d="M9 17h6l-3-7H8M15 10h3l2 7M12 7h3" />
+    </>
+  ),
+  flecha: <path d="M5 12h14M13 6l6 6-6 6" />,
+  nota: (
+    <>
+      <path d="M5 4h14v11l-5 5H5z" />
+      <path d="M14 20v-5h5M9 9h6M9 13h3" />
+    </>
+  ),
+  calendario: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof TRAZOS;
