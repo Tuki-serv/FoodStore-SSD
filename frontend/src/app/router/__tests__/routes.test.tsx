@@ -1,5 +1,6 @@
-import { screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { PlaceholderPage } from '@/pages/placeholder';
 import { renderApp } from '@/test/render-app';
 
 describe('rutas de la aplicación', () => {
@@ -10,20 +11,25 @@ describe('rutas de la aplicación', () => {
     expect(router.state.location.pathname).toBe('/catalogo');
   });
 
-  it('una sección sin pantalla muestra la página provisoria dentro del shell', async () => {
-    renderApp('/admin/dashboard', { sesion: { roles: ['ADMIN'] } });
+  it('una ruta futura sin pantalla muestra la página provisoria con su título y el aviso de «en preparación»', () => {
+    render(<PlaceholderPage title="Cocina" owner="C-26" />);
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard', level: 1 })).toBeInTheDocument();
-    const principal = screen.getByRole('main');
-    expect(within(principal).getByText('Estamos preparando esta sección.')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Cocina', level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('Estamos preparando esta sección.')).toBeInTheDocument();
   });
 
-  it('cada página provisoria declara su dueño en data-owner, no en el texto visible', async () => {
-    renderApp('/admin/dashboard', { sesion: { roles: ['ADMIN'] } });
+  it('la página provisoria declara su dueño en data-owner, no en el texto visible', () => {
+    render(<PlaceholderPage title="Cocina" owner="C-26" />);
 
-    const pagina = (await screen.findByRole('heading', { name: 'Dashboard', level: 1 })).closest('[data-owner]');
-    expect(pagina).toHaveAttribute('data-owner', 'C-24');
-    expect(screen.queryByText(/C-24/)).not.toBeInTheDocument();
+    const pagina = screen.getByRole('heading', { name: 'Cocina', level: 1 }).closest('[data-owner]');
+    expect(pagina).toHaveAttribute('data-owner', 'C-26');
+    expect(screen.queryByText(/C-26/)).not.toBeInTheDocument();
+  });
+
+  it('el shell envuelve las pantallas reales con el panel de navegación', async () => {
+    renderApp('/catalogo');
+
+    expect(await screen.findByRole('heading', { name: 'Catálogo', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument();
   });
 });

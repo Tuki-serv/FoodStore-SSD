@@ -53,6 +53,7 @@ beforeEach(async () => {
 afterEach(async () => {
   if (!hayDom) return;
   cleanup();
+  vi.useRealTimers();
   server.resetHandlers();
   const { reiniciarRenovacion } = await import('@/shared/api/renovacion');
   reiniciarRenovacion();

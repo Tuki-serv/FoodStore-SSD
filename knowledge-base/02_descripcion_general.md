@@ -94,7 +94,7 @@ Resumen por recurso (rutas reales del backend salvo indicación; contraste con s
 | Uploads | `POST /uploads/imagen`, `DELETE /uploads/imagen/{public_id}` | `ADMIN` |
 | Pedidos (C-11) | `POST /pedidos/`, `GET /pedidos/` (paginado; filtros `estado`, `desde`, `hasta` en UTC; CLIENT ve solo los propios, ADMIN/PEDIDOS todos), `GET /pedidos/{id}` y `GET /pedidos/{id}/historial` (dueño, ADMIN, PEDIDOS; otro cliente 403), `PATCH /pedidos/{id}/estado {nuevo_estado, motivo?}`, `DELETE /pedidos/{id}` (CLIENT cancela el propio; body **opcional** `{motivo}`, sin motivo se registra «Cancelado por el cliente»; responde 200 con el pedido), `GET /pedidos/cocina/pedidos` (paginado), WS | Ver 03 y 07. Axios: para enviar body en `DELETE` usar `axios.delete(url, { data: { motivo } })` (C-13b) |
 | Pagos | `POST /pagos/crear`, `POST /pagos/webhook`, `GET /pagos/{pedido_id}` (la ruta de redirect de Checkout Pro se retiró en C-12) | **Sin autenticación en** |
-| Estadísticas | `GET /estadisticas/ventas`, `/productos-top`, `/pedidos-por-estado`, `/ingresos`, `/resumen` | `ADMIN` |
+| Estadísticas (C-24) | `GET /estadisticas/ventas` (`agrupacion=day\|week\|month`), `/productos-top` (`limit` 1..20, defecto 5), `/pedidos-por-estado`, `/ingresos`, `/resumen`; todos con `desde` y `hasta` obligatorios (UTC, inclusivos, máx. 366 días; 422 `VALIDATION_ERROR` con `field`), sin `page`/`size`. Venta = pedido en `CONFIRMADO`/`EN_PREP`/`EN_CAMINO`/`ENTREGADO` (RN-ES-01); importes como texto decimal con 2 decimales; `/resumen` = `{ventas, ingresos, ticket_promedio, pedidos_activos}` | `ADMIN` |
 
 Convenciones transversales: soft delete (los GET filtran `deleted_at IS NULL`), esquemas separados Create/Update/Read (nunca exponer el modelo SQLModel), `response_model` siempre.
 

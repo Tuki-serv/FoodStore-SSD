@@ -1,14 +1,29 @@
 from typing import List
+from sqlalchemy import Date, Row, and_, cast, text
 from sqlmodel import Session, select, func
 from collections.abc import Set as AbstractSet
 from datetime import date, datetime, time, timedelta, timezone
-from app.modules.pagos.models import Pago
+from app.modules.pagos.models import FormaPago
+from app.modules.pedidos.fsm import ESTADOS_ACTIVOS, ESTADOS_VENDIDOS
 from app.core.pagination import PageParams
 from app.core.repository import BaseRepository
 from app.modules.pedidos.models import DetallePedido, EstadoPedido, HistorialEstadoPedido, Pedido
 from app.modules.productos.models import Producto
 from app.modules.pedidos.filtros import FiltrosPedidos
 from app.modules.usuarios.models import Usuario
+
+_UNIDADES_AGRUPACION = {"day": "day", "week": "week", "month": "month"}
+
+
+def _fecha_utc():
+    """Día UTC de creación del pedido, sin depender de la zona horaria de la sesión de la BD."""
+    return cast(func.timezone("UTC", Pedido.created_at), Date)
+
+
+def condiciones_vendido(desde: date, hasta: date) -> list:
+    """Predicado único de «pedido vendido» (spec `sales-metrics`): estado vendido, no eliminado y creado en el rango UTC."""
+    return [Pedido.estado_codigo.in_(ESTADOS_VENDIDOS), Pedido.deleted_at.is_(None), _fecha_utc().between(desde, hasta)]
+
 
 class PedidoRepository(BaseRepository[Pedido]):
     def __init__(self, session: Session):
@@ -48,72 +63,74 @@ class PedidoRepository(BaseRepository[Pedido]):
         rows, total = self.paginar(statement.order_by(*orden), params)
         return [(pedido, nombre) for pedido, nombre in rows], total
 
-    def get_ventas_periodo(self, desde: date, hasta: date, agrupacion: str = 'day'):
-        from app.core.config import settings
-        
-        # AGREGADO PARA TESTS: Workaround para SQLite en memoria
-        # Se usa durante la ejecución de los tests porque SQLite no soporta ARRAY nativo.
-        if settings.ENVIRONMENT == "test":
-            # Parche para tests (SQLite)
-            if agrupacion == 'month':
-                col_fecha = func.strftime('%Y-%m-01', self.model.created_at).label("fecha")
-            else:
-                col_fecha = func.date(self.model.created_at).label("fecha")
-        else:
-            col_fecha = func.date_trunc(agrupacion, self.model.created_at).label("fecha")
-            
-        stmt = select(
-            col_fecha,
-            func.sum(self.model.total).label("total_ventas"),
-            func.count(self.model.id).label("cantidad_pedidos")
-        ).join(
-            Pago, self.model.id == Pago.pedido_id
-        ).where(
-            self.model.estado_codigo != "CANCELADO",
-            Pago.mp_status == "approved",
-            func.date(self.model.created_at) >= desde,
-            func.date(self.model.created_at) <= hasta
-        ).group_by(
-            col_fecha
-        ).order_by(
-            col_fecha
-        )
-        
-        return self.session.exec(stmt).all()
+    def ventas_por_periodo(self, desde: date, hasta: date, agrupacion: str) -> list[Row]:
+        """Una fila `(fecha, total_ventas, cantidad_pedidos)` por cada período que toca el rango, con 0 donde no hay ventas.
 
-    
-    def get_pedidos_por_estado(self, desde: date, hasta: date):
-        stmt = select(
-            self.model.estado_codigo,
-            func.count(self.model.id).label("cantidad")
-        ).where(
-            self.model.estado_codigo != "CANCELADO",
-            func.date(self.model.created_at) >= desde,
-            func.date(self.model.created_at) <= hasta
-        ).group_by(
-            self.model.estado_codigo
+        `agrupacion` es `day`, `week` (lunes ISO) o `month`; se toma de un mapa fijo, nunca del cliente tal cual.
+        """
+        unidad = _UNIDADES_AGRUPACION[agrupacion]
+        consulta = text(
+            f"""
+            SELECT s.periodo::date AS fecha,
+                   COALESCE(SUM(p.total), 0) AS total_ventas,
+                   COUNT(p.id) AS cantidad_pedidos
+            FROM generate_series(
+                     date_trunc('{unidad}', CAST(:desde AS timestamp)),
+                     date_trunc('{unidad}', CAST(:hasta AS timestamp)),
+                     INTERVAL '1 {unidad}') AS s(periodo)
+            LEFT JOIN pedidos p
+                   ON date_trunc('{unidad}', p.created_at AT TIME ZONE 'UTC') = s.periodo
+                  AND p.estado_codigo = ANY(:estados)
+                  AND p.deleted_at IS NULL
+                  AND CAST(p.created_at AT TIME ZONE 'UTC' AS date) BETWEEN :desde AND :hasta
+            GROUP BY s.periodo
+            ORDER BY s.periodo
+            """
         )
-        return self.session.exec(stmt).all()
-    
-    
-    def get_ingresos_por_forma_pago(self, desde: date, hasta: date):
-        stmt = select(
-            self.model.forma_pago_codigo,
-            func.sum(self.model.total).label("total"),
-            func.count(self.model.id).label("cantidad")
-        ).join(
-            Pago, self.model.id == Pago.pedido_id
-        ).where(
-            self.model.estado_codigo != "CANCELADO",
-            Pago.mp_status == "approved",
-            func.date(self.model.created_at) >= desde,
-            func.date(self.model.created_at) <= hasta
-        ).group_by(
-            self.model.forma_pago_codigo
-        ).order_by(
-            func.sum(self.model.total).desc()
+        return list(self.session.execute(consulta, {"desde": desde, "hasta": hasta, "estados": sorted(ESTADOS_VENDIDOS)}))
+
+    def resumen_ventas(self, desde: date, hasta: date) -> Row:
+        """`(ventas, ingresos)` de los pedidos vendidos del rango (`ingresos` es 0 sin ventas)."""
+        stmt = select(func.count(Pedido.id).label("ventas"), func.coalesce(func.sum(Pedido.total), 0).label("ingresos")).where(
+            *condiciones_vendido(desde, hasta)
         )
-        return self.session.exec(stmt).all()
+        return self.session.exec(stmt).one()
+
+    def contar_activos(self) -> int:
+        """Pedidos que ahora están en curso (`CONFIRMADO`, `EN_PREP`, `EN_CAMINO`), sin importar la fecha."""
+        stmt = select(func.count(Pedido.id)).where(Pedido.deleted_at.is_(None), Pedido.estado_codigo.in_(ESTADOS_ACTIVOS))
+        return self.session.exec(stmt).one()
+
+    def pedidos_por_estado(self, desde: date, hasta: date) -> list[Row]:
+        """Una fila `(estado_codigo, cantidad)` por cada estado del catálogo, en el orden de la FSM, con 0 sin pedidos."""
+        stmt = (
+            select(EstadoPedido.codigo.label("estado_codigo"), func.count(Pedido.id).label("cantidad"))
+            .select_from(EstadoPedido)
+            .join(
+                Pedido,
+                and_(Pedido.estado_codigo == EstadoPedido.codigo, Pedido.deleted_at.is_(None), _fecha_utc().between(desde, hasta)),
+                isouter=True,
+            )
+            .group_by(EstadoPedido.codigo, EstadoPedido.orden)
+            .order_by(EstadoPedido.orden)
+        )
+        return list(self.session.exec(stmt).all())
+
+    def ingresos_por_forma_pago(self, desde: date, hasta: date) -> list[Row]:
+        """Una fila `(forma_pago_codigo, total, cantidad)` por cada forma de pago del catálogo, con 0 sin ventas."""
+        total = func.coalesce(func.sum(Pedido.total), 0)
+        stmt = (
+            select(FormaPago.codigo.label("forma_pago_codigo"), total.label("total"), func.count(Pedido.id).label("cantidad"))
+            .select_from(FormaPago)
+            .join(
+                Pedido,
+                and_(Pedido.forma_pago_codigo == FormaPago.codigo, *condiciones_vendido(desde, hasta)),
+                isouter=True,
+            )
+            .group_by(FormaPago.codigo)
+            .order_by(total.desc(), FormaPago.codigo)
+        )
+        return list(self.session.exec(stmt).all())
 
 
 # sirve para obtener el estado de un pedido y validar que existe
@@ -171,26 +188,25 @@ class DetallePedidoRepository(BaseRepository[DetallePedido]):
         statement = select(DetallePedido).where(DetallePedido.pedido_id == pedido_id).order_by(DetallePedido.created_at.asc())
         return list(self.session.exec(statement).all())
     
-    def get_productos_top(self,desde: date, hasta: date, limit: int = 5):
-        stmt = select(
-            Producto.nombre,
-            func.sum(self.model.subtotal_snapshot).label("ingresos"),
-            func.sum(self.model.cantidad).label("cantidad_vendida")
-        ).join(
-            Producto, self.model.producto_id == Producto.id
-        ).join(
-            Pedido, self.model.pedido_id == Pedido.id
-        ).join(
-            Pago, Pedido.id == Pago.pedido_id
-        ).where(
-            Pedido.estado_codigo != "CANCELADO",
-            Pago.mp_status == "approved",
-            func.date(Pedido.created_at) >= desde,
-            func.date(Pedido.created_at) <= hasta
-        ).group_by(
-            Producto.nombre
-        ).order_by(
-            func.sum(self.model.subtotal_snapshot).desc()
-        ).limit(limit)
-        
-        return self.session.exec(stmt).all()
+    def productos_top(self, desde: date, hasta: date, limit: int) -> list[Row]:
+        """Ranking de productos de las ventas del rango, agrupado por producto (no por nombre).
+
+        Orden: cantidad vendida, luego ingresos (suma de subtotales de línea) y luego `producto_id`.
+        """
+        cantidad = func.sum(self.model.cantidad)
+        ingresos = func.sum(self.model.subtotal_snapshot)
+        stmt = (
+            select(
+                Producto.id.label("producto_id"),
+                Producto.nombre,
+                cantidad.label("cantidad_vendida"),
+                ingresos.label("ingresos"),
+            )
+            .join(Producto, self.model.producto_id == Producto.id)
+            .join(Pedido, self.model.pedido_id == Pedido.id)
+            .where(*condiciones_vendido(desde, hasta))
+            .group_by(Producto.id, Producto.nombre)
+            .order_by(cantidad.desc(), ingresos.desc(), Producto.id)
+            .limit(limit)
+        )
+        return list(self.session.exec(stmt).all())

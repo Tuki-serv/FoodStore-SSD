@@ -35,7 +35,7 @@ export const rutaMiPedido = (id: number): string => `${RUTAS.misPedidos}/${id}`;
 /** Checkout de C-19: sub-rutas solo para `CLIENT`, fuera de `RUTAS` y `ACCESO_RUTAS` (no son secciones de navegación). */
 export const RUTA_FINALIZAR_COMPRA = '/finalizar-compra';
 export const RUTA_PEDIDO_CREADO = '/finalizar-compra/pedido/:pedidoId';
-/** Punto de traspaso al pago con tarjeta: pantalla provisoria hasta que C-20 la implemente. */
+/** Pago con tarjeta de un pedido propio (C-20a): `CardPayment` de Mercado Pago. */
 export const RUTA_PAGO_PEDIDO = '/finalizar-compra/pedido/:pedidoId/pago';
 
 export const rutaPedidoCreado = (id: number): string => `${RUTA_FINALIZAR_COMPRA}/pedido/${id}`;

@@ -12,16 +12,15 @@ el upload es un paso previo separado (multipart/form-data). Esto evita
 romper contratos existentes y mantiene el patrón JSON del proyecto.
 """
 
-from datetime import date
 from typing import Annotated, Any, List, Literal
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 
 from app.core.cloudinary.schemas import CloudinaryResponse
 from app.core.cloudinary.service import ImagenSubida, subir_imagen, eliminar_imagen
 from app.core.pagination import PageQuery
 from app.core.schemas import PaginatedResponse
-from app.modules.admin.dependencies import EstadisticasServiceDep
+from app.modules.admin.dependencies import EstadisticasServiceDep, RangoFechasDep
 from app.modules.admin.schemas import (
     VentasPeriodoItem,
     ProductoTopItem,
@@ -135,27 +134,35 @@ def delete_user(user_id: int, svc: UsuarioServiceDep, actor: AdminActual) -> Non
 # ESTADÍSTICAS (solo ADMIN)
 # ==========================================
 estadisticas_router = APIRouter(
-    prefix="/api/v1/estadisticas", 
+    prefix="/estadisticas",
     tags=["Estadisticas"],
     dependencies=[Depends(require_role(["ADMIN"]))]
 )
 
 @estadisticas_router.get("/ventas", response_model=List[VentasPeriodoItem])
-def get_ventas(desde: date, hasta: date, agrupacion: str = 'day', *, service: EstadisticasServiceDep):
-    return service.get_ventas_periodo(desde, hasta, agrupacion)
+def get_ventas(
+    rango: RangoFechasDep,
+    service: EstadisticasServiceDep,
+    agrupacion: Literal["day", "week", "month"] = "day",
+):
+    return service.ventas_por_periodo(rango.desde, rango.hasta, agrupacion)
 
 @estadisticas_router.get("/productos-top", response_model=List[ProductoTopItem])
-def get_productos_top(desde: date, hasta: date, limit: int = 5, *, service: EstadisticasServiceDep):
-    return service.get_productos_top(desde, hasta, limit)
+def get_productos_top(
+    rango: RangoFechasDep,
+    service: EstadisticasServiceDep,
+    limit: Annotated[int, Query(ge=1, le=20)] = 5,
+):
+    return service.productos_top(rango.desde, rango.hasta, limit)
 
 @estadisticas_router.get("/pedidos-por-estado", response_model=List[PedidosEstadoItem])
-def get_pedidos_estado(desde: date, hasta: date, service: EstadisticasServiceDep):
-    return service.get_pedidos_por_estado(desde, hasta)
+def get_pedidos_estado(rango: RangoFechasDep, service: EstadisticasServiceDep):
+    return service.pedidos_por_estado(rango.desde, rango.hasta)
 
 @estadisticas_router.get("/ingresos", response_model=List[IngresosResponse])
-def get_ingresos(desde: date, hasta: date, service: EstadisticasServiceDep):
-    return service.get_ingresos_por_forma_pago(desde, hasta)
+def get_ingresos(rango: RangoFechasDep, service: EstadisticasServiceDep):
+    return service.ingresos_por_forma_pago(rango.desde, rango.hasta)
 
 @estadisticas_router.get("/resumen", response_model=ResumenResponse)
-def get_resumen(desde: date, hasta: date, service: EstadisticasServiceDep):
-    return service.get_resumen_kpis(desde, hasta)
+def get_resumen(rango: RangoFechasDep, service: EstadisticasServiceDep):
+    return service.resumen(rango.desde, rango.hasta)

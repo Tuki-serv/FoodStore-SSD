@@ -111,3 +111,5 @@ Ver [12_tiempo_real_websocket.md](12_tiempo_real_websocket.md).
 ## Flujo 9: Dashboard de métricas (ADMIN)
 
 `GET /estadisticas/{ventas|productos-top|pedidos-por-estado|ingresos|resumen}?desde&hasta[&agrupacion=day&limit=5]` → agregaciones SQL sobre pedidos/detalles; el frontend las grafica con recharts. Todos requieren `ADMIN`.
+
+Contrato (C-24): `desde` y `hasta` son obligatorios (fechas UTC inclusivas, máximo 366 días; si no, 422 `VALIDATION_ERROR` con `field` `desde`/`hasta`). Una **venta** es un pedido en `CONFIRMADO`, `EN_PREP`, `EN_CAMINO` o `ENTREGADO` (cualquier forma de pago, sin depender de la tabla `pagos`) y su importe es el `total` del pedido. `/resumen` devuelve `{ventas, ingresos, ticket_promedio, pedidos_activos}` (los activos son una foto de ahora, sin filtro de fecha); `/ventas` rellena con 0 los períodos sin ventas; `/pedidos-por-estado` devuelve los 6 estados en el orden de la FSM; `/ingresos` devuelve todas las formas de pago del catálogo; `/productos-top` agrupa por producto y ordena por cantidad vendida.

@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-/** Trazos de cada ícono (viewBox 24x24), trasladados del sprite de `design-system/components.html` (+ 3 de los mockups de C-13a `candado` de los de C-13b y `editar`, `basura`, `estrella`, `mas`, `tienda` de los de C-15; estos últimos faltan en el sprite de components.html). */
+/** Trazos de cada ícono (viewBox 24x24), trasladados del sprite de `design-system/components.html` (+ 3 de los mockups de C-13a `candado` de los de C-13b y `editar`, `basura`, `estrella`, `mas`, `tienda` de los de C-15; estos últimos faltan en el sprite de components.html; ticket, tabla, grafico y vacio, de los mockups de C-24). */
 const TRAZOS = {
   catalogo: (
     <>
@@ -231,6 +231,30 @@ const TRAZOS = {
     <>
       <rect x="3" y="5" width="18" height="16" rx="2" />
       <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
+  ticket: (
+    <>
+      <path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a3 3 0 0 0 0 6v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a3 3 0 0 0 0-6z" />
+      <path d="M14 5v14" strokeDasharray="2 3" />
+    </>
+  ),
+  tabla: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 10h18M3 15h18M10 4v16" />
+    </>
+  ),
+  grafico: (
+    <>
+      <path d="M4 19V5M4 19h16" />
+      <path d="M8 15l4-5 3 3 5-7" />
+    </>
+  ),
+  vacio: (
+    <>
+      <path d="M4 19V5M4 19h16" />
+      <path d="M8 15h12" strokeDasharray="2 3" />
     </>
   ),
 } satisfies Record<string, ReactElement>;

@@ -18,6 +18,10 @@ EN_CAMINO = "EN_CAMINO"
 ENTREGADO = "ENTREGADO"
 CANCELADO = "CANCELADO"
 
+# Estados que cuentan como venta (spec `sales-metrics`) y como pedido activo (en curso, ya confirmado).
+ESTADOS_VENDIDOS: frozenset[str] = frozenset({CONFIRMADO, EN_PREP, EN_CAMINO, ENTREGADO})
+ESTADOS_ACTIVOS: frozenset[str] = frozenset({CONFIRMADO, EN_PREP, EN_CAMINO})
+
 ADMIN = "ADMIN"
 PEDIDOS = "PEDIDOS"
 CLIENT = "CLIENT"

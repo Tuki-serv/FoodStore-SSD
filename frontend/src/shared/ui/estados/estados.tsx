@@ -31,20 +31,23 @@ export interface EstadoVacioProps {
   texto: string;
   /** Acción principal del estado (botón). */
   children?: ReactNode;
+  /** `false` lo dibuja sin ser una región con nombre: para varios estados vacíos con el mismo título en una misma pantalla (axe `landmark-unique`). */
+  region?: boolean;
 }
 
 /** Estado vacío de un listado: ícono, título, texto y una acción. */
-export function EstadoVacio({ icono, titulo, texto, children }: EstadoVacioProps) {
+export function EstadoVacio({ icono, titulo, texto, children, region = true }: EstadoVacioProps) {
   const idTitulo = useId();
+  const Contenedor = region ? 'section' : 'div';
   return (
-    <section className="state empty" aria-labelledby={idTitulo}>
+    <Contenedor className="state empty" {...(region ? { 'aria-labelledby': idTitulo } : {})}>
       <span className="badge-ico" aria-hidden="true">
         <Icon name={icono} className="h-[30px] w-[30px]" />
       </span>
       <h2 id={idTitulo}>{titulo}</h2>
       <p>{texto}</p>
       {children}
-    </section>
+    </Contenedor>
   );
 }
 

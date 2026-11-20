@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claseEstado, ESTADOS_PEDIDO, esEstadoPedido, esEstadoTerminal, etiquetaEstado } from '../model';
+import { claseEstado, colorEstado, ESTADOS_PEDIDO, esEstadoPedido, esEstadoTerminal, etiquetaEstado } from '../model';
 
 describe('etiquetaEstado', () => {
   it.each([
@@ -58,5 +58,22 @@ describe('esEstadoTerminal', () => {
   it('sin estado conocido (undefined, desconocido) se trata como en curso', () => {
     expect(esEstadoTerminal(undefined)).toBe(false);
     expect(esEstadoTerminal('ARCHIVADO')).toBe(false);
+  });
+});
+
+describe('colorEstado', () => {
+  it.each([
+    ['PENDIENTE', 'var(--state-pendiente-fg)'],
+    ['CONFIRMADO', 'var(--state-confirmado-fg)'],
+    ['EN_PREP', 'var(--state-en-prep-fg)'],
+    ['EN_CAMINO', 'var(--state-en-camino-fg)'],
+    ['ENTREGADO', 'var(--state-entregado-fg)'],
+    ['CANCELADO', 'var(--state-cancelado-fg)'],
+  ])('%s usa el color de texto de su distintivo (%s)', (codigo, color) => {
+    expect(colorEstado(codigo)).toBe(color);
+  });
+
+  it('un estado desconocido usa el gris del distintivo neutro', () => {
+    expect(colorEstado('COCINA')).toBe('var(--color-text-muted)');
   });
 });
