@@ -22,6 +22,7 @@
 @import "../../pages/finalizar-compra/ui/finalizar-compra.css";
 @import "../../pages/pedido-creado/ui/pedido-creado.css";
 @import "../../pages/pago-pedido/ui/pago-pedido.css";
+@import "../../pages/gestion-pedidos/ui/gestion-pedidos.css";
 
 @tailwind base;
 @tailwind components;

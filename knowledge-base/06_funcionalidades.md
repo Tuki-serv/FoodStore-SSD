@@ -105,14 +105,15 @@ Historias organizadas por épica (formato US-NNN). Derivadas de las fuentes; el 
 ## Épica 5: Gestión operativa de pedidos
 
 ### US-020 — Avanzar estado (PEDIDOS/ADMIN)
-- [ ] Transición validada por FSM y por rol; observación/motivo opcional; registra historial; notifica por WebSocket
-- [ ] Confirmación manual PENDIENTE→CONFIRMADO solo para `EFECTIVO`/`TRANSFERENCIA` (DD-22); EN_CAMINO lo despachan ADMIN y PEDIDOS (DD-23)
+- [x] Transición validada por FSM y por rol; observación/motivo opcional; registra historial; la vista se actualiza por polling cada 30 s con la pestaña visible (C-22; el WebSocket queda para C-26/C-27)
+- [x] Confirmación manual PENDIENTE→CONFIRMADO solo para `EFECTIVO`/`TRANSFERENCIA` (DD-22), con el rechazo por stock mostrado en el diálogo; EN_CAMINO lo despachan ADMIN y PEDIDOS (DD-23)
 **Reglas**: RN-PE-01..08
 
 ### US-021 — Ver todos los pedidos e historial
-- [ ] Listado con nombre de cliente, filtros por estado/fecha (spec); historial ordenado por `created_at ASC`
+- [x] Listado con nombre de cliente, filtros por estado/fecha (spec); historial ordenado por `created_at ASC` con el nombre de quien hizo cada cambio (C-22: `/gestion-pedidos` y `/gestion-pedidos/:pedidoId`)
 
 ### US-022 — Cancelar/eliminar pedidos (ADMIN/PEDIDOS)
+- [x] Cancelar con motivo obligatorio desde PENDIENTE, CONFIRMADO y EN_PREP (C-22). No hay borrado de pedidos por API: «cancelar con motivo» es la única baja (OQ-4 de C-22)
 **Reglas**: RN-PE-11, RN-PE-12
 
 ### US-023 — Pantalla de cocina (KDS)

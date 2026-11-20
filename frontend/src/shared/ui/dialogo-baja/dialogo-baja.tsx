@@ -22,10 +22,12 @@ export interface DialogoBajaProps {
   onCerrar: () => void;
   /** Reemplaza a «Cancelar» / «Eliminar» (por ejemplo, «Entendido» o «Cerrar» + un enlace). */
   acciones?: ReactNode;
+  /** Contenido propio entre el aviso y las acciones (por ejemplo, un campo de motivo). */
+  children?: ReactNode;
 }
 
 /** Diálogo de baja: confirmación con aviso opcional, error dentro del diálogo y estado «Eliminando…» (categorías e ingredientes). */
-export function DialogoBaja({ titulo, descripcion, aviso, lista, pendiente = false, onConfirmar, onCerrar, acciones }: DialogoBajaProps) {
+export function DialogoBaja({ titulo, descripcion, aviso, lista, pendiente = false, onConfirmar, onCerrar, acciones, children }: DialogoBajaProps) {
   return (
     <Dialogo titulo={titulo} {...(descripcion === undefined ? {} : { descripcion })} onCerrar={pendiente ? () => undefined : onCerrar}>
       {aviso === undefined ? null : (
@@ -44,6 +46,7 @@ export function DialogoBaja({ titulo, descripcion, aviso, lista, pendiente = fal
           ))}
         </ul>
       )}
+      {children}
       <div className="modal-actions">
         {acciones ?? (
           <>
