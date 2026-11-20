@@ -54,7 +54,7 @@ def test_indices_por_fk_existen() -> None:
 def test_checks_de_sesion_tienen_el_texto_esperado() -> None:
     checks = {c.name: str(c.sqltext) for c in _tabla("sesion").constraints if isinstance(c, CheckConstraint)}
 
-    assert checks["ck_sesion_revoked_reason"] == "revoked_reason IN ('LOGOUT','LOGOUT_ALL','REUSO')"
+    assert checks["ck_sesion_revoked_reason"] == "revoked_reason IN ('LOGOUT','LOGOUT_ALL','REUSO','BAJA')"
     assert checks["ck_sesion_revocacion_consistente"] == "(revoked_at IS NULL) = (revoked_reason IS NULL)"
 
 

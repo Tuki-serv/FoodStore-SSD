@@ -24,6 +24,9 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 - **RN-US-03**: Eliminación de usuario = soft delete; el email puede reutilizarse (índice único parcial).
 - **RN-US-04**: Un cliente solo accede a sus propios datos (perfil, direcciones, pedidos, pagos). `[DESC,INT]`
 - **RN-US-05**: El email es único entre usuarios activos y se valida con `EmailStr`. `[INT]`
+- **RN-US-06** (C-23): Un `ADMIN` no puede desactivarse a sí mismo ni quitarse su propio rol `ADMIN` (409 `SELF_ACTION_NOT_ALLOWED`); sí puede editar sus datos y agregarse o quitarse otros roles.
+- **RN-US-07** (C-23): Nunca puede quedar el sistema sin un `ADMIN` activo (409 `LAST_ADMIN`). Como la regla de propia cuenta ya cubre el caso individual, el riesgo real es la concurrencia (dos `ADMIN` quitándose el rol a la vez): la operación que puede reducir los `ADMIN` bloquea la fila del rol `ADMIN` (`SELECT ... FOR UPDATE`) y recién entonces cuenta los restantes.
+- **RN-US-08** (C-23): Desactivar un usuario cierra en la misma transacción todas sus sesiones abiertas con motivo `BAJA` (el refresh responde 401). Editar roles no cierra sesiones: la autoridad de los roles es la BD en cada pedido (DD-24). Cada rol asignado registra al `ADMIN` que lo asignó (`usuario_rol.asignado_por_id`); los roles que se conservan en una edición mantienen su asignador y fecha.
 
 ## Dominio: Direcciones de Entrega (RN-DI)
 

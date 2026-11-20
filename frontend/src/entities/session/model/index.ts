@@ -3,6 +3,7 @@ export {
   useCerrarSesion,
   useCerrarTodasLasSesiones,
   useIniciarSesion,
+  useRefrescarSesion,
   useRegistrarse,
   useRolesSesion,
   useSesion,

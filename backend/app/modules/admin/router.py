@@ -29,11 +29,12 @@ from app.modules.admin.schemas import (
     IngresosResponse,
     ResumenResponse,
 )
-from app.modules.auth.dependencies import require_role
+from app.modules.auth.dependencies import get_current_active_user, require_role
 from app.modules.usuarios.dependencies import UsuarioServiceDep
 from app.modules.usuarios.schemas import (
     UserCreate,
     UserCreateAdmin,
+    UserPublic,
     UserPublicAdminPanel,
     UserUpdateAdmin,
 )
@@ -86,6 +87,9 @@ def delete_imagen(public_id: str):
 # ==========================================
 # GRUPO 3: PANEL ADMINISTRATIVO
 # ==========================================
+# El ADMIN que actúa (ya autorizado por `require_role` del router): el service lo recibe como `actor_id`.
+AdminActual = Annotated[UserPublic, Depends(get_current_active_user)]
+
 usuarios_admin_router = APIRouter(
     prefix="/admin/usuarios", 
     tags=["Panel de Administración - Usuarios"],
@@ -95,12 +99,13 @@ usuarios_admin_router = APIRouter(
 @usuarios_admin_router.post("/createUser", response_model=UserPublicAdminPanel, status_code=status.HTTP_201_CREATED)
 def create_user_by_admin(
     data: UserCreateAdmin,
-    svc: UsuarioServiceDep
+    svc: UsuarioServiceDep,
+    actor: AdminActual,
 ) -> Any:
     """El Admin crea un usuario asignándole roles específicos manualmente."""
     datos_usuario = data.model_dump(exclude={"roles_codigos"})
     user_in = UserCreate(**datos_usuario)
-    return svc.create_user_admin(user_in=user_in, roles_codigos=data.roles_codigos)
+    return svc.create_user_admin(user_in=user_in, roles_codigos=data.roles_codigos, actor_id=actor.id)
 
 
 @usuarios_admin_router.get("/", response_model=PaginatedResponse[UserPublicAdminPanel])
@@ -114,15 +119,15 @@ def get_all_users(
 
 
 @usuarios_admin_router.patch("/{user_id}", response_model=UserPublicAdminPanel)
-def update_user_by_admin(user_id: int, data: UserUpdateAdmin, svc: UsuarioServiceDep) -> Any:
+def update_user_by_admin(user_id: int, data: UserUpdateAdmin, svc: UsuarioServiceDep, actor: AdminActual) -> Any:
     """El Admin actualiza los datos y/o los roles de cualquier usuario."""
-    return svc.update_user_by_admin(user_id, data)
+    return svc.update_user_by_admin(actor.id, user_id, data)
 
 
 @usuarios_admin_router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, svc: UsuarioServiceDep) -> None:
+def delete_user(user_id: int, svc: UsuarioServiceDep, actor: AdminActual) -> None:
     """Aplica un borrado lógico (soft delete) a un usuario."""
-    svc.desactivar_usuario(user_id)
+    svc.desactivar_usuario(actor.id, user_id)
     return None
 
 

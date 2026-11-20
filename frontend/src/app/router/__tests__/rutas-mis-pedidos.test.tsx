@@ -37,10 +37,10 @@ describe('rutas de «Mis pedidos»', () => {
     expect(router.state.location.state).toEqual({ desde: { pathname: ruta, search: '', hash: '' } });
   });
 
-  it('un ADMIN en /admin/usuarios sigue viendo la provisoria con dueño C-23', async () => {
-    renderApp('/admin/usuarios', { sesion: { roles: ['ADMIN'] } });
+  it('un ADMIN en /admin/dashboard sigue viendo la provisoria con dueño C-24', async () => {
+    renderApp('/admin/dashboard', { sesion: { roles: ['ADMIN'] } });
 
-    expect(await screen.findByRole('heading', { name: 'Usuarios', level: 1 })).toBeInTheDocument();
-    expect(document.querySelector('[data-owner]')).toHaveAttribute('data-owner', 'C-23');
+    expect(await screen.findByRole('heading', { name: 'Dashboard', level: 1 })).toBeInTheDocument();
+    expect(document.querySelector('[data-owner]')).toHaveAttribute('data-owner', 'C-24');
   });
 });

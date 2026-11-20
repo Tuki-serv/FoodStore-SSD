@@ -256,16 +256,16 @@ def test_ida_y_vuelta_termina_en_head_y_sin_diferencias_con_los_modelos(migratio
         assert _diferencias(conn) == []
 
 
-def test_current_and_head_tras_upgrade_devuelve_005_en_ambas_posiciones(migrations_db: Engine) -> None:
+def test_current_and_head_tras_upgrade_devuelve_006_en_ambas_posiciones(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == ("005", "005")
+        assert current_and_head(conn) == ("006", "006")
 
 
 def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_db: Engine) -> None:
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == (None, "005")
+        assert current_and_head(conn) == (None, "006")
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +274,7 @@ def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_
 def test_foodstore_test_queda_en_head_al_iniciar_la_sesion(session: Session) -> None:
     actual, head = current_and_head(session.connection())
 
-    assert actual == head == "005"
+    assert actual == head == "006"
 
 
 # ---------------------------------------------------------------------------
@@ -340,7 +340,7 @@ def test_ck_sesion_revoked_reason_rechaza_un_motivo_fuera_de_la_lista(migrations
             _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="OTRO")
 
 
-@pytest.mark.parametrize("motivo", ["LOGOUT", "LOGOUT_ALL", "REUSO"])
+@pytest.mark.parametrize("motivo", ["LOGOUT", "LOGOUT_ALL", "REUSO", "BAJA"])
 def test_ck_sesion_revoked_reason_acepta_cada_motivo_valido(migrations_db: Engine, motivo: str) -> None:
     _migrar(migrations_db)
     usuario_id = _crear_usuario(migrations_db)
@@ -501,7 +501,7 @@ def test_tras_upgrade_head_external_reference_es_uuid_not_null_unico_y_sin_colum
     assert (columna[0], columna[2]) == ("uuid", "NO")
     assert restriccion == "u"
     assert not {"mp_preference_id", "mp_init_point"} & nombres
-    assert version == ("005", "005")
+    assert version == ("006", "006")
 
 
 def test_dos_pagos_con_la_misma_external_reference_son_rechazados_por_la_restriccion_unica(
@@ -635,7 +635,7 @@ def test_tras_upgrade_head_pagos_tiene_mp_order_id_unico_mp_payment_id_texto_y_s
     assert tuple(pago) == ("character varying", 64, "YES")
     assert restriccion == "u"
     assert "mp_merchant_order_id" not in nombres
-    assert version == "005"
+    assert version == "006"
 
 
 def test_upgrade_de_003_a_004_convierte_mp_payment_id_a_texto_y_descarta_la_merchant_order(
@@ -731,7 +731,7 @@ def _emails(engine: Engine) -> list[str]:
         return [fila[0] for fila in conn.execute(text("SELECT email FROM usuario ORDER BY id"))]
 
 
-def test_tras_upgrade_head_la_version_es_005_y_existen_el_check_y_el_indice_unico_parcial(migrations_db: Engine) -> None:
+def test_tras_upgrade_head_existen_el_check_de_email_normalizado_y_el_indice_unico_parcial(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
@@ -739,7 +739,7 @@ def test_tras_upgrade_head_la_version_es_005_y_existen_el_check_y_el_indice_unic
         indice = conn.execute(text("SELECT 1 FROM pg_indexes WHERE indexname = 'uq_usuario_email_activo'")).scalar()
         version = current_and_head(conn)[0]
 
-    assert (check, indice, version) == ("c", 1, "005")
+    assert (check, indice, version) == ("c", 1, "006")
 
 
 @pytest.mark.parametrize("email", ["Ana@x.com", " ana@x.com", "ana@X.com"])
@@ -812,6 +812,73 @@ def test_ida_y_vuelta_005_004_005_no_deja_diferencias_con_los_modelos(migrations
     _migrar(migrations_db)
     with migrations_db.begin() as conn:
         command.downgrade(build_alembic_config(conn), "004")
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        assert _diferencias(conn) == []
+
+
+# ---------------------------------------------------------------------------
+# Migración 006: motivo de cierre de sesión `BAJA` (C-23)
+# ---------------------------------------------------------------------------
+def _a_005(engine: Engine) -> None:
+    with engine.begin() as conn:
+        command.upgrade(build_alembic_config(conn), "005")
+
+
+def _motivos(engine: Engine) -> list[str]:
+    with engine.connect() as conn:
+        return [fila[0] for fila in conn.execute(text("SELECT revoked_reason FROM sesion ORDER BY created_at, id"))]
+
+
+def test_en_005_el_motivo_baja_es_rechazado_y_tras_upgrade_a_006_es_aceptado(migrations_db: Engine) -> None:
+    _a_005(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+    with migrations_db.connect() as conn:
+        with pytest.raises(IntegrityError, match="ck_sesion_revoked_reason"):
+            _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="BAJA")
+
+    _migrar(migrations_db)
+
+    with migrations_db.begin() as conn:
+        _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="BAJA")
+    assert _motivos(migrations_db) == ["BAJA"]
+
+
+def test_upgrade_de_005_a_006_conserva_las_sesiones_y_sus_motivos(migrations_db: Engine) -> None:
+    _a_005(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+    with migrations_db.begin() as conn:
+        _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="LOGOUT")
+        _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="REUSO")
+        _insertar_sesion(conn, usuario_id)
+
+    _migrar(migrations_db)
+
+    assert sorted(m or "" for m in _motivos(migrations_db)) == ["", "LOGOUT", "REUSO"]
+
+
+def test_downgrade_de_006_a_005_pasa_las_sesiones_baja_a_logout_all_y_vuelve_a_rechazar_baja(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+    with migrations_db.begin() as conn:
+        _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="BAJA")
+        _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="LOGOUT")
+
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "005")
+
+    assert sorted(_motivos(migrations_db)) == ["LOGOUT", "LOGOUT_ALL"]
+    with migrations_db.connect() as conn:
+        assert current_and_head(conn)[0] == "005"
+        with pytest.raises(IntegrityError, match="ck_sesion_revoked_reason"):
+            _insertar_sesion(conn, usuario_id, rev_at=BAJA, rev_reason="BAJA")
+
+
+def test_ida_y_vuelta_006_005_006_no_deja_diferencias_con_los_modelos(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "005")
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
