@@ -125,11 +125,11 @@ def _crear_usuario_si_falta(
         nombre=nombre, apellido=apellido, email=email, celular=celular, password_hash=hash_password(password),
     )
     if not creado:
-        print(f"  ✅ Usuario {email} ya existe, se omite.")
+        print(f"  [OK] Usuario {email} ya existe, se omite.")
         return
     usuario.roles.append(session.get(Rol, rol_codigo))
     session.flush()
-    print(f"  ✅ Usuario creado ({email})")
+    print(f"  [OK] Usuario creado ({email})")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -287,15 +287,15 @@ def seed(engine: Engine | None = None) -> None:
         seed_admin(session)
         seed_demo(session)
 
-    print("--- SEED FINALIZADO ✅ ---")
+    print("--- SEED FINALIZADO [OK] ---")
     print("   • 4 roles + usuarios de prueba")
     print("   • 6 estados de pedido + 3 formas de pago")
     print("   • 6 categorías + 12 ingredientes + 7 unidades de medida + 6 productos")
     print("\n--- CUENTAS DE PRUEBA ---")
-    print(f"   👤 Admin:   {ADMIN_EMAIL}   / {ADMIN_PASSWORD_DESARROLLO}")
-    print("   📦 Pedidos: pedidos@foodstore.com / pedidos123")
-    print("   📊 Stock:   stock@foodstore.com   / stock123")
-    print("   🍔 Cliente: cliente@foodstore.com / cliente123")
+    print(f"   - Admin:     {ADMIN_EMAIL}   / {ADMIN_PASSWORD_DESARROLLO}")
+    print("   - Pedidos: pedidos@foodstore.com / pedidos123")
+    print("   - Stock:    stock@foodstore.com   / stock123")
+    print("   - Cliente: cliente@foodstore.com / cliente123")
     print("-------------------------")
 
 

@@ -213,11 +213,25 @@ def test_webhook_order_firmado_sobre_el_id_en_minusculas_se_acepta(client: TestC
     assert mp_sdk.llamadas == ["ORD123"]
 
 
-def test_webhook_order_firmado_sobre_el_id_tal_cual_se_acepta(client: TestClient, mp_sdk: MPFalso, pedido_mp) -> None:
+def test_webhook_order_firmado_sobre_el_id_tal_cual_responde_401_sin_consultar_ni_cambiar_nada(
+    client: TestClient, session: Session, mp_sdk: MPFalso, pedido_mp
+) -> None:
     response = post_webhook(client, "ORD123", firmar_id="ORD123")
 
+    assert response.status_code == 401
+    assert mp_sdk.llamadas == []
+    _sin_cambios(session, pedido_mp.id)
+
+
+def test_webhook_order_con_id_que_ya_viene_en_minusculas_se_acepta(
+    client: TestClient, session: Session, mp_sdk: MPFalso, pedido_mp
+) -> None:
+    mp_sdk.responder_consulta("ord123", referencia_de(session, pedido_mp.id))
+
+    response = post_webhook(client, "ord123")
+
     assert response.status_code == 200
-    assert mp_sdk.llamadas == ["ORD123"]
+    assert mp_sdk.llamadas == ["ord123"]
 
 
 def test_webhook_order_con_id_alterado_responde_401_sin_consultar(

@@ -84,7 +84,7 @@ def test_dos_notificaciones_simultaneas_del_mismo_pago_aprobado_confirman_una_so
     engine: Engine = escenario["engine"]
     with Session(engine) as db_ref:
         referencia = referencia_de(db_ref, escenario["pedido_id"])
-    mp_sdk.responder_consulta("ORD123", referencia)
+    mp_sdk.responder_consulta("ORD123", referencia, total_amount="200.00")  # el monto del intento del escenario
 
     def sesion_propia():
         with Session(engine) as db:

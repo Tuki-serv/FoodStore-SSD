@@ -65,6 +65,14 @@ class NotificacionWebhook(BaseModel):
     body: dict = {}
 
 
+class WebhookRespuesta(BaseModel):
+    """Cuerpo de toda respuesta 200 del webhook: solo qué se hizo con la notificación, sin datos del pago ni del pedido."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["processed", "already_processed", "ignored"]
+
+
 class FormaPagoRead(SQLModel):
     codigo: str
     descripcion: str

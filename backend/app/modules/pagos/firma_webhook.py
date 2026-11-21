@@ -13,17 +13,14 @@ def verificar_firma_webhook(
 ) -> None:
     """Valida `x-signature` (HMAC-SHA256 del manifest) o lanza `AppError(401)` con un mensaje genérico.
 
-    Un `data.id` alfanumérico (`ORD…`) se prueba primero en minúsculas (doc de MercadoPago) y, si no firma, tal cual
-    (validador del SDK); ambas variantes son HMAC con la clave secreta, así que no se debilita la verificación (D23).
-    El motivo concreto solo se loguea (junto al `x-request-id`); nunca el secreto ni el hash. Sin ventana de `ts` (OQ-2).
+    El `data.id` entra al manifest en minúsculas (doc de MercadoPago; confirmado en sandbox, D6): se valida una sola vez
+    con `data_id.lower()`, así que un id firmado «tal cual» se rechaza. Es HMAC con la clave secreta: no se debilita la
+    verificación (D23). El motivo concreto solo se loguea (junto al `x-request-id`); nunca el secreto ni el hash. Sin
+    ventana de `ts` (OQ-2).
     """
-    variantes = [data_id.lower(), data_id] if data_id and data_id != data_id.lower() else [data_id]
-    motivo: Exception | None = None
-    for variante in variantes:
-        try:
-            WebhookSignatureValidator.validate(x_signature, x_request_id, variante, secreto)
-            return
-        except InvalidWebhookSignatureError as exc:
-            motivo = exc
-    logger.warning("Firma de webhook MP inválida: reason=%s x-request-id=%s", getattr(motivo, "reason", None), x_request_id)
-    raise AppError(401, "HTTP_401", "Firma de webhook inválida") from motivo
+    id_normalizado = data_id.lower() if data_id else data_id
+    try:
+        WebhookSignatureValidator.validate(x_signature, x_request_id, id_normalizado, secreto)
+    except InvalidWebhookSignatureError as exc:
+        logger.warning("Firma de webhook MP inválida: reason=%s x-request-id=%s", exc.reason, x_request_id)
+        raise AppError(401, "HTTP_401", "Firma de webhook inválida") from exc

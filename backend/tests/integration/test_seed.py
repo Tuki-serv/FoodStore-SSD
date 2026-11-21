@@ -3,6 +3,9 @@
 Cada test migra la base vacía (`migrations_db`), prepara datos con SQL si hace falta, corre `seed` y consulta.
 Los literales (códigos, órdenes, conteos) están escritos a mano: no se importan de las constantes del seed.
 """
+import io
+import sys
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -360,3 +363,51 @@ def test_seed_que_falla_a_mitad_de_corrida_deja_la_base_como_estaba(migrations_d
     for tabla in ("rol", "estado_pedido", "forma_pago", "usuario"):
         assert _filas(migrations_db, f"SELECT COUNT(*) FROM {tabla}") == [(0,)], tabla
     assert _filas(migrations_db, "SELECT nombre, simbolo FROM unidades_medida") == [("Kilogramo", "KGX")]
+
+
+# --- 6. Salida compatible con la consola de Windows (cp1252) ---------------------------------------------------------
+
+
+def _stdout_cp1252_estricta(monkeypatch: pytest.MonkeyPatch) -> io.TextIOWrapper:
+    """Reemplaza `sys.stdout` por una consola cp1252 que falla con `UnicodeEncodeError` ante lo que no puede codificar."""
+    consola = io.TextIOWrapper(io.BytesIO(), encoding="cp1252", errors="strict")
+    monkeypatch.setattr(sys, "stdout", consola)
+    return consola
+
+
+def test_seed_sobre_base_nueva_con_consola_cp1252_termina_y_deja_los_datos(
+    migrations_db: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _migrar(migrations_db)
+    _stdout_cp1252_estricta(monkeypatch)
+
+    seed(migrations_db)
+
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM rol") == [(4,)]
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM estado_pedido") == [(6,)]
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM forma_pago") == [(3,)]
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM usuario") == [(4,)]
+
+
+def test_seed_con_usuarios_existentes_y_consola_cp1252_termina_sin_cambiar_filas(
+    migrations_db: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _migrar(migrations_db)
+    _stdout_cp1252_estricta(monkeypatch)
+    seed(migrations_db)
+    foto = _foto(migrations_db)
+
+    seed(migrations_db)  # camino «el usuario ya existe»
+
+    assert _foto(migrations_db) == foto
+
+
+def test_toda_la_salida_del_seed_se_codifica_en_cp1252(migrations_db: Engine, capsys: pytest.CaptureFixture[str]) -> None:
+    _migrar(migrations_db)
+
+    seed(migrations_db)
+    seed(migrations_db)
+
+    salida = capsys.readouterr().out
+    assert "SEED FINALIZADO" in salida
+    salida.encode("cp1252")  # lanza UnicodeEncodeError si algo no se puede mostrar en la consola de Windows

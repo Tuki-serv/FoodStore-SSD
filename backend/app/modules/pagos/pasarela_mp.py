@@ -5,7 +5,7 @@ tarjeta, el access token ni el cuerpo enviado.
 """
 import logging
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
 import mercadopago
@@ -61,10 +61,23 @@ class ResultadoMP:
     mp_status: str | None
     mp_status_detail: str | None
     external_reference: str | None
+    total_amount: Decimal | None = None  # monto de la orden según MercadoPago; `None` si falta o es ilegible
 
 
 def _monto_texto(monto: Decimal) -> str:
     return str(monto.quantize(_CENTAVO, rounding=ROUND_HALF_UP))
+
+
+def _monto_de_la_orden(orden: dict[str, Any]) -> Decimal | None:
+    """`total_amount` de la orden (texto) como `Decimal`; ausente o inválido → `None`."""
+    crudo = orden.get("total_amount")
+    if crudo is None:
+        return None
+    try:
+        monto = Decimal(str(crudo))
+    except InvalidOperation:
+        return None
+    return monto if monto.is_finite() else None
 
 
 def _a_resultado(orden: dict[str, Any]) -> ResultadoMP:
@@ -76,6 +89,7 @@ def _a_resultado(orden: dict[str, Any]) -> ResultadoMP:
         mp_status=orden.get("status"),
         mp_status_detail=transaccion.get("status_detail") or orden.get("status_detail"),
         external_reference=orden.get("external_reference"),
+        total_amount=_monto_de_la_orden(orden),
     )
 
 
