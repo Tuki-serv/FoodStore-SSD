@@ -2,6 +2,7 @@ import logging
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import StrEnum
 from typing import Callable, Optional
 from uuid import UUID, uuid4
 
@@ -11,7 +12,16 @@ from app.core.config import settings
 from app.core.errors import AppError, ErrorCode
 from app.core.permissions import puede_acceder_a_propio
 from app.modules.pagos.decision_cobro import Intento, decidir_intento
-from app.modules.pagos.decision_webhook import Accion, decidir_transicion_pago
+from app.modules.pagos.decision_webhook import (
+    ESTADO_A_DEVOLVER,
+    ESTADO_APROBADO,
+    ESTADO_PENDIENTE,
+    ESTADO_RECHAZADO,
+    Accion,
+    decidir_transicion_pago,
+    estado_local_para,
+    monto_coincide,
+)
 from app.modules.pagos.firma_webhook import verificar_firma_webhook
 from app.modules.pagos.models import Pago
 from app.modules.pagos.pasarela_mp import (
@@ -36,9 +46,9 @@ from app.modules.pedidos.service import PedidoService, construir_pedido_service
 
 logger = logging.getLogger(__name__)
 
-ESTADO_PAGO_PENDIENTE = "pendiente"
-ESTADO_PAGO_RECHAZADO = "rechazado"
-ESTADO_PAGO_A_DEVOLVER = "a_devolver"
+ESTADO_PAGO_PENDIENTE = ESTADO_PENDIENTE
+ESTADO_PAGO_RECHAZADO = ESTADO_RECHAZADO
+ESTADO_PAGO_A_DEVOLVER = ESTADO_A_DEVOLVER
 ROLES_PRIVILEGIADOS_PAGOS = frozenset({"ADMIN"})
 _MAX_DETALLE_MP = 100  # ancho de `pagos.mp_status_detail`
 
@@ -48,6 +58,23 @@ class ResultadoCrearPago:
     """Respuesta de `crear_pago` y, si el cobro cambió el pedido, el pedido actualizado (el router dispara el WebSocket)."""
 
     respuesta: PagoCrearResponse
+    pedido_actualizado: PedidoDetalle | None = None
+
+
+class EstadoWebhook(StrEnum):
+    """Qué hizo el backend con una notificación (el único dato que el webhook devuelve a MercadoPago)."""
+
+    PROCESADO = "processed"
+    YA_PROCESADO = "already_processed"
+    IGNORADO = "ignored"
+
+
+@dataclass(frozen=True)
+class ResultadoWebhook:
+    """Resultado de aplicar una notificación (o la respuesta de la creación): estado y, si confirmó o canceló el pedido, el pedido
+    actualizado (el router lo usa para el WebSocket; nunca va en la respuesta HTTP del webhook)."""
+
+    status: EstadoWebhook
     pedido_actualizado: PedidoDetalle | None = None
 
 
@@ -157,7 +184,7 @@ class PaymentService:
         with PagoUnitOfWork(self._session) as uow:
             pago = uow.pagos.get_for_update(pago_id)
             # Un estado que el webhook no mapea queda registrado sobre un intento `pendiente`.
-            nuevo_estado = self._estado_local_para(resultado.mp_status) or ESTADO_PAGO_PENDIENTE
+            nuevo_estado = estado_local_para(resultado.mp_status) or ESTADO_PAGO_PENDIENTE
             aplicado = self._aplicar_resultado_mp(uow, pago, resultado, nuevo_estado)
             respuesta = PagoCrearResponse(
                 pago_id=pago.id,
@@ -168,7 +195,7 @@ class PaymentService:
                 mp_status=pago.mp_status,
                 mp_status_detail=pago.mp_status_detail,
             )
-            return ResultadoCrearPago(respuesta, aplicado.get("pedido_actualizado"))
+            return ResultadoCrearPago(respuesta, aplicado.pedido_actualizado)
 
     # ─── Webhook de MercadoPago (D23): firma → tópico/id → consulta de la orden → transacción única ────────────
     @staticmethod
@@ -185,17 +212,6 @@ class PaymentService:
         return topic, str(crudo) if crudo else None
 
     @staticmethod
-    def _estado_local_para(estado_orden: str | None) -> str | None:
-        """Estado local según el `status` de la ORDEN (D20); `None` si no tiene mapeo."""
-        if estado_orden in ("processed", "partially_refunded"):
-            return "aprobado"
-        if estado_orden in ("failed", "canceled", "refunded", "charged_back"):
-            return ESTADO_PAGO_RECHAZADO
-        if estado_orden in ("created", "processing", "action_required"):
-            return ESTADO_PAGO_PENDIENTE
-        return None
-
-    @staticmethod
     def _resolver_pago_bloqueado(uow: PagoUnitOfWork, mp_order_id: str, resultado: ResultadoMP) -> Pago | None:
         """Pago local (con la fila bloqueada): por `mp_order_id`, luego por `external_reference` (UUID del intento)."""
         pago = uow.pagos.get_by_mp_order_id_for_update(mp_order_id)
@@ -208,7 +224,7 @@ class PaymentService:
                 pago = uow.pagos.get_by_external_reference_for_update(referencia)
         return pago
 
-    async def procesar_webhook(self, notificacion: NotificacionWebhook) -> dict:
+    def procesar_webhook(self, notificacion: NotificacionWebhook) -> ResultadoWebhook:
         secreto = settings.MP_WEBHOOK_SECRET
         if not secreto:
             raise AppError(503, "HTTP_503", "MercadoPago no configurado: falta MP_WEBHOOK_SECRET")
@@ -218,7 +234,7 @@ class PaymentService:
 
         topic, mp_order_id = self._resolver_tipo_e_id(notificacion)
         if topic != "order" or mp_order_id is None:
-            return {"status": "ignored"}
+            return ResultadoWebhook(EstadoWebhook.IGNORADO)
         access_token = self._get_mp_access_token()
         if not access_token:
             raise AppError(503, "HTTP_503", "MercadoPago no configurado: falta MP_ACCESS_TOKEN")
@@ -229,14 +245,14 @@ class PaymentService:
             raise AppError(503, "HTTP_503", str(exc)) from exc
         except MercadoPagoNoDisponible as exc:  # fallo del proveedor: 502 (MercadoPago reintenta)
             raise AppError(502, "HTTP_502", "No se pudo consultar la orden en MercadoPago") from exc
-        nuevo_estado = self._estado_local_para(resultado.mp_status)
+        nuevo_estado = estado_local_para(resultado.mp_status)
         if nuevo_estado is None:
-            return {"status": "ignored"}
+            return ResultadoWebhook(EstadoWebhook.IGNORADO)
 
         with PagoUnitOfWork(self._session) as uow:
             pago = self._resolver_pago_bloqueado(uow, mp_order_id, resultado)
             if pago is None:
-                return {"status": "ignored", "reason": "Pago not found"}
+                return ResultadoWebhook(EstadoWebhook.IGNORADO)
             return self._aplicar_resultado_mp(uow, pago, resultado, nuevo_estado)
 
     def _aplicar_resultado_mp(
@@ -245,13 +261,13 @@ class PaymentService:
         pago: Pago,
         resultado: ResultadoMP,
         nuevo_estado: str,
-    ) -> dict:
+    ) -> ResultadoWebhook:
         """Único camino que aplica el resultado de MercadoPago a un pago bloqueado (creación y webhook): idempotente."""
         if (
             decidir_transicion_pago(pago.estado, pago.mp_order_id, resultado.mp_order_id, nuevo_estado)
             == Accion.YA_PROCESADO
         ):
-            return {"status": "already_processed"}
+            return ResultadoWebhook(EstadoWebhook.YA_PROCESADO)
 
         pago.mp_order_id = resultado.mp_order_id
         pago.mp_payment_id = resultado.mp_payment_id
@@ -261,11 +277,22 @@ class PaymentService:
         pago.updated_at = datetime.now(timezone.utc)
         uow.pagos.update(pago)
 
-        if nuevo_estado != "aprobado":
-            return {"status": "processed", "pago_id": pago.id}
+        if nuevo_estado != ESTADO_APROBADO:
+            return ResultadoWebhook(EstadoWebhook.PROCESADO)
+        if not monto_coincide(pago.transaction_amount, resultado.total_amount):
+            # Cobrado por un monto que no es el del intento: no se confirma el pedido; se devuelve a mano.
+            pago.estado = ESTADO_PAGO_A_DEVOLVER
+            uow.pagos.update(pago)
+            logger.warning(
+                "Pago %s aprobado en MercadoPago con un monto distinto del esperado: esperado=%s informado=%s",
+                pago.id,
+                pago.transaction_amount,
+                resultado.total_amount,
+            )
+            return ResultadoWebhook(EstadoWebhook.PROCESADO)
         return self._confirmar_pedido_del_pago(uow, pago)
 
-    def _confirmar_pedido_del_pago(self, uow: PagoUnitOfWork, pago: Pago) -> dict:
+    def _confirmar_pedido_del_pago(self, uow: PagoUnitOfWork, pago: Pago) -> ResultadoWebhook:
         """Confirmación automática (actor Sistema, misma transacción). Lo que el Sistema no puede confirmar queda `a_devolver`."""
         try:
             pedido = self._construir_pedidos(self._session).confirmar_por_pago_aprobado(pago.pedido_id)
@@ -274,11 +301,11 @@ class PaymentService:
                 raise
             pago.estado = ESTADO_PAGO_A_DEVOLVER  # cobrado sin pedido que lo respalde (OQ-1)
             uow.pagos.update(pago)
-            return {"status": "processed", "pago_id": pago.id}
+            return ResultadoWebhook(EstadoWebhook.PROCESADO)
         if pedido.estado_codigo == "CANCELADO":  # pagado sin stock: queda para devolución manual
             pago.estado = ESTADO_PAGO_A_DEVOLVER
             uow.pagos.update(pago)
-        return {"status": "processed", "pago_id": pago.id, "pedido_actualizado": pedido}
+        return ResultadoWebhook(EstadoWebhook.PROCESADO, pedido)
 
     def obtener_pago(self, pedido_id: int, usuario_id: int, roles: AbstractSet[str]) -> PagoEstadoResponse:
         with PagoUnitOfWork(self._session) as uow:

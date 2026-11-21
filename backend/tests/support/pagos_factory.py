@@ -95,3 +95,8 @@ def pagos_de(session: Session, pedido_id: int) -> list[Pago]:
 def referencia_de(session: Session, pedido_id: int) -> str:
     """`external_reference` (UUID) del último intento de pago del pedido: la que MercadoPago devuelve en sus notificaciones."""
     return str(pagos_de(session, pedido_id)[-1].external_reference)
+
+
+def monto_de(session: Session, pedido_id: int) -> str:
+    """Monto del último intento de pago del pedido, en texto con dos decimales (lo que MercadoPago devuelve como `total_amount`)."""
+    return f"{pagos_de(session, pedido_id)[-1].transaction_amount:.2f}"

@@ -522,6 +522,7 @@ def test_si_el_webhook_procesa_el_pago_antes_que_crear_este_responde_aprobado_si
             payment_id="PAY920",
             external_reference=creacion.cuerpo["external_reference"],
             solo_consulta=True,
+            total_amount=creacion.cuerpo["total_amount"],
         )
         respuestas_webhook.append(post_webhook(client, "ORD920", topic="order").json())
 
@@ -603,7 +604,7 @@ def test_falla_de_red_y_luego_409_con_la_orden_ya_creada_se_reconcilia_por_refer
     prod, pedido = escenario
     mp_sdk.fallar_creacion(OSError("sin red"))
     mp_sdk.responder_orden_error(409, "idempotency_key_already_used")
-    mp_sdk.responder_busqueda([construir_orden("processed", "accredited", "accredited", "ORD931", "PAY931")])
+    mp_sdk.responder_busqueda([construir_orden("processed", "accredited", "accredited", "ORD931", "PAY931", total_amount="200.00")])
     client.post(CREAR, json=cuerpo(pedido.id), headers=user_auth_headers)
 
     response = client.post(CREAR, json=cuerpo(pedido.id), headers=user_auth_headers)

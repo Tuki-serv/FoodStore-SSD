@@ -11,6 +11,7 @@ from app.modules.pagos.schemas import (
     NotificacionWebhook,
     PagoCrearResponse,
     PagoEstadoResponse,
+    WebhookRespuesta,
 )
 from app.modules.pagos.dependencies import PaymentServiceDep
 from app.modules.pedidos.schemas import PedidoDetalle
@@ -38,7 +39,7 @@ def _notificar_pedido_actualizado(background_tasks: BackgroundTasks, pedido: Ped
     background_tasks.add_task(manager.send_to_room, f"pedido:{pedido.id}", evento, pedido.model_dump(mode="json"))
 
 
-async def _leer_notificacion(request: Request) -> NotificacionWebhook:
+async def leer_notificacion(request: Request) -> NotificacionWebhook:
     """Extrae headers de firma, query y cuerpo (MercadoPago manda JSON o form-data); sin lógica de negocio."""
     if request.headers.get("content-type", "").startswith("application/json"):
         try:
@@ -75,21 +76,22 @@ def crear_pago(
 
 
 # 2. Endpoint para escuchar a MercadoPago (La Puerta Trasera)
-@router.post("/webhook", status_code=200)
-async def webhook(
-    request: Request,
+@router.post("/webhook", status_code=200, response_model=WebhookRespuesta)
+def webhook(
+    notificacion: Annotated[NotificacionWebhook, Depends(leer_notificacion)],
     background_tasks: BackgroundTasks,
     svc: PaymentServiceDep,
 ):
     """
     Rúbrica: Endpoint IPN de MercadoPago. Autenticado por firma (x-signature), idempotente y atómico.
     Los errores suben como AppError (401/400/502/503) o 500 para que MercadoPago reintente lo que corresponda.
+    Es un handler sincrónico: la consulta a MercadoPago y la base corren en el threadpool, no en el event loop
+    (la lectura del cuerpo es la dependencia `leer_notificacion`, que sí es async).
     """
-    result = await svc.procesar_webhook(await _leer_notificacion(request))
-
-    if result.get("status") == "processed" and "pedido_actualizado" in result:
-        _notificar_pedido_actualizado(background_tasks, result["pedido_actualizado"])
-    return result
+    resultado = svc.procesar_webhook(notificacion)
+    if resultado.pedido_actualizado is not None:
+        _notificar_pedido_actualizado(background_tasks, resultado.pedido_actualizado)
+    return WebhookRespuesta(status=resultado.status.value)
 
 
 # 3. Configuración pública para el brick (declarada ANTES de `/{pedido_id}`: `config` no es un id de pedido)

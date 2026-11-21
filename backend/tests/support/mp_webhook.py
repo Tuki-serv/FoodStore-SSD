@@ -2,6 +2,8 @@
 
 La firma NO se mockea: `post_webhook` firma con `tests.support.mp_firma.firmar` (HMAC real).
 """
+import asyncio
+
 from fastapi.testclient import TestClient
 
 from tests.support.mp_firma import firmar
@@ -22,6 +24,10 @@ class CreacionRegistrada:
         return self.headers.get("x-idempotency-key")
 
 
+ENVIADO = "__monto_enviado__"  # `total_amount` de `responder_orden`: el que se mande al crear la orden
+MONTO_POR_DEFECTO = "1500.00"
+
+
 def construir_orden(
     status: str = "processed",
     status_detail: str | None = "accredited",
@@ -29,9 +35,15 @@ def construir_orden(
     order_id: str = "ORD01X",
     payment_id: str | None = "PAY01X",
     external_reference: str | None = None,
+    total_amount: str | None = None,
 ) -> dict:
-    """Cuerpo de una orden de la Orders API: estado/detalle de la orden y una transacción de pago (si hay `payment_id`)."""
+    """Cuerpo de una orden de la Orders API: estado/detalle de la orden y una transacción de pago (si hay `payment_id`).
+
+    `total_amount` (texto, como lo devuelve MercadoPago) se omite si es `None`.
+    """
     orden: dict = {"id": order_id, "status": status, "status_detail": status_detail, "external_reference": external_reference}
+    if total_amount is not None:
+        orden["total_amount"] = total_amount
     if payment_id is not None:
         orden["transactions"] = {"payments": [{"id": payment_id, "status": status, "status_detail": detalle_transaccion}]}
     return orden
@@ -56,18 +68,36 @@ class _OrdenesFalsas:
         configurada = mp._ordenes_a_crear[indice]
         if isinstance(configurada, BaseException):
             raise configurada
-        if configurada["response"].get("id") is not None and configurada["response"].get("external_reference") is None:
-            # MercadoPago devuelve la `external_reference` enviada
-            return {**configurada, "response": {**configurada["response"], "external_reference": datos.get("external_reference")}}
+        respuesta = configurada["response"]
+        if respuesta.get("id") is not None:
+            # MercadoPago devuelve la `external_reference` y el `total_amount` enviados (salvo que la respuesta configurada los traiga)
+            devuelta = dict(respuesta)
+            if devuelta.get("external_reference") is None:
+                devuelta["external_reference"] = datos.get("external_reference")
+            if devuelta.get("total_amount") is None and devuelta.get("id") in mp._ordenes_con_monto_enviado:
+                devuelta["total_amount"] = datos.get("total_amount")
+                mp._ordenes_por_id[devuelta["id"]]["response"]["total_amount"] = datos.get("total_amount")
+            return {**configurada, "response": devuelta}
         return configurada
 
     def get(self, order_id: str, request_options=None) -> dict:
         self._mp.llamadas.append(order_id)
+        self._mp.corrio_en_event_loop.append(_hay_event_loop_en_este_hilo())
+        if self._mp._antes_de_consultar is not None:
+            self._mp._antes_de_consultar(order_id)
         return self._mp._ordenes_por_id.get(order_id, {"status": 404, "response": {"errors": [{"code": "order_not_found"}]}})
 
     def search(self, filters: dict | None = None, request_options=None) -> dict:
         self._mp.busquedas.append(dict(filters or {}))
         return {"status": 200, "response": {"data": list(self._mp._resultado_busqueda)}}
+
+
+def _hay_event_loop_en_este_hilo() -> bool:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return False
+    return True
 
 
 class MPFalso:
@@ -83,6 +113,9 @@ class MPFalso:
         self.creaciones: list[CreacionRegistrada] = []
         self.tokens: list[str] = []
         self._antes_de_responder = None
+        self._antes_de_consultar = None
+        self._ordenes_con_monto_enviado: set[str] = set()  # órdenes cuyo monto es el que se envió al crearlas
+        self.corrio_en_event_loop: list[bool] = []  # por cada `get`: ¿había un event loop corriendo en su hilo?
         self.busquedas: list[dict] = []
         self._ordenes_a_crear: list[dict | BaseException] = []
         self._ordenes_por_id: dict[str, dict] = {}
@@ -103,21 +136,35 @@ class MPFalso:
         external_reference: str | None = None,
         envuelta_en_data: bool = False,
         solo_consulta: bool = False,
+        total_amount: str | None = ENVIADO,
     ) -> None:
         """Encola la respuesta de la próxima creación (la última se repite) y la deja consultable con `get(order_id)`.
 
         `envuelta_en_data` entrega `{errors, data: orden}` (forma del 402 de la doc); `solo_consulta` no encola creación.
+        `total_amount`: texto de la orden; `None` = orden sin monto. Por defecto la creación devuelve el monto enviado (como
+        MercadoPago) y una orden solo consultable trae `"1500.00"` (el de `pedido_con_pago`).
         """
-        orden = construir_orden(status, status_detail, detalle_transaccion, order_id, payment_id, external_reference)
+        if total_amount is ENVIADO:
+            total_amount = MONTO_POR_DEFECTO if solo_consulta else None
+            if not solo_consulta:
+                self._ordenes_con_monto_enviado.add(order_id)
+        orden = construir_orden(
+            status, status_detail, detalle_transaccion, order_id, payment_id, external_reference, total_amount
+        )
         cuerpo = {"errors": [{"code": detalle_transaccion or "failed", "message": "x"}], "data": orden} if envuelta_en_data else orden
         if not solo_consulta:
             self._ordenes_a_crear.append({"status": status_http, "response": cuerpo})
         self._ordenes_por_id[order_id] = {"status": 200, "response": orden}
 
     def responder_consulta(
-        self, order_id: str, referencia: str | None, status: str = "processed", detalle_transaccion: str | None = None
+        self,
+        order_id: str,
+        referencia: str | None,
+        status: str = "processed",
+        detalle_transaccion: str | None = None,
+        total_amount: str | None = MONTO_POR_DEFECTO,
     ) -> None:
-        """Deja consultable `get(order_id)` con ese estado de orden y `external_reference` (sin encolar creaciones)."""
+        """Deja consultable `get(order_id)` con ese estado de orden, monto y `external_reference` (sin encolar creaciones)."""
         self.responder_orden(
             201,
             status,
@@ -127,6 +174,7 @@ class MPFalso:
             payment_id="PAY" + order_id.removeprefix("ORD"),
             external_reference=referencia,
             solo_consulta=True,
+            total_amount=total_amount,
         )
 
     def responder_orden_error(self, status_http: int, codigo: str = "property_value") -> None:
@@ -153,6 +201,10 @@ class MPFalso:
         """Ejecuta `callback(creacion)` dentro de `create`, antes de devolver (simula una carrera con el webhook)."""
         self._antes_de_responder = callback
 
+    def antes_de_responder_consulta(self, callback) -> None:
+        """Ejecuta `callback(order_id)` dentro de `get`, antes de devolver (simula una consulta lenta)."""
+        self._antes_de_consultar = callback
+
     def __call__(self, access_token: str) -> "MPFalso":  # `mercadopago.SDK(token)`
         self.tokens.append(access_token)
         return self
@@ -170,8 +222,9 @@ def post_webhook(
     body: dict | None = None,
     ts: str = TS,
 ):
-    """POST firmado al webhook. `firmar_id`/`query_id` por defecto son `order_id`; `secreto=None` no envía firma."""
-    firmado = order_id if firmar_id == "__order_id__" else firmar_id
+    """POST firmado al webhook. `query_id` por defecto es `order_id`; `firmar_id` por defecto es `order_id` en minúsculas
+    (como firma MercadoPago); `secreto=None` no envía firma. Para firmar el id tal cual (debe rechazarse), pasar `firmar_id=order_id`."""
+    firmado = (order_id.lower() if order_id is not None else None) if firmar_id == "__order_id__" else firmar_id
     en_query = order_id if query_id == "__order_id__" else query_id
     headers = firmar(firmado, request_id, ts, secreto) if secreto is not None else {}
     params = {"type": topic}

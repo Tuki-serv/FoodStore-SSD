@@ -78,6 +78,7 @@ def test_crear_pago_envia_la_orden_online_automatica_con_montos_en_texto_y_la_cl
         mp_status="processed",
         mp_status_detail="accredited",
         external_reference=REF,
+        total_amount=Decimal("1500.50"),  # MercadoPago devuelve el monto enviado
     )
 
 
@@ -260,8 +261,20 @@ def test_consultar_orden_200_devuelve_el_resultado(mp: MPFalso) -> None:
 
     resultado = _pasarela().consultar_orden("ORD01X")
 
-    assert resultado == ResultadoMP("ORD01X", "PAY01X", "processed", "accredited", REF)
+    assert resultado == ResultadoMP("ORD01X", "PAY01X", "processed", "accredited", REF, Decimal("1500.00"))
     assert mp.llamadas == ["ORD01X"]
+
+
+@pytest.mark.parametrize(
+    ("informado", "esperado"),
+    [("1500.00", Decimal("1500.00")), ("1499.5", Decimal("1499.5")), (None, None), ("abc", None), ("", None)],
+)
+def test_consultar_orden_lee_el_total_amount_como_decimal_o_none_si_falta_o_es_invalido(
+    mp: MPFalso, informado: str | None, esperado: Decimal | None
+) -> None:
+    mp.responder_orden(order_id="ORD02", payment_id="PAY02", solo_consulta=True, total_amount=informado)
+
+    assert _pasarela().consultar_orden("ORD02").total_amount == esperado
 
 
 def test_consultar_orden_failed_expone_el_detalle_de_la_transaccion(mp: MPFalso) -> None:

@@ -37,7 +37,7 @@ Se mapea el estado de la **orden** (Orders):
 
 | MP (orden) | Local | Acción |
 |----|-------|--------|
-| `processed` (`accredited`; también `partially_refunded`) | `aprobado` | Pedido PENDIENTE→CONFIRMADO con descuento de stock (actor Sistema). Si el stock ya no alcanza: pedido CANCELADO («Sin stock») y el pago pasa al estado local `a_devolver` (devolución manual, PA-08) |
+| `processed` (`accredited`; también `partially_refunded`: el cobro existió y la parte devuelta la decide el comercio) | `aprobado` | Pedido PENDIENTE→CONFIRMADO con descuento de stock (actor Sistema), **solo si el `total_amount` de la orden coincide al centavo con el monto del intento**; si difiere o falta, el pago pasa a `a_devolver` (con `warning`) y el pedido no se confirma. Si el stock ya no alcanza: pedido CANCELADO («Sin stock») y el pago pasa al estado local `a_devolver` (devolución manual, PA-08) |
 | `created`, `processing` (`in_process`), `action_required` (`waiting_payment`, `pending_challenge`, …) | `pendiente` | Sin cambios; lo resuelve el webhook |
 | `failed`, `canceled`, `refunded`, `charged_back` | `rechazado` | Sin cambios; reintento posible (una nueva orden aprobada con otro `mp_order_id` se procesa) |
 | otros | — | `ignored` |
@@ -54,14 +54,16 @@ Tarjetas de prueba de Orders (el brick `CardPayment` genera el token; vencimient
 - Con las mismas credenciales, `POST /v1/payments` respondía 401 «Unauthorized use of live credentials» (causa `7`); `POST /v1/orders` las acepta.
 - Caso `APRO`: `POST /pagos/crear` → pago `aprobado`, orden `processed`/`accredited`, `mp_order_id` con prefijo `ORDTST…`, `mp_payment_id` con prefijo `PAY…`; pedido `CONFIRMADO` y stock descontado.
 - Unos 2–4 s después MercadoPago llama `POST /pagos/webhook?data.external_reference=<uuid>&data.id=ORDTST…&type=order` con `x-signature` y `x-request-id`, cuerpo `action: order.processed` con la orden en `data`; el backend responde 200 `already_processed` (la creación ya había confirmado el pedido).
-- **La firma validó con `data.id` en minúsculas** (con el id tal como llegó, no); se observó una sola notificación. El backend prueba ambas variantes; dejar solo la de minúsculas queda como decisión de seguimiento (OQ-13 de C-12).
+- **La firma validó con `data.id` en minúsculas** (con el id tal como llegó, no). Confirmado en cuatro notificaciones (una de C-12 y tres de `endurecimiento-pagos-webhook`, 2026-11-21): el backend valida solo esa forma y rechaza (401) un id firmado tal cual.
 - Pendiente de verificar: `FUND`, `OTHE`, `CONT`, reintento tras rechazo y qué responde MercadoPago ante una clave de idempotencia repetida (OQ-14).
+
+**Respuesta y ejecución del webhook (`endurecimiento-pagos-webhook`):** el 200 devuelve únicamente `{"status": "processed" | "already_processed" | "ignored"}`, sin datos del pago ni del pedido (el pedido actualizado solo viaja por WebSocket). El handler y `procesar_webhook` son sincrónicos: la consulta a MercadoPago y la base corren en el threadpool y no bloquean el event loop. Los logs no incluyen secretos ni el hash de la firma (test por endpoint).
 
 ## Webhook: objetivo y estado actual (C-05)
 
 | Aspecto | Estado |
 |---------|--------|
-| Firma `x-signature` | Validada con `MP_WEBHOOK_SECRET`: manifest `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, con `data.id` en minúsculas y, si no firma, tal cual; inválida → 401, sin secreto → 503 |
+| Firma `x-signature` | Validada con `MP_WEBHOOK_SECRET`: manifest `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, con `data.id` **solo en minúsculas** (un id firmado tal cual → 401); inválida → 401, sin secreto → 503 |
 | Tópico y consulta | Solo `order`; el estado no se toma del cuerpo: se consulta `GET /v1/orders/{id}`. 401/403 de MercadoPago al consultar → 503; otra falla → 502 |
 | Idempotencia | Por `mp_order_id` (texto) con `SELECT ... FOR UPDATE` sobre `pagos` (`decidir_transicion_pago`); `idempotency_key` es la clave de creación de la orden (`X-Idempotency-Key`) |
 | Transacción | Una sola: pago + transición del pedido + stock + historial (UoW reentrante con savepoint) |

@@ -34,6 +34,7 @@ class _PagoAprobadoSDK:
                 "id": order_id,
                 "status": "processed",
                 "status_detail": "accredited",
+                "total_amount": "1500.00",  # el monto de `_pedido_con_pago`
                 "external_reference": type(self).referencia,
                 "transactions": {"payments": [{"id": "PAY" + order_id[3:], "status": "processed", "status_detail": "accredited"}]},
             },

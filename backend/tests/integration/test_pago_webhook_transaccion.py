@@ -164,8 +164,10 @@ def test_el_router_solo_dispara_websocket_cuando_hay_pedido_actualizado(
     mp_sdk.responder_consulta("ORD1", referencia_de(session, cancelado.id))
     mp_sdk.responder_consulta("ORD2", referencia_de(session, pendiente.id))
 
-    post_webhook(client, "ORD1")
+    sin_pedido = post_webhook(client, "ORD1")
     assert enviados == []
+    assert sin_pedido.json() == {"status": "processed"}
 
-    post_webhook(client, "ORD2")
+    con_pedido = post_webhook(client, "ORD2")
+    assert con_pedido.json() == {"status": "processed"}  # el pedido viaja por WebSocket, no en el cuerpo
     assert enviados == [("role:KDS", "PEDIDO_CONFIRMADO"), (f"pedido:{pendiente.id}", "PEDIDO_CONFIRMADO")]
