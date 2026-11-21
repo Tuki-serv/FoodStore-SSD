@@ -40,7 +40,7 @@ Ingrediente N──1 UnidadMedida ; Producto N──0..1 UnidadMedida (unidad_ve
 
 > **Desviación de la spec (C-02, D5):** la spec lista `usuario_id` y `expires_at` (7 días) en `refresh_token` y no prevé una tabla de sesión. Con vencimiento fijo por sesión, un `expires_at` y un `usuario_id` por refresh duplicarían el dato y abrirían la puerta a que diverjan; se movieron a `sesion`. El comportamiento normativo se conserva: el refresh sirve como máximo 7 días desde el login, se guarda hasheado y se revoca con `revoked_at` (RN-AU-01, 04, 05).
 
-**DireccionEntrega** (`direccion_entrega`): `id`; `usuario_id` FK; `alias` VARCHAR(50) opcional; `linea1` TEXT NN; `linea2`; `ciudad` VARCHAR(100) NN; `provincia`; `codigo_postal` VARCHAR(10); `latitud`/`longitud` float (solo); `es_principal` BOOLEAN default false (solo una por usuario); auditoría + soft delete. (`[DESC]`: calle, número, piso, depto, referencia, `es_predeterminada` — IN-15.)
+**DireccionEntrega** (`direccion_entrega`): `id`; `usuario_id` FK; `alias` VARCHAR(50) opcional; `linea1` TEXT NN; `linea2`; `ciudad` VARCHAR(100) NN; `provincia`; `codigo_postal` VARCHAR(10); `latitud`/`longitud` float (solo); `es_principal` BOOLEAN default false (solo una activa por usuario, garantizado en base por el índice único parcial `uq_direccion_principal_activa` sobre `(usuario_id) WHERE es_principal AND deleted_at IS NULL`, migración `007`); auditoría + soft delete. (`[DESC]`: calle, número, piso, depto, referencia, `es_predeterminada` — IN-15.)
 
 ### Dominio 2
 

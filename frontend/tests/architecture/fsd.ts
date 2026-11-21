@@ -91,6 +91,27 @@ export function violacionesFsd(archivos: readonly ArchivoFuente[]): string[] {
   return violaciones.sort();
 }
 
+/** Capas donde cada carpeta de primer nivel es un slice (o, en `shared`, un segmento) con API pública obligatoria. */
+const CAPAS_CON_API_PUBLICA: readonly Capa[] = ['pages', 'widgets', 'features', 'entities', 'shared'];
+
+/**
+ * Carpetas `capa/slice` (o `shared/segmento`) que tienen archivos pero ningún `index.ts`/`index.tsx` en su raíz:
+ * sin él no hay API pública a la que apuntar los imports. Devuelve las rutas ordenadas; lista vacía = todo bien.
+ */
+export function slicesSinApiPublica(archivos: readonly ArchivoFuente[]): string[] {
+  const carpetas = new Set<string>();
+  const conIndice = new Set<string>();
+  for (const { ruta } of archivos) {
+    const segmentos = ruta.split('/');
+    const [capa, slice, ...resto] = segmentos;
+    if (!esCapa(capa) || !CAPAS_CON_API_PUBLICA.includes(capa) || slice === undefined || resto.length === 0) continue;
+    const carpeta = `${capa}/${slice}`;
+    carpetas.add(carpeta);
+    if (resto.length === 1 && /^index\.tsx?$/.test(resto[0] ?? '')) conIndice.add(carpeta);
+  }
+  return [...carpetas].filter((carpeta) => !conIndice.has(carpeta)).sort();
+}
+
 /** Lee recursivamente los `.ts`/`.tsx` de un directorio; `sufijo` (p. ej. `.fixture`) se quita de la ruta. */
 export function leerArbol(raiz: URL, sufijo = ''): ArchivoFuente[] {
   const base = fileURLToPath(raiz).split(sep).join('/').replace(/\/$/, '');

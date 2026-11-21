@@ -16,6 +16,7 @@ from app.modules.pagos.schemas import (
 from app.modules.pagos.dependencies import PaymentServiceDep
 from app.modules.pedidos.schemas import PedidoDetalle
 from app.core.websocket import manager
+from app.core.api_responses import respuestas_error
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ async def leer_notificacion(request: Request) -> NotificacionWebhook:
 
 
 # 1. Endpoint para crear el pago (La Ventanilla de Cobro)
-@router.post("/crear", response_model=PagoCrearResponse, status_code=201)
+@router.post("/crear", summary="Crear el pago de un pedido con MercadoPago", responses=respuestas_error(400, 401, 403, 404, 409, 502, 503), response_model=PagoCrearResponse, status_code=201)
 def crear_pago(
     data: CrearPagoRequest,
     background_tasks: BackgroundTasks,
@@ -76,7 +77,7 @@ def crear_pago(
 
 
 # 2. Endpoint para escuchar a MercadoPago (La Puerta Trasera)
-@router.post("/webhook", status_code=200, response_model=WebhookRespuesta)
+@router.post("/webhook", summary="Recibir la notificación de MercadoPago", responses=respuestas_error(400, 401, 502, 503), status_code=200, response_model=WebhookRespuesta)
 def webhook(
     notificacion: Annotated[NotificacionWebhook, Depends(leer_notificacion)],
     background_tasks: BackgroundTasks,
@@ -95,14 +96,14 @@ def webhook(
 
 
 # 3. Configuración pública para el brick (declarada ANTES de `/{pedido_id}`: `config` no es un id de pedido)
-@router.get("/config", response_model=ConfiguracionPagosResponse)
+@router.get("/config", summary="Obtener la clave pública de MercadoPago", responses=respuestas_error(401, 503), response_model=ConfiguracionPagosResponse)
 def configuracion_publica(current_user: CurrentUser, svc: PaymentServiceDep):
     """Clave pública de MercadoPago para inicializar `CardPayment`. Usuario activo, sin restricción de rol; 503 sin clave."""
     return svc.obtener_configuracion_publica()
 
 
 # 4. Endpoint para consultar el estado (El Mostrador de Consultas)
-@router.get("/{pedido_id}", response_model=PagoEstadoResponse)
+@router.get("/{pedido_id}", summary="Consultar el estado del pago de un pedido", responses=respuestas_error(401, 403, 404), response_model=PagoEstadoResponse)
 def consultar_pago(
     pedido_id: int,
     current_user: CurrentUser,

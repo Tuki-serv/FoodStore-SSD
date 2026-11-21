@@ -1,8 +1,8 @@
 # Food Store - Design System
 
 - Mode: system-and-mockups
-- Revision: 2
-- Approval: approved (2026-11-14, by user)
+- Revision: 3
+- Approval: approved (2026-11-21, by user)
 - Decision source: user chose `system-and-mockups` (2026-11-03)
 
 ## Purpose
@@ -10,7 +10,8 @@ Shared visual foundation for the Food Store frontend (React + TS + Vite + Tailwi
 
 ## Revision history
 - Revision 1: approved (2026-11-03, by user). Top navbar (`.topnav`).
-- Revision 2: approved (2026-11-14, by user). The top navbar is replaced by a left sidebar for the whole app (KB DD-25, requested by the course coordinator). Desktop (>= 1024px): collapsible to icons only. Mobile: hidden behind a menu button, opens as a drawer over the content. Colors, type, spacing and every other component are unchanged. No change mockup existed under Revision 1, so nothing needs re-rendering.
+- Revision 2: approved (2026-11-14, by user). The top navbar is replaced by a left sidebar for the whole app (KB DD-25, requested by the course coordinator). Desktop (>= 1024px): collapsible to icons only. Mobile: hidden behind a menu button, opens as a drawer over the content. Colors, type, spacing and every other component are unchanged.
+- Revision 3: approved (2026-11-21, by user) (C-25b1). `components.html` sprite now holds all 49 icons of `frontend/src/shared/ui/icon` (32 were missing; same strokes, checked by `frontend/tests/architecture/sprite-iconos.test.tsx`) plus an icon gallery section; new provisional `assets/favicon.svg` derived from `assets/logo.svg`. No screen changes: the icons already render in the app, so no change mockup needs re-rendering. Approved by the user on 2026-11-21. No change mockup existed under Revision 1, so nothing needs re-rendering.
 
 ## Sources
 - knowledge-base/README.md, 01, 02, 03, 06, 08, 13 (product, actors, stack)
@@ -21,7 +22,7 @@ Shared visual foundation for the Food Store frontend (React + TS + Vite + Tailwi
 ## Files
 - `brand.md` brand facts and tone; `brand.js` name constant bound to `[data-brand-name]`
 - `tokens.css` color, type, spacing, radii, shadow, focus, motion and app-shell tokens (+ reduced motion). Since C-13a the frontend imports it as is and the Tailwind theme only references these variables (`frontend/tailwind.config.ts`, checked by a test)
-- `components.html` component and state reference; `assets/logo.svg` provisional logo
+- `components.html` component and state reference; `assets/logo.svg` provisional logo; `assets/favicon.svg` provisional favicon (Revision 3, TBD: replace together with the logo)
 - `previews/components-desktop.png` (1440 wide, full page), `previews/components-mobile.png` (390 wide, full page)
 - `previews/nav-desktop-expanded.png`, `previews/nav-desktop-collapsed.png` (1440x900)
 - `previews/nav-mobile-closed.png`, `previews/nav-mobile-drawer.png` (390x844)

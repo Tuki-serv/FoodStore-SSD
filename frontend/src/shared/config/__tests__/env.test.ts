@@ -24,3 +24,19 @@ describe('readConfig con una URL inválida', () => {
     expect(readConfig({ VITE_API_URL: 'https://api.ejemplo.com:8443/v1' }).apiUrl).toBe('https://api.ejemplo.com:8443/v1');
   });
 });
+
+describe('readConfig distingue «valor vacío» de «URL inválida»', () => {
+  it.each([undefined, '', '   '])('%j es un valor que falta, no una URL inválida', (valor) => {
+    const intento = () => readConfig({ VITE_API_URL: valor });
+
+    expect(intento).toThrow(/^Falta la variable VITE_API_URL/);
+    expect(intento).not.toThrow(/URL http\(s\) válida/);
+  });
+
+  it.each(['no-es-url', 'localhost:8000', 'ftp://servidor/archivo'])('%s es una URL inválida, no un valor que falta', (valor) => {
+    const intento = () => readConfig({ VITE_API_URL: valor });
+
+    expect(intento).toThrow(/URL http\(s\) válida; recibió/);
+    expect(intento).not.toThrow(/^Falta/);
+  });
+});

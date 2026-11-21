@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { CLAVE_UI_STORAGE, useUiStore } from '@/shared/model';
 import { crearRouterDePrueba } from '@/test/router';
+import { esperarSinViolacionesA11y } from '@/test/axe';
 import { setViewport } from '@/test/viewport';
 import { AppShell } from '../app-shell';
 
@@ -226,5 +227,140 @@ describe('AppShell drawer en mobile', () => {
     renderShell('/catalogo');
 
     expect(sidebar()).not.toHaveClass('is-collapsed');
+  });
+});
+
+describe('AppShell drawer mobile como diálogo modal', () => {
+  const abrir = async (props: Parameters<typeof AppShell>[0] = {}) => {
+    setViewport(390);
+    const usuario = userEvent.setup();
+    renderShell('/catalogo', props);
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    return usuario;
+  };
+
+  it('abierto, el drawer es un diálogo modal con nombre accesible que contiene la navegación y «Cerrar menú»', async () => {
+    await abrir();
+
+    const dialogo = screen.getByRole('dialog', { name: 'Menú' });
+    expect(dialogo).toHaveAttribute('aria-modal', 'true');
+    expect(within(dialogo).getByRole('navigation', { name: 'Principal' })).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: 'Cerrar menú' })).toBeInTheDocument();
+  });
+
+  it('Tab desde el último enfocable del drawer vuelve al primero', async () => {
+    const usuario = await abrir();
+    const dialogo = screen.getByRole('dialog', { name: 'Menú' });
+    const enlaces = within(dialogo).getAllByRole('link');
+    enlaces[enlaces.length - 1]?.focus();
+
+    await usuario.tab();
+
+    expect(within(dialogo).getByRole('button', { name: 'Cerrar menú' })).toHaveFocus();
+  });
+
+  it('Shift+Tab desde «Cerrar menú» pasa al último enfocable del drawer', async () => {
+    const usuario = await abrir();
+    const dialogo = screen.getByRole('dialog', { name: 'Menú' });
+    const enlaces = within(dialogo).getAllByRole('link');
+    expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveFocus();
+
+    await usuario.tab({ shift: true });
+
+    expect(enlaces[enlaces.length - 1]).toHaveFocus();
+  });
+
+  it('con el drawer abierto la barra superior y la página quedan inertes', async () => {
+    await abrir();
+
+    expect(screen.getByRole('main').closest('[inert]')).not.toBeNull();
+    expect(document.querySelector('.topbar')?.closest('[inert]')).not.toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Menú' }).closest('[inert]')).toBeNull();
+  });
+
+  it('al cerrar, la página deja de estar inerte y no queda ningún diálogo', async () => {
+    const usuario = await abrir();
+
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar menú' }));
+
+    expect(screen.getByRole('main').closest('[inert]')).toBeNull();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('cerrado en mobile no es diálogo ni deja nada inerte', () => {
+    setViewport(390);
+    renderShell('/catalogo');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(document.querySelector('[inert]')).toBeNull();
+  });
+
+  it('en desktop el panel es navegación sin rol de diálogo y nada está inerte', () => {
+    setViewport(1440);
+    renderShell('/catalogo');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(document.getElementById('sidebar')).not.toHaveAttribute('aria-modal');
+    expect(document.querySelector('[inert]')).toBeNull();
+  });
+
+  it('el shell con el drawer abierto no tiene violaciones de accesibilidad', async () => {
+    await abrir({ roles: ['CLIENT'], usuario: { nombre: 'Ana Gómez', rolPrincipal: 'CLIENT' } });
+
+    await esperarSinViolacionesA11y(document.body);
+  });
+});
+
+describe('AppShell drawer: foco e identidad del panel (verify C-25b1)', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  /** jsdom no implementa `inert`: un navegador real no deja enfocar un elemento dentro de un subárbol inerte, y esto lo imita. */
+  function simularInert(): void {
+    const original = HTMLElement.prototype.focus;
+    vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, opciones?: FocusOptions) {
+      if (this.closest('[inert]') !== null) return;
+      original.call(this, opciones);
+    });
+  }
+
+  it('al cerrar con Escape el foco vuelve a «Abrir menú» aunque el navegador ignore focus() dentro de un subárbol inerte', async () => {
+    setViewport(390);
+    simularInert();
+    const usuario = userEvent.setup();
+    renderShell('/catalogo');
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveFocus();
+
+    await usuario.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveFocus();
+  });
+
+  it('al cerrar con «Cerrar menú» el foco vuelve a «Abrir menú» con la misma simulación de inert', async () => {
+    setViewport(390);
+    simularInert();
+    const usuario = userEvent.setup();
+    renderShell('/catalogo');
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar menú' }));
+
+    expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveFocus();
+  });
+
+  it('el panel es el mismo nodo del DOM al abrir y cerrar (la transición de deslizamiento no se interrumpe)', async () => {
+    setViewport(390);
+    const usuario = userEvent.setup();
+    renderShell('/catalogo');
+    const inicial = sidebar();
+
+    await usuario.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    expect(sidebar()).toBe(inicial);
+    expect(screen.getByRole('dialog', { name: 'Menú' })).toBe(inicial);
+
+    await usuario.keyboard('{Escape}');
+    expect(sidebar()).toBe(inicial);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary')).toBe(inicial);
   });
 });

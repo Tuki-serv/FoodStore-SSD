@@ -10,7 +10,10 @@ import { ResumenDireccion } from './resumen-direccion';
 export interface SelectorDireccionProps {
   /** Dirección elegida: id, `null` = retiro en el local, `undefined` = todavía sin elegir. */
   valor: number | null | undefined;
-  onCambiar: (valor: number | null) => void;
+  /** `origen` distingue la elección del usuario de la preselección automática (esta no debe borrar avisos de error ajenos). */
+  onCambiar: (valor: number | null, origen: 'usuario' | 'automatico') => void;
+  /** Preselecciona una dirección válida cuando no hay elección o dejó de existir (por defecto sí). Apagado, solo elige el usuario. */
+  autoSeleccionar?: boolean;
   /** Muestra la opción «Retiro en el local» (por defecto sí). */
   permitirRetiro?: boolean;
   /** Leyenda del grupo (por defecto «¿Dónde lo recibís?»). */
@@ -22,7 +25,7 @@ export interface SelectorDireccionProps {
  * (sin elegir, o con una dirección que ya no existe) informa por `onCambiar` la dirección por defecto: la principal,
  * si no la primera y, sin direcciones, el retiro si está habilitado.
  */
-export function SelectorDireccion({ valor, onCambiar, permitirRetiro = true, leyenda = '¿Dónde lo recibís?' }: SelectorDireccionProps) {
+export function SelectorDireccion({ valor, onCambiar, autoSeleccionar = true, permitirRetiro = true, leyenda = '¿Dónde lo recibís?' }: SelectorDireccionProps) {
   const nombre = useId();
   const consulta = useQuery(direccionQueries.lista({ page: 1, size: TAMANO_LISTA_COMPLETA }));
   const { data } = consulta;
@@ -33,13 +36,13 @@ export function SelectorDireccion({ valor, onCambiar, permitirRetiro = true, ley
   });
 
   useEffect(() => {
-    if (data === undefined) return;
+    if (data === undefined || !autoSeleccionar) return;
     const valida = valor === null ? permitirRetiro : valor !== undefined && data.items.some((direccion) => direccion.id === valor);
     if (valida) return;
     const porDefecto = direccionPorDefecto(data.items);
-    if (porDefecto !== null) onCambiarRef.current(porDefecto);
-    else if (permitirRetiro) onCambiarRef.current(null);
-  }, [data, valor, permitirRetiro]);
+    if (porDefecto !== null) onCambiarRef.current(porDefecto, 'automatico');
+    else if (permitirRetiro) onCambiarRef.current(null, 'automatico');
+  }, [data, valor, permitirRetiro, autoSeleccionar]);
 
   if (data === undefined) {
     if (consulta.isError) {
@@ -83,13 +86,13 @@ export function SelectorDireccion({ valor, onCambiar, permitirRetiro = true, ley
         ) : null}
         {data.items.map((direccion) => (
           <label key={direccion.id} className={valor === direccion.id ? 'opt is-checked' : 'opt'}>
-            <input type="radio" name={nombre} checked={valor === direccion.id} onChange={() => onCambiar(direccion.id)} />
+            <input type="radio" name={nombre} checked={valor === direccion.id} onChange={() => onCambiar(direccion.id, 'usuario')} />
             <ResumenDireccion direccion={direccion} />
           </label>
         ))}
         {permitirRetiro ? (
           <label className={valor === null ? 'opt is-checked' : 'opt'}>
-            <input type="radio" name={nombre} checked={valor === null} onChange={() => onCambiar(null)} />
+            <input type="radio" name={nombre} checked={valor === null} onChange={() => onCambiar(null, 'usuario')} />
             <span className="addr-body">
               <span className="addr-title">
                 <Icon name="tienda" className="h-[18px] w-[18px]" />

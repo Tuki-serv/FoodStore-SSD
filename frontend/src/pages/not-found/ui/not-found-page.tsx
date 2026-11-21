@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { RUTAS } from '@/shared/config';
 import { Icon, claseBoton } from '@/shared/ui';
 
-/** 404 dentro del shell: muestra la ruta pedida y un enlace al catálogo. */
+/** 404 dentro del shell: muestra la ruta pedida y un enlace al catálogo. El título mide 2rem como en el mockup aprobado de C-13a (a 390 px ocupa dos líneas). */
 export function NotFoundPage() {
   const { pathname } = useLocation();
 
@@ -16,7 +16,7 @@ export function NotFoundPage() {
         <span className="font-display text-3xl font-extrabold leading-none tracking-[.04em] text-primary" aria-hidden="true">
           404
         </span>
-        <h1 id="not-found-titulo" className="text-2xl">
+        <h1 id="not-found-titulo" className="text-[2rem]">
           Página no encontrada
         </h1>
         <p className="max-w-[40ch] text-text-muted">

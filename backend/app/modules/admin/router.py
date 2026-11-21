@@ -37,6 +37,7 @@ from app.modules.usuarios.schemas import (
     UserPublicAdminPanel,
     UserUpdateAdmin,
 )
+from app.core.api_responses import respuestas_error
 
 
 TipoEntidadImagen = Literal["categoria", "ingrediente", "producto"]
@@ -95,7 +96,7 @@ usuarios_admin_router = APIRouter(
     dependencies=[Depends(require_role(["ADMIN"]))]
 )
 
-@usuarios_admin_router.post("/createUser", response_model=UserPublicAdminPanel, status_code=status.HTTP_201_CREATED)
+@usuarios_admin_router.post("/createUser", summary="Crear un usuario (ADMIN)", responses=respuestas_error(401, 403, 409), response_model=UserPublicAdminPanel, status_code=status.HTTP_201_CREATED)
 def create_user_by_admin(
     data: UserCreateAdmin,
     svc: UsuarioServiceDep,
@@ -107,7 +108,7 @@ def create_user_by_admin(
     return svc.create_user_admin(user_in=user_in, roles_codigos=data.roles_codigos, actor_id=actor.id)
 
 
-@usuarios_admin_router.get("/", response_model=PaginatedResponse[UserPublicAdminPanel])
+@usuarios_admin_router.get("/", summary="Listar usuarios (ADMIN)", responses=respuestas_error(401, 403), response_model=PaginatedResponse[UserPublicAdminPanel])
 def get_all_users(
     svc: UsuarioServiceDep, 
     params: PageQuery,
@@ -117,13 +118,13 @@ def get_all_users(
     return svc.get_all_users(params=params, rol_codigo=rol_codigo)
 
 
-@usuarios_admin_router.patch("/{user_id}", response_model=UserPublicAdminPanel)
+@usuarios_admin_router.patch("/{user_id}", summary="Actualizar un usuario y sus roles (ADMIN)", responses=respuestas_error(401, 403, 404, 409), response_model=UserPublicAdminPanel)
 def update_user_by_admin(user_id: int, data: UserUpdateAdmin, svc: UsuarioServiceDep, actor: AdminActual) -> Any:
     """El Admin actualiza los datos y/o los roles de cualquier usuario."""
     return svc.update_user_by_admin(actor.id, user_id, data)
 
 
-@usuarios_admin_router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@usuarios_admin_router.delete("/{user_id}", summary="Dar de baja a un usuario (ADMIN)", responses=respuestas_error(401, 403, 404, 409), status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, svc: UsuarioServiceDep, actor: AdminActual) -> None:
     """Aplica un borrado lógico (soft delete) a un usuario."""
     svc.desactivar_usuario(actor.id, user_id)
@@ -139,7 +140,7 @@ estadisticas_router = APIRouter(
     dependencies=[Depends(require_role(["ADMIN"]))]
 )
 
-@estadisticas_router.get("/ventas", response_model=List[VentasPeriodoItem])
+@estadisticas_router.get("/ventas", summary="Ventas por período", responses=respuestas_error(401, 403), response_model=List[VentasPeriodoItem])
 def get_ventas(
     rango: RangoFechasDep,
     service: EstadisticasServiceDep,
@@ -147,7 +148,7 @@ def get_ventas(
 ):
     return service.ventas_por_periodo(rango.desde, rango.hasta, agrupacion)
 
-@estadisticas_router.get("/productos-top", response_model=List[ProductoTopItem])
+@estadisticas_router.get("/productos-top", summary="Productos más vendidos", responses=respuestas_error(401, 403), response_model=List[ProductoTopItem])
 def get_productos_top(
     rango: RangoFechasDep,
     service: EstadisticasServiceDep,
@@ -155,14 +156,14 @@ def get_productos_top(
 ):
     return service.productos_top(rango.desde, rango.hasta, limit)
 
-@estadisticas_router.get("/pedidos-por-estado", response_model=List[PedidosEstadoItem])
+@estadisticas_router.get("/pedidos-por-estado", summary="Pedidos por estado", responses=respuestas_error(401, 403), response_model=List[PedidosEstadoItem])
 def get_pedidos_estado(rango: RangoFechasDep, service: EstadisticasServiceDep):
     return service.pedidos_por_estado(rango.desde, rango.hasta)
 
-@estadisticas_router.get("/ingresos", response_model=List[IngresosResponse])
+@estadisticas_router.get("/ingresos", summary="Ingresos por período", responses=respuestas_error(401, 403), response_model=List[IngresosResponse])
 def get_ingresos(rango: RangoFechasDep, service: EstadisticasServiceDep):
     return service.ingresos_por_forma_pago(rango.desde, rango.hasta)
 
-@estadisticas_router.get("/resumen", response_model=ResumenResponse)
+@estadisticas_router.get("/resumen", summary="Resumen del dashboard", responses=respuestas_error(401, 403), response_model=ResumenResponse)
 def get_resumen(rango: RangoFechasDep, service: EstadisticasServiceDep):
     return service.resumen(rango.desde, rango.hasta)

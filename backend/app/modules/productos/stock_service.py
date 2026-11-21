@@ -22,17 +22,19 @@ class LineaStock:
 class StockInsuficiente(Exception):
     """El stock actual de un producto no alcanza para la cantidad pedida (o el producto ya fue eliminado)."""
 
-    def __init__(self, producto_nombre: str) -> None:
+    def __init__(self, producto_nombre: str, producto_id: int | None = None) -> None:
         super().__init__(f"No hay stock suficiente para {producto_nombre}")
         self.producto_nombre = producto_nombre
+        self.producto_id = producto_id
 
 
 class ProductoNoDisponible(Exception):
     """El producto está marcado como no disponible (o no existe / fue eliminado)."""
 
-    def __init__(self, producto_nombre: str) -> None:
+    def __init__(self, producto_nombre: str, producto_id: int | None = None) -> None:
         super().__init__(f"Producto no disponible: {producto_nombre}")
         self.producto_nombre = producto_nombre
+        self.producto_id = producto_id
 
 
 def _esta_activo(producto: Producto | None) -> bool:
@@ -48,9 +50,9 @@ class StockService:
         for producto_id, cantidad in self._agrupar(lineas):
             producto = self._productos.get_by_id(producto_id)
             if producto is None or not _esta_activo(producto) or not producto.disponible:
-                raise ProductoNoDisponible(producto.nombre if producto else f"#{producto_id}")
+                raise ProductoNoDisponible(producto.nombre if producto else f"#{producto_id}", producto_id)
             if producto.stock_cantidad < cantidad:
-                raise StockInsuficiente(producto.nombre)
+                raise StockInsuficiente(producto.nombre, producto_id)
 
     def alcanza(self, lineas: list[LineaStock]) -> Producto | None:
         """Bloquea las filas y devuelve el primer producto cuyo stock no alcanza, o `None` si todo alcanza."""
@@ -61,7 +63,7 @@ class StockService:
         """Resta todas las líneas o ninguna: lanza `StockInsuficiente` antes de escribir si alguna no alcanza."""
         bloqueados, faltante = self._bloquear(lineas, exigir_activos=True)
         if faltante is not None:
-            raise StockInsuficiente(faltante.nombre)
+            raise StockInsuficiente(faltante.nombre, faltante.id)
         self._aplicar(bloqueados, signo=-1)
 
     def devolver(self, lineas: list[LineaStock]) -> None:

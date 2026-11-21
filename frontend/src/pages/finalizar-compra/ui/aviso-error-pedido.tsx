@@ -11,18 +11,21 @@ export interface AvisoErrorPedidoProps {
   onReintentar: () => void;
   /** Lleva el foco al grupo de forma de pago. */
   onElegirOtraFormaPago: () => void;
+  /** Lleva el foco al paso de entrega (las direcciones ya se volvieron a pedir). */
+  onElegirOtraEntrega: () => void;
 }
 
 const AYUDA: Record<ClaseErrorCreacion, string> = {
   productos: 'Revisá el carrito: puede que un producto se haya agotado, ya no esté a la venta o haya cambiado. Tu carrito sigue intacto.',
   'forma-pago': 'Elegí otra forma de pago y volvé a confirmar.',
+  entrega: 'Elegí otra entrega y volvé a confirmar.',
   conexion: 'Revisá tu conexión. Si el pedido no llegó a crearse, podés reintentar con los mismos datos.',
   'sin-permiso': 'Solo las cuentas de cliente pueden hacer pedidos.',
-  otro: 'Revisá el carrito o elegí otra forma de pago y volvé a confirmar.',
+  otro: 'Revisá tu pedido y volvé a confirmar.',
 };
 
 /** Aviso de rechazo al crear el pedido: muestra el mensaje del servidor, recibe el foco y ofrece la acción que corresponde al caso. */
-export function AvisoErrorPedido({ error, onReintentar, onElegirOtraFormaPago }: AvisoErrorPedidoProps) {
+export function AvisoErrorPedido({ error, onReintentar, onElegirOtraFormaPago, onElegirOtraEntrega }: AvisoErrorPedidoProps) {
   const ref = useRef<HTMLDivElement>(null);
   const clase = clasificarErrorCreacion(error);
 
@@ -41,13 +44,18 @@ export function AvisoErrorPedido({ error, onReintentar, onElegirOtraFormaPago }:
           {error.detail.endsWith('.') ? '' : '.'} {AYUDA[clase]}
         </p>
         <div className="alert-actions">
-          {clase === 'productos' || clase === 'otro' ? (
+          {clase === 'productos' ? (
             <Link className={claseBoton('secundario', { compacto: true })} to={RUTAS.carrito}>
               <Icon name="carrito" />
               Revisar carrito
             </Link>
           ) : null}
-          {clase === 'forma-pago' || clase === 'otro' ? (
+          {clase === 'entrega' ? (
+            <button type="button" className={claseBoton('secundario', { compacto: true })} onClick={onElegirOtraEntrega}>
+              Elegí otra entrega
+            </button>
+          ) : null}
+          {clase === 'forma-pago' ? (
             <button type="button" className={claseBoton('secundario', { compacto: true })} onClick={onElegirOtraFormaPago}>
               Elegí otra forma de pago
             </button>

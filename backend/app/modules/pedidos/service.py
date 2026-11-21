@@ -91,21 +91,15 @@ class PedidoService:
                 mensaje="Estado inicial no configurado",
                 status_code=500,
             )
-            items_unicos = set()
-            for item in data.items:
-                pers = tuple(sorted(item.personalizacion)) if item.personalizacion else tuple()
-                identificador = (item.producto_id, pers)
-                if identificador in items_unicos:
-                    raise AppError.http(400, "No puede pedir dos veces el mismo producto con la misma personalización")
-                items_unicos.add(identificador)
+            self._validar_direccion(uow, data.direccion_id, usuario_id)
+            self._validar_lineas_unicas(data)
             subtotal = Decimal("0.00")
             detalles_creados = []
-            for item in data.items:
+            for indice, item in enumerate(data.items):
                 producto = uow.productos.get_by_id(item.producto_id)
-                if producto is None:
-                    raise AppError.http(404, "Producto no encontrado")
-                if getattr(producto, "deleted_at", None) is not None:
-                    raise AppError.http(404, "Producto no encontrado")
+                if producto is None or getattr(producto, "deleted_at", None) is not None:
+                    raise AppError(404, ErrorCode.PRODUCT_NOT_FOUND, "Producto no encontrado", self._campo_linea(indice, "producto_id"))
+                nombres_removidos = self._nombres_removidos(uow, item, indice)
                 precio_snapshot = producto.precio_base
                 subtotal_snapshot = precio_snapshot * item.cantidad
                 subtotal += subtotal_snapshot
@@ -114,6 +108,7 @@ class PedidoService:
                         "item": item,
                         "producto": producto,
                         "subtotal_snapshot": subtotal_snapshot,
+                        "nombres_removidos": nombres_removidos,
                     }
                 )
             self._verificar_stock_al_crear(uow, data)
@@ -135,26 +130,15 @@ class PedidoService:
             for detalle_creado in detalles_creados:
                 item = detalle_creado["item"]
                 producto = detalle_creado["producto"]
-                subtotal_snapshot = detalle_creado["subtotal_snapshot"]
-                
-                # Snapshot personalizacion
-                nombres_removidos = None
-                if item.personalizacion:
-                    nombres_removidos = []
-                    for ing_id in item.personalizacion:
-                        ing = uow.ingredientes.get_by_id(ing_id)
-                        if ing:
-                            nombres_removidos.append(ing.nombre)
-                
                 detalle = DetallePedido(
                     pedido_id=pedido.id,
                     producto_id=item.producto_id,
                     cantidad=item.cantidad,
                     nombre_snapshot=producto.nombre,
                     precio_snapshot=producto.precio_base,
-                    subtotal_snapshot=subtotal_snapshot,
+                    subtotal_snapshot=detalle_creado["subtotal_snapshot"],
                     personalizacion=item.personalizacion,
-                    personalizacion_snapshot=nombres_removidos,
+                    personalizacion_snapshot=detalle_creado["nombres_removidos"],
                 )
                 uow.detalles.add(detalle)
             self._registrar_historial(
@@ -168,15 +152,59 @@ class PedidoService:
             return self._armar_detalle(uow, pedido)
 
     @staticmethod
-    def _verificar_stock_al_crear(uow: PedidoUnitOfWork, data: PedidoCreate) -> None:
+    def _campo_linea(indice: int, campo: str) -> str:
+        """`field` posicional de un rechazo de línea: `items.<índice>.<campo>` (índice en el request)."""
+        return f"items.{indice}.{campo}"
+
+    @staticmethod
+    def _validar_direccion(uow: PedidoUnitOfWork, direccion_id: int | None, usuario_id: int) -> None:
+        """La dirección debe ser una activa del usuario; si no, 404 sin revelar si existe (`None` = retiro en el local)."""
+        if direccion_id is not None and uow.direcciones.get_activa_de_usuario(direccion_id, usuario_id) is None:
+            raise AppError(404, ErrorCode.ADDRESS_NOT_FOUND, "Dirección no encontrada", "direccion_id")
+
+    def _validar_lineas_unicas(self, data: PedidoCreate) -> None:
+        items_unicos = set()
+        for indice, item in enumerate(data.items):
+            identificador = (item.producto_id, tuple(sorted(item.personalizacion or ())))
+            if identificador in items_unicos:
+                raise AppError(
+                    400,
+                    ErrorCode.DUPLICATE_ITEM,
+                    "No puede pedir dos veces el mismo producto con la misma personalización",
+                    self._campo_linea(indice, "producto_id"),
+                )
+            items_unicos.add(identificador)
+
+    def _nombres_removidos(self, uow: PedidoUnitOfWork, item, indice: int) -> list[str] | None:
+        """Nombres de los ingredientes quitados; cada id debe ser un ingrediente removible del producto."""
+        if not item.personalizacion:
+            return None
+        removibles = uow.producto_ingredientes.ids_removibles(item.producto_id)
+        if not set(item.personalizacion) <= removibles:
+            raise AppError(
+                400,
+                ErrorCode.INVALID_CUSTOMIZATION,
+                "La personalización solo puede quitar ingredientes removibles del producto",
+                self._campo_linea(indice, "personalizacion"),
+            )
+        return [uow.ingredientes.get_by_id(ing_id).nombre for ing_id in item.personalizacion]
+
+    def _verificar_stock_al_crear(self, uow: PedidoUnitOfWork, data: PedidoCreate) -> None:
         """Crear solo verifica disponibilidad y stock (sumando líneas del mismo producto); el descuento es al confirmar."""
         lineas = [LineaStock(item.producto_id, item.cantidad) for item in data.items]
         try:
             StockService(uow.productos).verificar(lineas)
-        except ProductoNoDisponible:
-            raise AppError.http(400, "Producto no disponible")
-        except StockInsuficiente:
-            raise AppError.http(400, "No hay stock suficiente")
+        except ProductoNoDisponible as exc:
+            raise AppError(400, ErrorCode.PRODUCT_UNAVAILABLE, "Producto no disponible", self._campo_de(data, exc.producto_id))
+        except StockInsuficiente as exc:
+            raise AppError(400, ErrorCode.INSUFFICIENT_STOCK, "No hay stock suficiente", self._campo_de(data, exc.producto_id))
+
+    def _campo_de(self, data: PedidoCreate, producto_id: int | None) -> str | None:
+        """`field` de la primera línea del request con ese producto."""
+        for indice, item in enumerate(data.items):
+            if item.producto_id == producto_id:
+                return self._campo_linea(indice, "producto_id")
+        return None
 
     def _obtener_pedido_visible(
         self, uow: PedidoUnitOfWork, pedido_id: int, usuario_id: int, roles: AbstractSet[str]
@@ -273,9 +301,9 @@ class PedidoService:
     def _validar_forma_pago(self, uow, codigo: str):
         forma_pago = uow.formas_pago.get_by_codigo(codigo)
         if forma_pago is None:
-            raise AppError.http(400, "Forma de pago no encontrada")
+            raise AppError(400, ErrorCode.PAYMENT_METHOD_UNAVAILABLE, "Forma de pago no encontrada", "forma_pago_codigo")
         if not forma_pago.habilitado:
-            raise AppError.http(400, "Forma de pago no está habilitada")
+            raise AppError(400, ErrorCode.PAYMENT_METHOD_UNAVAILABLE, "Forma de pago no está habilitada", "forma_pago_codigo")
         return forma_pago
 
     def _obtener_estado_o_error(

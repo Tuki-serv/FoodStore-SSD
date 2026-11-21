@@ -47,6 +47,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      target: dev
     env_file:
       - ./frontend/.env
     ports:
@@ -55,6 +56,24 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - ./design-system:/design-system:ro
+    depends_on:
+      - backend
+
+  # Sitio estatico (build de Vite + nginx) en http://localhost:8080. Solo con el perfil `prod`:
+  #   docker compose --profile prod up -d --build frontend-prod
+  # VITE_API_URL (de la raiz o del entorno) se incrusta al construir; la API debe ser alcanzable desde el navegador.
+  # design-system/ llega como contexto adicional (el contexto ./frontend no lo incluye).
+  frontend-prod:
+    profiles: ["prod"]
+    build:
+      context: ./frontend
+      target: prod
+      additional_contexts:
+        design-system: ./design-system
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "8080:80"
     depends_on:
       - backend
 

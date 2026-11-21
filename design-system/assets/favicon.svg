@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Food Store - PROVISIONAL placeholder favicon (derived from logo.svg)</title>
+  <!-- Provisional (TBD): the mark of assets/logo.svg without the wordmark. Replace together with the logo. -->
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#B8400F"/>
+  <path d="M16 24h24a8 8 0 0 1 0 16H16z" fill="#FFF8EE"/>
+  <circle cx="40" cy="32" r="4" fill="#B8400F"/>
+</svg>

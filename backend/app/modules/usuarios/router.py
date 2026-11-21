@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from app.modules.auth.dependencies import get_current_active_user
 from app.modules.usuarios.schemas import UserPublic, UserUpdateClient
 from app.modules.usuarios.dependencies import UsuarioServiceDep
+from app.core.api_responses import respuestas_error
 
 
 # ==========================================
@@ -16,7 +17,7 @@ CurrentUser = Annotated[UserPublic, Depends(get_current_active_user)]
 # ==========================================
 usuarios_router = APIRouter(prefix="/usuarios", tags=["Usuarios (Mi Perfil)"])
 
-@usuarios_router.patch("/me", response_model=UserPublic)
+@usuarios_router.patch("/me", summary="Actualizar mi perfil", responses=respuestas_error(401, 409), response_model=UserPublic)
 def update_user_me(data: UserUpdateClient, current_user: CurrentUser, svc: UsuarioServiceDep) -> Any:
     """Actualiza los datos básicos del usuario logueado (sin tocar roles)."""
     return svc.update_profile(current_user.id, data)

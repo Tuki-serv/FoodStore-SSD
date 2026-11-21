@@ -29,7 +29,7 @@ def test_categoria_inexistente_responde_404_con_codigo_http_404_y_el_detalle_del
     assert response.json() == {"detail": "Categoria no encontrado/a", "code": "HTTP_404", "field": None}
 
 
-def test_pedido_con_producto_inexistente_responde_404_con_codigo_http_404(
+def test_pedido_con_producto_inexistente_responde_404_con_codigo_product_not_found(
     client: TestClient, user_auth_headers: dict, direccion_db
 ) -> None:
     payload = {
@@ -41,4 +41,8 @@ def test_pedido_con_producto_inexistente_responde_404_con_codigo_http_404(
     response = client.post("/api/v1/pedidos/", json=payload, headers=user_auth_headers)
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Producto no encontrado", "code": "HTTP_404", "field": None}
+    assert response.json() == {
+        "detail": "Producto no encontrado",
+        "code": "PRODUCT_NOT_FOUND",
+        "field": "items.0.producto_id",
+    }

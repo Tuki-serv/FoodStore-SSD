@@ -163,3 +163,11 @@ class ProductoIngredienteRepository(BaseRepository[ProductoIngrediente]):
 
     def list_by_ingrediente(self, ingrediente_id: int) -> list[ProductoIngrediente]:
         return list(self.session.exec(select(ProductoIngrediente).where(ProductoIngrediente.ingrediente_id == ingrediente_id).order_by(cast(Any, ProductoIngrediente.producto_id))).all())
+
+    def ids_removibles(self, producto_id: int) -> set[int]:
+        """Ids de los ingredientes que el cliente puede quitar del producto."""
+        return {
+            relacion.ingrediente_id
+            for relacion in self.list_by_producto(producto_id)
+            if relacion.es_removible
+        }

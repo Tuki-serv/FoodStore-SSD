@@ -30,7 +30,7 @@ Cada regla tiene código `RN-{DOMINIO}-{NN}`. Origen entre corchetes: `[DESC]`, 
 
 ## Dominio: Direcciones de Entrega (RN-DI)
 
-- **RN-DI-01**: Un usuario puede tener varias direcciones; solo **una** es principal (`es_principal`). `[DESC,INT]`
+- **RN-DI-01**: Un usuario puede tener varias direcciones; solo **una** es principal (`es_principal`); la base lo garantiza con el índice único parcial `uq_direccion_principal_activa` (migración `007`, C-25b1) y una carrera al marcar principal responde 409 `DUPLICATE_VALUE`. `[DESC,INT]`
 - **RN-DI-02**: La primera dirección creada se marca principal automáticamente; `PATCH /{id}/principal` desmarca la anterior y marca la nueva (idempotente si ya es principal).
 - **RN-DI-03**: Un usuario no puede leer/modificar/borrar direcciones ajenas (403 "No tienes permisos para operar sobre esta dirección").
 - **RN-DI-04**: `Pedido.direccion_id` puede ser NULL (retiro en local) y pasa a NULL si la dirección se elimina (`SET NULL`). `[INT]`

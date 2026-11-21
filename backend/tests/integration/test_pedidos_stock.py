@@ -4,7 +4,8 @@ from sqlmodel import Session, select
 
 from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pedidos.models import Pedido
-from app.modules.productos.models import Producto
+from app.modules.ingredientes.models import Ingrediente
+from app.modules.productos.models import Producto, ProductoIngrediente
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
 
 
@@ -57,16 +58,25 @@ def test_crear_un_pedido_no_descuenta_el_stock(
 
 
 def test_crear_con_dos_lineas_del_mismo_producto_que_suman_mas_que_el_stock_responde_400_y_no_crea_pedido(
-    client: TestClient, session: Session, user_auth_headers: dict, direccion_db
+    client: TestClient, session: Session, user_auth_headers: dict, direccion_db, unidad_medida_db
 ) -> None:
     a = _producto(session, "Stock A", 5)
+    sin_sal = Ingrediente(nombre="Sal Stock A", unidad_medida_id=unidad_medida_db.id)
+    session.add(sin_sal)
+    session.commit()
+    session.add(
+        ProductoIngrediente(
+            producto_id=a.id, ingrediente_id=sin_sal.id, cantidad="1.000", unidad_medida_id=unidad_medida_db.id, es_removible=True
+        )
+    )
+    session.commit()
     pedidos_antes = len(session.exec(select(Pedido)).all())
     payload = {
         "direccion_id": direccion_db.id,
         "forma_pago_codigo": "EFECTIVO",
         "items": [
             {"producto_id": a.id, "cantidad": 3},
-            {"producto_id": a.id, "cantidad": 3, "personalizacion": [987654]},
+            {"producto_id": a.id, "cantidad": 3, "personalizacion": [sin_sal.id]},
         ],
     }
 
@@ -74,6 +84,7 @@ def test_crear_con_dos_lineas_del_mismo_producto_que_suman_mas_que_el_stock_resp
 
     assert response.status_code == 400
     assert "stock" in response.json()["detail"]
+    assert response.json()["code"] == "INSUFFICIENT_STOCK"
     assert len(session.exec(select(Pedido)).all()) == pedidos_antes
     assert _stock(session, a.id) == 5
 
