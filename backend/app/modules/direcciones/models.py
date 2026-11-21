@@ -1,6 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 from datetime import datetime
-from sqlalchemy import BigInteger, Text
+from sqlalchemy import BigInteger, Index, Text, text
+from sqlalchemy.orm import declared_attr
 from sqlmodel import SQLModel, Field, Relationship
 
 from app.core.timestamps import aware_datetime_field
@@ -10,7 +11,19 @@ if TYPE_CHECKING:
 
 class DireccionEntrega(SQLModel, table=True):
     __tablename__ = "direccion_entrega"
-    
+
+    @declared_attr
+    def __table_args__(cls):
+        return (
+            # RN-DI-01 sostenida por la base: una sola principal activa por usuario (migración 007).
+            Index(
+                "uq_direccion_principal_activa",
+                "usuario_id",
+                unique=True,
+                postgresql_where=text("es_principal AND deleted_at IS NULL"),
+            ),
+        )
+
     id: Optional[int] = Field(default=None, primary_key=True)
     # usuario_id: int = Field(foreign_key="usuario.id", sa_type=BigInteger)
     usuario_id: int = Field(foreign_key="usuario.id", sa_type=BigInteger)

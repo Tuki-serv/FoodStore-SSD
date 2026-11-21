@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { atraparTab } from '@/shared/lib';
 import { Icon } from '../icon/icon';
-
-const FOCUSABLES = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export interface DialogoProps {
   titulo: string;
@@ -42,22 +41,7 @@ export function Dialogo({ titulo, descripcion, onCerrar, children, desplazable =
       onCerrar();
       return;
     }
-    if (evento.key !== 'Tab') return;
-    const focusables = Array.from(evento.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLES));
-    const primero = focusables[0];
-    const ultimo = focusables[focusables.length - 1];
-    if (primero === undefined || ultimo === undefined) {
-      evento.preventDefault();
-      return;
-    }
-    const activo = document.activeElement;
-    if (evento.shiftKey && (activo === primero || activo === evento.currentTarget)) {
-      evento.preventDefault();
-      ultimo.focus();
-    } else if (!evento.shiftKey && activo === ultimo) {
-      evento.preventDefault();
-      primero.focus();
-    }
+    atraparTab(evento, evento.currentTarget);
   };
 
   return (

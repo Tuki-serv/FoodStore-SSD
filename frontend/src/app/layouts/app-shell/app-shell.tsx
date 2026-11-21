@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '@/shared/lib';
 import { selectSidebarCollapsed, selectSidebarOpen, useUiStore } from '@/shared/model';
@@ -34,6 +34,7 @@ export function AppShell({ roles = [], usuario, onCerrarSesion }: AppShellProps)
   const botonMenuRef = useRef<HTMLButtonElement>(null);
   const botonCerrarRef = useRef<HTMLButtonElement>(null);
   const drawerEstabaAbierto = useRef(false);
+  const shellMainRef = useRef<HTMLDivElement>(null);
 
   // Transiciones solo después del primer render: el estado inicial no se anima.
   const [listo, setListo] = useState(false);
@@ -84,6 +85,12 @@ export function AppShell({ roles = [], usuario, onCerrarSesion }: AppShellProps)
     };
   }, [drawerAbierto, closeSidebar]);
 
+  // La barra superior y la página (`.shell-main`) quedan inertes mientras el drawer es modal: sin foco, clics ni lectores.
+  // Es un efecto de layout para que `inert` se quite ANTES del efecto de foco: un elemento inerte no puede recibir `focus()`.
+  useLayoutEffect(() => {
+    shellMainRef.current?.toggleAttribute('inert', drawerAbierto);
+  }, [drawerAbierto]);
+
   const clases = ['shell', drawerAbierto ? 'drawer-open' : '', listo ? 'is-ready' : ''].filter(Boolean).join(' ');
 
   return (
@@ -96,9 +103,10 @@ export function AppShell({ roles = [], usuario, onCerrarSesion }: AppShellProps)
         onCerrarMenu={closeSidebar}
         onCerrarSesion={onCerrarSesion}
         botonCerrarRef={botonCerrarRef}
+        modal={drawerAbierto}
       />
       <div className="scrim" onClick={closeSidebar} aria-hidden="true" data-testid="scrim" />
-      <div className="shell-main">
+      <div className="shell-main" ref={shellMainRef}>
         <Topbar menuAbierto={drawerAbierto} onAbrirMenu={openSidebar} botonMenuRef={botonMenuRef} mostrarCarrito={mostrarCarrito} />
         <main className="flex flex-1 flex-col">
           <Outlet />

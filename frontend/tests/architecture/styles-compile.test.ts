@@ -83,3 +83,11 @@ describe('hoja de estilos de la app', () => {
     expect(css).toContain(`.${claseEstado(estado)}{`);
   });
 });
+
+describe('título del 404 (C-25b1, mockup aprobado de C-13a)', () => {
+  it('Tailwind genera la utilidad text-[2rem] con font-size 2rem', async () => {
+    const css = await compilar('<h1 class="text-[2rem]">x</h1>');
+
+    expect(css.replace(/\s+/g, '')).toContain('.text-\\[2rem\\]{font-size:2rem;}');
+  });
+});

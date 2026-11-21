@@ -11,17 +11,18 @@ from app.modules.auth.schemas import Token
 from app.modules.auth.service import RefreshRechazado
 from app.modules.usuarios.dependencies import UsuarioServiceDep
 from app.modules.usuarios.schemas import UserCreate, UserPublic, UserPublicAdminPanel
+from app.core.api_responses import respuestas_error
 
 auth_router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
-@auth_router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
+@auth_router.post("/register", summary="Registrar un cliente", responses=respuestas_error(409), response_model=UserPublic, status_code=status.HTTP_201_CREATED)
 def register(data: UserCreate, svc: UsuarioServiceDep) -> Any:
     """Registra un cliente nuevo (rol CLIENT). La creación sigue centralizada en `UsuarioService`."""
     return svc.register(data)
 
 
-@auth_router.post("/login", response_model=Token)
+@auth_router.post("/login", summary="Iniciar sesión", responses=respuestas_error(401, 429), response_model=Token)
 def login(
     request: Request,
     response: Response,
@@ -36,13 +37,13 @@ def login(
     return Token(access_token=tokens.access_token, expires_in=tokens.expires_in)
 
 
-@auth_router.get("/me", response_model=UserPublicAdminPanel)
+@auth_router.get("/me", summary="Obtener el usuario autenticado", responses=respuestas_error(401), response_model=UserPublicAdminPanel)
 def read_me(current_user: Annotated[UserPublic, Depends(get_current_active_user)]) -> Any:
     """Devuelve el usuario autenticado por el access, con sus roles."""
     return current_user
 
 
-@auth_router.post("/refresh", response_model=Token)
+@auth_router.post("/refresh", summary="Renovar la sesión con el refresh token", responses=respuestas_error(401), response_model=Token)
 def refresh(
     response: Response,
     svc: AuthServiceDep,
@@ -63,7 +64,7 @@ def refresh(
     return Token(access_token=tokens.access_token, expires_in=tokens.expires_in)
 
 
-@auth_router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@auth_router.post("/logout", summary="Cerrar la sesión actual", responses=respuestas_error(401), status_code=status.HTTP_204_NO_CONTENT)
 def logout(
     response: Response, claims: Annotated[AccessClaims, Depends(get_access_claims)], svc: AuthServiceDep
 ) -> None:
@@ -72,7 +73,7 @@ def logout(
     clear_refresh_cookie(response)
 
 
-@auth_router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+@auth_router.post("/logout-all", summary="Cerrar todas las sesiones del usuario", responses=respuestas_error(401), status_code=status.HTTP_204_NO_CONTENT)
 def logout_all(
     response: Response, claims: Annotated[AccessClaims, Depends(get_access_claims)], svc: AuthServiceDep
 ) -> None:

@@ -12,6 +12,7 @@ from app.modules.pedidos.dependencies import PedidoServiceDep
 from app.modules.pedidos.filtros import FiltrosPedidos
 from app.modules.pedidos.schemas import PedidoCambioEstado, PedidoCancelacion, PedidoCreate, PedidoDetalle, PedidoResumen
 from app.modules.pedidos.schemas import HistorialEstadoPedidoRead
+from app.core.api_responses import respuestas_error
 
 router = APIRouter()
 
@@ -24,7 +25,7 @@ CurrentRoles = Annotated[frozenset[str], Depends(get_current_roles)]
 # ══════════════════════════════════════════════════════
 
 #TODO sacando websocket de router para no romper la separación de responsabilidades
-@router.post("/", response_model=PedidoDetalle, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(["CLIENT"]))])
+@router.post("/", summary="Crear un pedido", responses=respuestas_error(400, 401, 403, 404), response_model=PedidoDetalle, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(["CLIENT"]))])
 def crear_pedido(
     data: PedidoCreate,
     current_user: CurrentUser,
@@ -38,7 +39,7 @@ def crear_pedido(
 # ADMIN / PEDIDOS — visibilidad y gestión total
 # ══════════════════════════════════════════════════════
 
-@router.get("/", response_model=PaginatedResponse[PedidoResumen], dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
+@router.get("/", summary="Listar pedidos (los propios o, para gestión, todos)", responses=respuestas_error(401, 403), response_model=PaginatedResponse[PedidoResumen], dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
 def listar_pedidos(
     current_user: CurrentUser,
     roles: CurrentRoles,
@@ -49,7 +50,7 @@ def listar_pedidos(
     return service.listar_pedidos(current_user.id, roles, filtros, params)
 
 
-@router.get("/{pedido_id}", response_model=PedidoDetalle, dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
+@router.get("/{pedido_id}", summary="Obtener el detalle de un pedido", responses=respuestas_error(401, 403, 404), response_model=PedidoDetalle, dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
 def obtener_pedido(
     pedido_id: int,
     current_user: CurrentUser,
@@ -59,7 +60,7 @@ def obtener_pedido(
     return service.obtener_detalle(pedido_id, current_user.id, roles)
 
 
-@router.get("/{pedido_id}/historial", response_model=list[HistorialEstadoPedidoRead], dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
+@router.get("/{pedido_id}/historial", summary="Obtener el historial de estados de un pedido", responses=respuestas_error(401, 403, 404), response_model=list[HistorialEstadoPedidoRead], dependencies=[Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"]))])
 def obtener_historial_pedido(
     pedido_id: int,
     current_user: CurrentUser,
@@ -69,7 +70,7 @@ def obtener_historial_pedido(
     return service.obtener_historial(pedido_id, current_user.id, roles)
 
 
-@router.patch("/{pedido_id}/estado", response_model=PedidoDetalle, dependencies=[Depends(require_role(["ADMIN", "PEDIDOS", "COCINA"]))])
+@router.patch("/{pedido_id}/estado", summary="Cambiar el estado de un pedido", responses=respuestas_error(400, 401, 403, 404, 409), response_model=PedidoDetalle, dependencies=[Depends(require_role(["ADMIN", "PEDIDOS", "COCINA"]))])
 async def cambiar_estado_pedido(
     pedido_id: int,
     data: PedidoCambioEstado,
@@ -89,7 +90,7 @@ async def cambiar_estado_pedido(
     return resultado
 
 
-@router.delete("/{pedido_id}", response_model=PedidoDetalle, dependencies=[Depends(require_role(["CLIENT"]))])
+@router.delete("/{pedido_id}", summary="Cancelar un pedido propio", responses=respuestas_error(401, 403, 404, 409), response_model=PedidoDetalle, dependencies=[Depends(require_role(["CLIENT"]))])
 def cancelar_pedido(
     pedido_id: int,
     current_user: CurrentUser,
@@ -104,7 +105,7 @@ def cancelar_pedido(
 
 # ─── WebSocket para tiempo real ─────────────────────────────────────────────
 
-@router.get("/cocina/pedidos", response_model=PaginatedResponse[PedidoResumen], dependencies=[Depends(require_role(["COCINA", "ADMIN", "PEDIDOS"]))])
+@router.get("/cocina/pedidos", summary="Listar los pedidos del tablero de cocina", responses=respuestas_error(401, 403), response_model=PaginatedResponse[PedidoResumen], dependencies=[Depends(require_role(["COCINA", "ADMIN", "PEDIDOS"]))])
 def obtener_pedidos_cocina(
     params: PageQuery,
     service: PedidoServiceDep,

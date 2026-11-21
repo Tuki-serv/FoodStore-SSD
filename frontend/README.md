@@ -96,6 +96,12 @@ La fuente visual es `design-system/tokens.css` (Revision 2): se importa tal cual
 
 El CSS del panel lateral (`src/app/layouts/app-shell/app-shell.css`) es el aprobado en `design-system/components.html`. Las páginas usan utilidades de Tailwind; las piezas con reglas propias de los mockups aprobados (notificaciones, diálogo, campo, tarjeta/selector de dirección y página de direcciones) viven en un `.css` junto a su componente y se importan desde `src/app/styles/index.css`. Esas reglas no definen el tamaño de `svg.ico`: el tamaño lo da la clase del `<Icon>` (verify V-2).
 
+### Build de producción (C-25b1)
+
+- `npm run build` valida tipos (`tsc --noEmit`) y genera el sitio estático en `dist/` (requiere `VITE_API_URL`).
+- `frontend/Dockerfile` tiene dos objetivos: `dev` (servidor de Vite, el que usa compose por defecto) y `prod` (nginx sirviendo `dist/` con fallback a `index.html`, para que `/mis-pedidos` funcione al recargar).
+- Imagen de producción desde la raíz: `docker compose --profile prod up -d --build frontend-prod` (sitio en http://localhost:8080; `VITE_API_URL` se incrusta al construir, por defecto `http://localhost:8000`). `design-system/` llega como contexto adicional de build.
+
 ## Tests
 
 `npm test` ejecuta tests de componentes en jsdom (por lo que el usuario ve y hace: roles accesibles, texto, interacción) y los tests de arquitectura. La red se simula en el borde con **MSW** (`src/test/msw/server.ts`, iniciado en `src/test/setup.ts` con `onUnhandledRequest: 'error'`: un pedido sin handler hace fallar el test); cada test sobrescribe con `server.use(...)`. `renderApp(ruta, { sesion })` (`src/test/render-app.tsx`) monta el árbol real con sesión y router; los stores se reinician solos entre tests. jsdom no evalúa CSS ni media queries: el comportamiento desktop/mobile se prueba con un `matchMedia` simulado (`setViewport(ancho)` en `src/test/viewport.ts`); la apariencia se verifica contra los mockups.

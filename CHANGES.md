@@ -17,7 +17,7 @@
 - `[UI-MOCKUP]` = change visual: requiere mockup aprobado antes de apply (política `system-and-mockups`, design system Revision 2 aprobado en `design-system/README.md`). Registrar `## UI Mockups` en el `design.md` del change.
 - `[PENDIENTE DE DECISIÓN: PA-xx]` = el orden o scope puede cambiar según una pregunta abierta que sigue abierta (hoy PA-08, PA-14); **no bloquea** el roadmap (se implementa con el supuesto indicado y se ajusta).
 - `[OPCIONAL/BLOQUEADO]` = Fase 2; no iniciar hasta resolver la parte abierta de PA-07 (COCINA/KDS) y PA-19.
-- Los sufijos `a`/`b` (`C-13a`, `C-13b`, `C-16a`, `C-16b`, `C-17a`, `C-17b`, `C-20a`, `C-20b`, `C-25a`, `C-25b`) parten un change en dos sin renumerar el resto.
+- Los sufijos `a`/`b` (`C-13a`, `C-13b`, `C-16a`, `C-16b`, `C-17a`, `C-17b`, `C-20a`, `C-20b`, `C-25a`, `C-25b`) parten un change en dos sin renumerar el resto. `C-25b1` sale de partir a su vez `C-25b` (2026-11-21): `C-25b1` toma la deuda heredada (código) y `C-25b` conserva la entrega.
 
 ---
 
@@ -66,7 +66,8 @@ C-13a ✓ fe-foundation-scaffold (solo C-01; corre en paralelo con la Fase 0)
        └── C-23 ✓ fe-admin-usuarios-roles (+C-08)
 C-25a ✓ backend-capas-y-renombres (C-01..C-12; en paralelo con el frontend)
  └── C-16a ✓ backend-catalogo-filtros (C-08, C-11, C-25a; backend, en paralelo con el frontend; antes de C-16b)
-C-25b entrega-docs-video (todo lo anterior)
+C-25b1 deuda-heredada (C-01..C-24, C-25a)
+ └── C-25b entrega-docs-video (todo lo anterior)
 
 FASE 2 (opcional/bloqueado: COCINA/KDS de PA-07, PA-19)
 C-26 rol-cocina-kds (C-09, C-08) ── C-27 websocket-tiempo-real (C-09, C-02) ── C-28 extras-cloudinary-unidades-ratelimit-global (C-17b, C-03)
@@ -115,13 +116,14 @@ GATE 6: C-16b ✓ → C-18 ; C-18 + C-15 + C-10 ✓ → C-19 ; C-19 ✓ →
   → C-21 ✓ fe-mis-pedidos-seguimiento           [Agente C]
   → C-24 ✓ fe-dashboard-metricas               [Agente A — si C-22 ✓]
 
-GATE 7: Fase 0 y Fase 1 ✓ (incl. C-25a) → C-25b entrega-docs-video (todos)
+GATE 7: Fase 0 y Fase 1 ✓ (incl. C-25a) → C-25b1 deuda-heredada (todos; CRITICO por la validación de `direccion_id`)
+GATE 7b: C-25b1 ✓ (archivado: código congelado) → C-25b entrega-docs-video (todos)
 GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y PA-19 resueltas → C-26, C-27, C-28
 ```
 
-### Camino crítico (12 changes — mínimo irreducible)
+### Camino crítico (13 changes — mínimo irreducible)
 
-`C-01 → C-06 → C-07 → C-09 → C-11 → C-13b → C-16b → C-18 → C-19 → C-20a* → C-20b → C-25b`
+`C-01 → C-06 → C-07 → C-09 → C-11 → C-13b → C-16b → C-18 → C-19 → C-20a* → C-20b → C-25b1 → C-25b`
 
 \* C-20a requiere además C-12 (rama paralela `C-05 → C-12`), que también debe estar completa antes de C-20a; C-20b depende solo de C-20a. C-13b requiere además C-13a (que corre en paralelo con la Fase 0) y C-02. C-16b requiere además C-16a (backend de filtros del catálogo; depende de C-11 y C-25a y corre en paralelo con C-13b/C-14/C-15). Los changes de seguridad (C-02, C-04, C-05) no están en el camino crítico pero tienen **prioridad de ejecución** por regla de Fase 0.
 
@@ -140,9 +142,10 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 9 | C-17b ✓ | C-22 ✓ | C-18 ✓ |
 | 10 | C-23 ✓ | C-24 ✓ | C-19 ✓ |
 | 11 | — | C-20a ✓ → C-20b ✓ | C-21 ✓ |
-| 12 | C-25b | C-25b | C-25b |
+| 12 | C-25b1 (backend: pedidos, migración `007`, Swagger) | C-25b1 (design system Rev. 3) | C-25b1 (frontend) |
+| 13 | C-25b | C-25b | C-25b |
 
-(C-03 no bloquea nada y puede moverse a cualquier hueco del Agente A. C-13a no depende del backend: puede correr en cualquier hueco del Agente C desde ya. En el paso 8, C-17a y C-15 requieren C-13b: ajustar si C-13b aún no terminó. C-16b requiere C-16a: el Agente A hace C-16a primero en el paso 8 (es corto, solo backend) y el Agente C arranca C-14 mientras tanto. C-25a solo exige C-01..C-12: puede adelantarse o retrasarse según huecos, siempre antes de C-25b.)
+(C-03 no bloquea nada y puede moverse a cualquier hueco del Agente A. C-13a no depende del backend: puede correr en cualquier hueco del Agente C desde ya. En el paso 8, C-17a y C-15 requieren C-13b: ajustar si C-13b aún no terminó. C-16b requiere C-16a: el Agente A hace C-16a primero en el paso 8 (es corto, solo backend) y el Agente C arranca C-14 mientras tanto. C-25a solo exige C-01..C-12: puede adelantarse o retrasarse según huecos, siempre antes de C-25b1 y C-25b. C-25b puede redactar README y checklist durante el paso 12, pero capturas, recorrido E2E y video van después de archivar C-25b1.)
 
 ---
 
@@ -681,22 +684,43 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 - **Governance**: CRÍTICO
 - **Leer antes**: `openspec/changes/archive/2026-11-21-endurecimiento-pagos-webhook/design.md`, `openspec/changes/archive/2026-11-17-c-12-pagos-checkout-api-cardpayment/design.md` (D20, D22, D23, verify), spec `openspec/specs/payment-api/spec.md`, `knowledge-base/11_pagos_mercadopago.md`
 
+### [C-25b1] `deuda-heredada`
+- **Estado**: `[x]` cerrado (2026-11-21). Verify: PASS WITH FINDINGS → 3 major corregidos en el mismo change (favicon servido por import del alias, foco del drawer con `inert`, aviso `ADDRESS_NOT_FOUND` sin reselección automática); re-verify r3 PASS. Backend 1965 passed (95 %), frontend 1922 tests, typecheck y lint limpios. Migración `007` aplicada. Design system Revision 3 aprobada. Archivado en `openspec/changes/archive/2026-11-21-c-25b1-deuda-heredada/`; specs actualizadas (`address-integrity` nueva; `order-api`, `api-conventions`, `backend-runtime`, `frontend-app-shell`, `frontend-checkout`, `frontend-foundation`). Detalle del apply: todas las tareas hechas (rechazos con código, dirección propia con A1 aprobado, personalización, índice `007` aprobado y aplicada a la base de desarrollo, Swagger, clasificador por `code`, drawer modal, test de `index.ts`, `readConfig`, build/Dockerfile prod, sprite y favicon con design system Revision 3 aprobada, título del 404 mobile, favicon en `index.html`); suites completas en verde. Diferidos X1–X4 sin cambios (idempotencia, envío en retiro PA-13, filtros del gestor, escala Tailwind) → limitaciones en C-25b.
+- **Scope**: la deuda heredada de C-13a, C-15, C-19 y C-22 que afecta a seguridad, integridad o a lo que se ve en el video, con TDD (bloque A del C-25b original):
+  - `POST /pedidos/`: `direccion_id` existente, activa y del usuario → 404 `ADDRESS_NOT_FOUND` (C-19 R3, IDOR); `personalizacion` ⊆ ingredientes removibles del producto (C-19 R4); `code`/`field` estables en todos los rechazos de creación sin cambiar los status (C-19 R1); `clasificarErrorCreacion` del frontend por `code`.
+  - Índice único parcial de dirección principal activa por usuario + migración Alembic `007` con saneamiento previo (C-15 R3).
+  - Frontend (C-13a): drawer mobile como diálogo modal (`role="dialog"`, `aria-modal`, trampa de foco, `inert`); test de `index.ts` por slice/segmento FSD; test de `readConfig` (vacío vs. URL inválida); título del 404 en mobile según mockup; imagen de producción (Dockerfile multi-stage + script `build` + perfil `prod` en compose).
+  - Design system **Revision 3**: sprite de `components.html` con los 32 íconos que faltan (C-13a, C-15, C-22) + favicon provisional (requiere aprobación del usuario).
+  - Swagger `/docs` completo: `summary`, `tags` y errores en todas las operaciones (US-030, CE-08).
+  - Diferidos (se documentan como limitaciones en C-25b): idempotencia de creación (C-19 R2); envío $0 en retiro (C-22 R1, bloqueado por PA-13); filtros multi-estado, búsqueda y zona horaria del gestor (C-22 R2, R6, OQ-7); escala por defecto de Tailwind (C-13a). Sin trabajo: promover principal al eliminar (C-15 OQ-1, aprobado no promover), formas de pago y datos bancarios (C-19 OQ-2/OQ-5), COCINA/KDS/WebSocket (PA-07, Fase 2).
+- **Dependencias**: `C-01 a C-24, C-25a`
+- **Governance**: CRÍTICO (validación de `direccion_id`: OK del usuario antes de escribir código); migración `007` tratada como ALTO (mostrar el SQL antes de aplicarla); resto MEDIO/BAJO
+- **UI**: sin mockups nuevos (404 ajustado al mockup aprobado de C-13a); design system Revision 3 con aprobación del usuario
+- **Decisión pendiente**: `[PENDIENTE DE DECISIÓN: PA-13]` envío en retiro (se asume $50 fijo, spec vigente)
+- **Leer antes**:
+  - `openspec/changes/c-25b1-deuda-heredada/design.md`
+  - `openspec/changes/archive/` de C-13a, C-15, C-19 y C-22 (design y verify)
+  - `knowledge-base/04_modelo_de_datos.md`, `knowledge-base/05_reglas_de_negocio.md` (RN-DI-01, RN-PE-09)
+  - `design-system/README.md`
+
 ### [C-25b] `entrega-docs-video`
 - **Estado**: `[ ]` pendiente
 - **Scope**:
-  - US-029 seed/arranque reproducible (`alembic upgrade head` + seed + dev), US-030 Swagger `/docs`, README con setup, `.env.example` final, `docker-compose` para BD y frontend.
+  - **Partido el 2026-11-21** (aprobado por el usuario): el código de deuda heredada pasó a **C-25b1**; aquí queda la entrega (`openspec/changes/c-25b-entrega-docs-video/`). Capturas, recorrido E2E y video van después de archivar C-25b1. **Gate 7b cumplido**: C-25b1 archivado el 2026-11-21 (código congelado).
+  - US-029 seed/arranque reproducible (`alembic upgrade head` + seed + dev), README con setup, `.env.example` final, `docker-compose` para BD y frontend. (US-030 Swagger `/docs` → C-25b1; aquí solo se enlaza y se registra en el checklist.)
   - Prueba end-to-end del flujo completo (frontend incluido): compra→pago→entrega.
   - Checklist de entrega de la rúbrica de 200 pts; capturas de las 10 pantallas; video de la entrega; metadatos faltantes (PA-18); deploy opcional (PA-17).
   - Verificación visual contra mockups aprobados.
+  - **Heredados movidos a C-25b1** (2026-11-21): de C-13a favicon, drawer modal, test de `index.ts`, título del 404, test de `readConfig`, imagen de producción y sprite; de C-15 índice de principal (R3) y sprite; de C-19 R1, R3 y R4; de C-22 sprite. **Siguen diferidos y solo se documentan aquí como limitaciones**: escala por defecto de Tailwind (C-13a), idempotencia de creación (C-19 R2), envío $0 en retiro (C-22 R1, PA-13), filtros UTC/multi-estado/búsqueda (C-22 R2, R6, OQ-7). Sin trabajo: C-15 OQ-1, C-19 OQ-2/OQ-5; COCINA/KDS en Fase 2. Texto original de los heredados:
   - **Heredado de C-13a** (menores del verify 2026-11-15): favicon (hoy `/favicon.ico` da 404 en consola); accesibilidad del drawer mobile (`role="dialog"`/`aria-modal`, trampa de foco, contenido `inert` detrás del scrim); test que exija `index.ts` en cada slice/segmento FSD; título del 404 en mobile (una línea en la app, dos en el mockup); decidir si se quita la escala por defecto de Tailwind (hoy `h-10` sale como `2.5rem` literal, fuera de los tokens); sumar los íconos `obra`, `brujula` y `alerta` al sprite de `design-system/components.html` (cambio visual del design system: requiere revisión del usuario); test de `readConfig` con valor vacío que no distingue del caso URL inválida; imagen de producción del frontend (el Dockerfile actual es solo servidor de desarrollo).
   - **Heredado de C-15** (deuda sugerida, 2026-11-17): índice único parcial de `es_principal` (`WHERE es_principal AND deleted_at IS NULL`, por usuario) en `direcciones`, porque la regla «solo una principal» (RN-DI-01) la garantiza solo el service y dos `PATCH /direcciones/{id}/principal` simultáneos podrían dejar dos principales (R3; requiere migración Alembic, governance BAJO); sumar al sprite de `design-system/components.html` los íconos `editar`, `basura`, `estrella`, `mas` y `tienda` que usa el frontend (cambio visual del design system: requiere revisión del usuario); decidir con OQ-1 de C-15 si al eliminar la principal el backend promueve otra.
   - **Heredado de C-19** (deuda de backend detectada, 2026-11-19; el frontend la compensa): R1 `POST /pedidos/` devuelve todos sus rechazos como `HTTP_400`/`HTTP_404` sin código estable ni línea afectada (el frontend clasifica por el texto de `detail` en `clasificarErrorCreacion`); sumar `ErrorCode` estables (`PRODUCT_NOT_FOUND`, `PRODUCT_UNAVAILABLE`, `PAYMENT_METHOD_UNAVAILABLE`, `DUPLICATE_ITEM`) con `field` y el `producto_id` afectado y simplificar el clasificador; R2 sin idempotencia de creación (un timeout tras el commit + «Reintentar» puede crear dos pedidos `PENDIENTE`); R3 `direccion_id` no se valida (inexistente o de otro usuario → FK/500 o pedido a dirección ajena); R4 los ids de `personalizacion` no se validan como ingredientes removibles del producto; además no hay endpoint que liste las formas de pago habilitadas (el frontend usa un catálogo local, OQ-2) y no hay datos bancarios en el sistema para la transferencia (OQ-5).
   - **Heredado de C-22** (deuda detectada, 2026-11-19): R1 el costo de envío fijo de $50 (`COSTO_ENVIO_FIJO`) se cobra también a los pedidos para retirar en el local (`crear_pedido` lo aplica siempre; sin `direccion_id` debería ser 0); R2 los filtros de fecha del listado son UTC (el gestor ve días locales); R6 el filtro de estado acepta un solo valor y no hay búsqueda por cliente o número; OQ-7 considerar varios estados, «activos» y zona horaria; el rol `COCINA`/KDS y el WebSocket siguen sin tocarse (PA-07, C-26/C-27); los íconos `moto`, `flecha`, `nota` y `calendario` de `shared/ui/icon` son provisionales y faltan en el sprite de `design-system/components.html`.
   - **Punto de partida (C-24)**: la pantalla «Dashboard» queda lista para capturas y video (tarjetas KPI, ventas por período, productos más vendidos, pedidos por estado, ingresos por forma de pago, «Ver como tabla», estados vacío y de error). Con datos de ejemplo hace falta algún pedido confirmado; las fechas son UTC; ver «Dashboard de métricas (C-24)» en `frontend/README.md`.
   - **Punto de partida (C-23)**: la pantalla «Usuarios» queda lista para capturas y video (listado con filtro por rol, alta multi-rol, edición propia con la casilla «Administrador» bloqueada, diálogo de desactivación). Deuda a documentar en la entrega: la contraseña inicial del alta ADMIN la elige el administrador y no hay cambio de contraseña (DT-28); recuperación sin `ADMIN` con `python -m app.db.seed`; ver «Usuarios y roles (C-23)» en `frontend/README.md`.
-- **Dependencias**: `C-01 a C-24, C-25a`
-- **Governance**: MEDIO
-- **Decisión pendiente**: PA-16, PA-17, PA-18
+- **Dependencias**: `C-01 a C-24, C-25a, C-25b1`
+- **Governance**: BAJO (documentación y evidencia; tareas del usuario marcadas)
+- **Decisión pendiente**: PA-17, PA-18 (PA-16 resuelta por C-25a)
 - **Leer antes**:
   - `knowledge-base/13_rubrica_y_entrega.md`
   - `knowledge-base/06_funcionalidades.md` Épica 8
@@ -760,11 +784,11 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | Fase | Changes | Rango | Notas |
 |------|---------|-------|-------|
 | 0 — Deuda técnica | 12 | C-01..C-12 | Cubre DT-01, 03..07, 09..23, 26 (DT-02 y DT-08 en Fase 2; DT-24 en Fase 1; DT-25 en C-25a) |
-| 1 — Features | 18 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
+| 1 — Features | 19 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b1, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 33 changes** (28 originales; C-13, C-16, C-17, C-20 y C-25 partidos en dos). **Cerrados: 29** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21, C-22, C-23, C-24, C-25a). **Pendientes obligatorios: 1** (todos de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado), `endurecimiento-pagos-webhook` (cerrado).
+**Total: 34 changes** (28 originales; C-13, C-16, C-17 y C-20 partidos en dos; C-25 partido en tres: C-25a, C-25b1, C-25b). **Cerrados: 30** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21, C-22, C-23, C-24, C-25a, C-25b1). **Pendientes obligatorios: 1** (C-25b, de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado), `endurecimiento-pagos-webhook` (cerrado).
 
-Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
+Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23, C-25b1. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
 **Primer change recomendado**: `C-01` (`baseline-backend`) ✓ → siguiente: C-13a (`fe-foundation-scaffold`) y luego C-13b (`fe-foundation-auth-data`, ya desbloqueado en backend: requiere C-13a, C-02 ✓ y C-11 ✓). Fase 0 completa: C-12 se cerró el 2026-11-17.

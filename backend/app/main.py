@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.api_responses import documentar_422_con_el_error_comun
 from app.core.errors import AppError
 from app.utils.errores import (
     app_error_handler,
@@ -64,8 +65,8 @@ def create_app() -> FastAPI:
     app.include_router(direccion_router, prefix="/api/v1")
 
     # ── Dominio 2 ──────────────────────────────────────
-    app.include_router(categoria_router, prefix="/api/v1/categorias", tags=["Categorías"])
-    app.include_router(producto_router, prefix="/api/v1/productos", tags=["Productos"])
+    app.include_router(categoria_router, prefix="/api/v1/categorias")
+    app.include_router(producto_router, prefix="/api/v1/productos")
     app.include_router(ingrediente_router, prefix="/api/v1/ingredientes", tags=["Ingredientes"])
     app.include_router(unidad_medida_router, prefix="/api/v1/unidades-medida", tags=["Unidades de Medida"])
     app.include_router(imagenes_router, prefix="/api/v1", tags=["Imágenes"])
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
                               validation_exception_handler)
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)
+    documentar_422_con_el_error_comun(app)
 
     return app
 

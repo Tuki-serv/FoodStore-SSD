@@ -1,5 +1,6 @@
-import type { Ref } from 'react';
+import type { KeyboardEvent, Ref } from 'react';
 import { LOGO_ALT } from '@/shared/config';
+import { atraparTab } from '@/shared/lib';
 import { Icon } from '@/shared/ui';
 import logo from '@design-system/assets/logo.svg';
 import type { SeccionNav } from './model';
@@ -18,6 +19,8 @@ interface SidebarProps {
   onCerrarMenu: () => void;
   onCerrarSesion?: () => void;
   botonCerrarRef: Ref<HTMLButtonElement>;
+  /** Drawer mobile abierto: el panel es un diálogo modal con el foco atrapado (y sin el botón de colapsar). */
+  modal?: boolean;
 }
 
 function iniciales(nombre: string): string {
@@ -37,21 +40,28 @@ export function Sidebar({
   onCerrarMenu,
   onCerrarSesion,
   botonCerrarRef,
+  modal = false,
 }: SidebarProps) {
+  const alPresionarTecla = (evento: KeyboardEvent<HTMLElement>): void => atraparTab(evento, evento.currentTarget);
+  // Un único `div` estable (si cambiara de elemento se reemplazaría el nodo y se cortaría la transición de deslizamiento):
+  // el rol pasa de landmark `complementary` a diálogo modal (`role="dialog"` no es válido en `<aside>`).
+  const propsModal = modal ? { role: 'dialog', 'aria-modal': true, 'aria-label': 'Menú', onKeyDown: alPresionarTecla } : { role: 'complementary', 'aria-label': 'Panel lateral' };
   return (
-    <aside className={colapsado ? 'sidebar is-collapsed' : 'sidebar'} id="sidebar">
+    <div className={colapsado ? 'sidebar is-collapsed' : 'sidebar'} id="sidebar" {...propsModal}>
       <div className="sidebar-head">
         <img className="sidebar-logo" src={logo} alt={LOGO_ALT} />
-        <button
-          className="icon-btn btn-collapse"
-          type="button"
-          aria-controls="sidebar"
-          aria-expanded={!colapsado}
-          aria-label={colapsado ? 'Expandir panel' : 'Colapsar panel'}
-          onClick={onAlternarColapso}
-        >
-          <Icon name="panel" />
-        </button>
+        {modal ? null : (
+          <button
+            className="icon-btn btn-collapse"
+            type="button"
+            aria-controls="sidebar"
+            aria-expanded={!colapsado}
+            aria-label={colapsado ? 'Expandir panel' : 'Colapsar panel'}
+            onClick={onAlternarColapso}
+          >
+            <Icon name="panel" />
+          </button>
+        )}
         <button className="icon-btn btn-close" type="button" aria-label="Cerrar menú" ref={botonCerrarRef} onClick={onCerrarMenu}>
           <Icon name="cerrar" />
         </button>
@@ -75,6 +85,6 @@ export function Sidebar({
           )}
         </div>
       )}
-    </aside>
+    </div>
   );
 }

@@ -1,5 +1,7 @@
 from typing import List
-from app.core.errors import AppError
+from sqlalchemy.exc import IntegrityError
+
+from app.core.errors import AppError, ErrorCode
 from sqlmodel import Session
 
 from app.core.service import base_service
@@ -70,6 +72,16 @@ class DireccionService(base_service[DireccionEntrega, DireccionCreate, Direccion
             return {"message": "Dirección eliminada correctamente"}
 
     def marcar_como_principal(self, direccion_id: int, usuario_id: int) -> DireccionEntrega:
+        """Marca la dirección como la única principal activa; una carrera con otro pedido responde 409, no 500."""
+        try:
+            return self._marcar_como_principal(direccion_id, usuario_id)
+        except IntegrityError as exc:  # el índice único parcial de la base frenó a la segunda transacción
+            self.session.rollback()
+            raise AppError(
+                409, ErrorCode.DUPLICATE_VALUE, "Ya hay otra dirección principal marcada; reintentá", field="es_principal"
+            ) from exc
+
+    def _marcar_como_principal(self, direccion_id: int, usuario_id: int) -> DireccionEntrega:
         with self.uow:
             nueva_principal = self._get_direccion_segura_or_404(direccion_id, usuario_id)
 

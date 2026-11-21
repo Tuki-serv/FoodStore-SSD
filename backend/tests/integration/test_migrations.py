@@ -256,16 +256,16 @@ def test_ida_y_vuelta_termina_en_head_y_sin_diferencias_con_los_modelos(migratio
         assert _diferencias(conn) == []
 
 
-def test_current_and_head_tras_upgrade_devuelve_006_en_ambas_posiciones(migrations_db: Engine) -> None:
+def test_current_and_head_tras_upgrade_devuelve_007_en_ambas_posiciones(migrations_db: Engine) -> None:
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == ("006", "006")
+        assert current_and_head(conn) == ("007", "007")
 
 
 def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_db: Engine) -> None:
     with migrations_db.connect() as conn:
-        assert current_and_head(conn) == (None, "006")
+        assert current_and_head(conn) == (None, "007")
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +274,7 @@ def test_current_and_head_sobre_base_vacia_devuelve_none_y_la_cabeza(migrations_
 def test_foodstore_test_queda_en_head_al_iniciar_la_sesion(session: Session) -> None:
     actual, head = current_and_head(session.connection())
 
-    assert actual == head == "006"
+    assert actual == head == "007"
 
 
 # ---------------------------------------------------------------------------
@@ -501,7 +501,7 @@ def test_tras_upgrade_head_external_reference_es_uuid_not_null_unico_y_sin_colum
     assert (columna[0], columna[2]) == ("uuid", "NO")
     assert restriccion == "u"
     assert not {"mp_preference_id", "mp_init_point"} & nombres
-    assert version == ("006", "006")
+    assert version == ("007", "007")
 
 
 def test_dos_pagos_con_la_misma_external_reference_son_rechazados_por_la_restriccion_unica(
@@ -635,7 +635,7 @@ def test_tras_upgrade_head_pagos_tiene_mp_order_id_unico_mp_payment_id_texto_y_s
     assert tuple(pago) == ("character varying", 64, "YES")
     assert restriccion == "u"
     assert "mp_merchant_order_id" not in nombres
-    assert version == "006"
+    assert version == "007"
 
 
 def test_upgrade_de_003_a_004_convierte_mp_payment_id_a_texto_y_descarta_la_merchant_order(
@@ -739,7 +739,7 @@ def test_tras_upgrade_head_existen_el_check_de_email_normalizado_y_el_indice_uni
         indice = conn.execute(text("SELECT 1 FROM pg_indexes WHERE indexname = 'uq_usuario_email_activo'")).scalar()
         version = current_and_head(conn)[0]
 
-    assert (check, indice, version) == ("c", 1, "006")
+    assert (check, indice, version) == ("c", 1, "007")
 
 
 @pytest.mark.parametrize("email", ["Ana@x.com", " ana@x.com", "ana@X.com"])
@@ -879,6 +879,114 @@ def test_ida_y_vuelta_006_005_006_no_deja_diferencias_con_los_modelos(migrations
     _migrar(migrations_db)
     with migrations_db.begin() as conn:
         command.downgrade(build_alembic_config(conn), "005")
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        assert _diferencias(conn) == []
+
+
+# ---------------------------------------------------------------------------
+# Migración 007: una sola dirección principal activa por usuario (C-25b1, RN-DI-01)
+# ---------------------------------------------------------------------------
+def _a_006(engine: Engine) -> None:
+    with engine.begin() as conn:
+        command.upgrade(build_alembic_config(conn), "006")
+
+
+def _insertar_direccion(conn: Connection, usuario_id: int, linea1: str, *, principal: bool, actualizada: str, baja: bool = False) -> int:
+    return conn.execute(
+        text(
+            "INSERT INTO direccion_entrega (usuario_id, linea1, ciudad, es_principal, created_at, updated_at, deleted_at) "
+            "VALUES (:u, :l, 'Mendoza', :p, :a, :a, :d) RETURNING id"
+        ),
+        {"u": usuario_id, "l": linea1, "p": principal, "a": actualizada, "d": actualizada if baja else None},
+    ).scalar_one()
+
+
+def _principales_activas(engine: Engine, usuario_id: int) -> list[str]:
+    with engine.connect() as conn:
+        filas = conn.execute(
+            text(
+                "SELECT linea1 FROM direccion_entrega "
+                "WHERE usuario_id = :u AND es_principal AND deleted_at IS NULL ORDER BY linea1"
+            ),
+            {"u": usuario_id},
+        )
+        return [fila[0] for fila in filas]
+
+
+def test_upgrade_de_006_a_007_deja_una_sola_principal_la_de_updated_at_mas_reciente(migrations_db: Engine) -> None:
+    _a_006(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+    with migrations_db.begin() as conn:
+        _insertar_direccion(conn, usuario_id, "Vieja", principal=True, actualizada="2026-01-01T00:00:00Z")
+        _insertar_direccion(conn, usuario_id, "Nueva", principal=True, actualizada="2026-03-01T00:00:00Z")
+        _insertar_direccion(conn, usuario_id, "Media", principal=True, actualizada="2026-02-01T00:00:00Z")
+        _insertar_direccion(conn, usuario_id, "Comun", principal=False, actualizada="2026-01-01T00:00:00Z")
+
+    _migrar(migrations_db)
+
+    assert _principales_activas(migrations_db, usuario_id) == ["Nueva"]
+    with migrations_db.connect() as conn:
+        total = conn.execute(text("SELECT count(*) FROM direccion_entrega WHERE usuario_id = :u"), {"u": usuario_id}).scalar()
+    assert total == 4
+
+
+def test_upgrade_desempata_por_id_y_no_toca_a_otros_usuarios_ni_a_las_dadas_de_baja(migrations_db: Engine) -> None:
+    _a_006(migrations_db)
+    ana, beto = _crear_usuario(migrations_db, "ana@x.com"), _crear_usuario(migrations_db, "beto@x.com")
+    with migrations_db.begin() as conn:
+        _insertar_direccion(conn, ana, "A-primera", principal=True, actualizada="2026-01-01T00:00:00Z")
+        _insertar_direccion(conn, ana, "A-segunda", principal=True, actualizada="2026-01-01T00:00:00Z")
+        _insertar_direccion(conn, ana, "A-baja", principal=True, actualizada="2026-05-01T00:00:00Z", baja=True)
+        _insertar_direccion(conn, beto, "B-unica", principal=True, actualizada="2026-01-01T00:00:00Z")
+
+    _migrar(migrations_db)
+
+    assert _principales_activas(migrations_db, ana) == ["A-segunda"]
+    assert _principales_activas(migrations_db, beto) == ["B-unica"]
+    with migrations_db.connect() as conn:
+        baja_sigue_principal = conn.execute(
+            text("SELECT es_principal FROM direccion_entrega WHERE linea1 = 'A-baja'")
+        ).scalar()
+    assert baja_sigue_principal is True
+
+
+def test_tras_007_el_indice_es_unico_parcial_y_el_esquema_coincide_con_los_modelos(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+
+    with migrations_db.connect() as conn:
+        indexdef = conn.execute(
+            text("SELECT indexdef FROM pg_indexes WHERE indexname = 'uq_direccion_principal_activa'")
+        ).scalar()
+        diferencias = _diferencias(conn)
+
+    assert indexdef is not None and "UNIQUE" in indexdef
+    assert "es_principal" in indexdef and "deleted_at IS NULL" in indexdef
+    assert diferencias == []
+
+
+def test_downgrade_de_007_a_006_quita_el_indice_y_conserva_las_direcciones(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _crear_usuario(migrations_db)
+    with migrations_db.begin() as conn:
+        _insertar_direccion(conn, usuario_id, "Unica", principal=True, actualizada="2026-01-01T00:00:00Z")
+
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "006")
+
+    with migrations_db.begin() as conn:
+        indice = conn.execute(text("SELECT 1 FROM pg_indexes WHERE indexname = 'uq_direccion_principal_activa'")).scalar()
+        version = current_and_head(conn)[0]
+        _insertar_direccion(conn, usuario_id, "Otra", principal=True, actualizada="2026-02-01T00:00:00Z")
+    assert (indice, version) == (None, "006")
+    assert _principales_activas(migrations_db, usuario_id) == ["Otra", "Unica"]
+
+
+def test_ida_y_vuelta_007_006_007_no_deja_diferencias_con_los_modelos(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    with migrations_db.begin() as conn:
+        command.downgrade(build_alembic_config(conn), "006")
     _migrar(migrations_db)
 
     with migrations_db.connect() as conn:

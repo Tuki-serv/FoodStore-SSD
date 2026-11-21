@@ -33,3 +33,12 @@ class DireccionRepository(BaseRepository[DireccionEntrega]):
             DireccionEntrega.deleted_at.is_(None)
         )
         return self.session.exec(statement).first()
+
+    def get_activa_de_usuario(self, direccion_id: int, usuario_id: int) -> Optional[DireccionEntrega]:
+        """Dirección activa (sin baja lógica) con ese id que pertenece al usuario; `None` si no existe o es de otro."""
+        statement = select(DireccionEntrega).where(
+            DireccionEntrega.id == direccion_id,
+            DireccionEntrega.usuario_id == usuario_id,
+            DireccionEntrega.deleted_at.is_(None),
+        )
+        return self.session.exec(statement).first()

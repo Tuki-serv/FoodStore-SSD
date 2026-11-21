@@ -10,6 +10,7 @@ from app.modules.categorias.schemas import (
     CategoriaReadFull, CategoriaTreeList, CategoriaUpdate
 )
 from app.modules.categorias.dependencies import CategoriaServiceDep
+from app.core.api_responses import respuestas_error
 
 router = APIRouter(tags=["Categorías"])
 
@@ -19,7 +20,7 @@ VeEliminados = Annotated[bool, Depends(lector_privilegiado(["ADMIN"]))]
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
-@router.post("/", response_model=CategoriaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(["ADMIN"]))])
+@router.post("/", summary="Crear una categoría", responses=respuestas_error(401, 403, 404, 409), response_model=CategoriaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(["ADMIN"]))])
 def create_categoria(data: CategoriaCreate, svc: CategoriaServiceDep):
     return svc.create(data)
 
@@ -54,7 +55,7 @@ def get_categoria(
     return svc.get_by_id_full(categoria_id, allow_deleted=incluir_eliminado, ver_eliminados=ver_eliminados)
 
 
-@router.patch("/{categoria_id}", response_model=CategoriaReadFull, dependencies=[Depends(require_role(["ADMIN"]))])
+@router.patch("/{categoria_id}", summary="Actualizar una categoría", responses=respuestas_error(401, 403, 404, 409), response_model=CategoriaReadFull, dependencies=[Depends(require_role(["ADMIN"]))])
 def update_categoria(
     categoria_id: Annotated[int, Path(ge=1)], 
     data: CategoriaUpdate, 
@@ -63,7 +64,7 @@ def update_categoria(
     return svc.update(categoria_id, data)
 
 
-@router.delete("/{categoria_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(["ADMIN"]))])
+@router.delete("/{categoria_id}", summary="Eliminar una categoría", responses=respuestas_error(401, 403, 404, 409), status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(["ADMIN"]))])
 def delete_categoria(
     categoria_id: Annotated[int, Path(ge=1)], 
     svc: CategoriaServiceDep

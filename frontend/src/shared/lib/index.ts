@@ -6,4 +6,5 @@ export type { RutaRecordada } from './ruta-recordada';
 export { errorDeNombre, MAXIMO_NOMBRE, textoONulo } from './texto-formulario';
 export { aCentavos, formatearCentavos, sumarImportes } from './importe';
 export { esEmailValido } from './formato-email';
+export { atraparTab, FOCUSABLES } from './trampa-foco/atrapar-tab';
 export { errorDeCelular, errorDeNombrePersona } from './validacion-persona';

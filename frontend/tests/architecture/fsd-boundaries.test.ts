@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { violacionesFsd, leerArbol } from './fsd';
+import { slicesSinApiPublica, violacionesFsd, leerArbol } from './fsd';
 
 const FIXTURES = new URL('./fixtures/', import.meta.url);
 const SRC = new URL('../../src/', import.meta.url);
@@ -74,5 +74,44 @@ describe('src/ real', () => {
 
     expect(archivos.length).toBeGreaterThan(0);
     expect(violacionesFsd(archivos)).toEqual([]);
+  });
+
+  it('cada slice de pages, features y entities y cada segmento de shared tiene su index.ts', () => {
+    expect(slicesSinApiPublica(leerArbol(SRC))).toEqual([]);
+  });
+});
+
+describe('slicesSinApiPublica con archivos de ejemplo', () => {
+  const archivo = (ruta: string) => ({ ruta, contenido: '' });
+
+  it('nombra la carpeta de un slice de pages, features o entities sin index.ts', () => {
+    const archivos = [
+      archivo('pages/home/index.ts'),
+      archivo('pages/home/ui/home.tsx'),
+      archivo('pages/carrito/ui/carrito.tsx'),
+      archivo('features/agregar/model/a.ts'),
+      archivo('entities/producto/index.ts'),
+      archivo('entities/cart/model/c.ts'),
+    ];
+
+    expect(slicesSinApiPublica(archivos)).toEqual(['entities/cart', 'features/agregar', 'pages/carrito']);
+  });
+
+  it('nombra el segmento de shared sin index.ts y acepta index.tsx', () => {
+    const archivos = [
+      archivo('shared/ui/index.ts'),
+      archivo('shared/ui/boton.tsx'),
+      archivo('shared/lib/formato.ts'),
+      archivo('shared/config/index.tsx'),
+      archivo('shared/config/rutas.ts'),
+    ];
+
+    expect(slicesSinApiPublica(archivos)).toEqual(['shared/lib']);
+  });
+
+  it('no exige index.ts a app ni a los archivos sueltos de shared, y sin faltantes devuelve vacío', () => {
+    const archivos = [archivo('app/router/rutas.ts'), archivo('shared/suelto.ts'), archivo('pages/home/index.ts')];
+
+    expect(slicesSinApiPublica(archivos)).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 from sqlmodel import Session
 from app.core.uow import UnitOfWork
 from app.modules.direcciones.repository import DireccionRepository
-from app.modules.productos.repository import ProductoRepository
+from app.modules.productos.repository import ProductoIngredienteRepository, ProductoRepository
 from app.modules.ingredientes.repository import IngredienteRepository
 from app.modules.usuarios.repository import UsuarioRepository
 from app.modules.pedidos.repository import DetallePedidoRepository
@@ -22,5 +22,6 @@ class PedidoUnitOfWork(UnitOfWork):
         self.formas_pago = FormaPagoRepository(session)
         self.productos = ProductoRepository(session)
         self.ingredientes = IngredienteRepository(session)
+        self.producto_ingredientes = ProductoIngredienteRepository(session)
         self.usuarios = UsuarioRepository(session)
         self.direcciones = DireccionRepository(session)
