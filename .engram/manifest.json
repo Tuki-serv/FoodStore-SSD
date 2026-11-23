@@ -368,6 +368,14 @@
       "sessions": 1,
       "memories": 13,
       "prompts": 0
+    },
+    {
+      "id": "dac33474",
+      "created_by": "jacop",
+      "created_at": "2026-11-23T23:20:21.5542664Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
     }
   ]
 }
