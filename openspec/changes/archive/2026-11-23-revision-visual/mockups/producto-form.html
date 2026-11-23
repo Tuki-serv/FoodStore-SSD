@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuevo producto · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-18-c-17b-fe-admin-productos-stock/mockups/producto-form.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: alta con categorías e ingredientes -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="admin" data-current="productos">
+<main class="page has-band">
+  <header class="page-band"><div class="band-inner">
+    <nav class="band-crumbs" aria-label="Ruta"><a href="productos.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Productos y stock</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Nuevo producto</span></nav>
+    <div class="band-top">
+      <div class="band-titles"><div class="band-h"><h1>Nuevo producto</h1></div></div>
+      
+    </div>
+    
+    
+  </div></header>
+  <div class="page-body">
+  <form class="form-panel panel" novalidate style="max-width:880px">
+    <section class="form-sec"><h2>Datos</h2>
+      <div class="fgrid">
+        <div class="field full"><div class="label-row"><label for="n">Nombre</label><span>12/150</span></div><input class="input" id="n" value="Burger Doble"></div>
+        <div class="field"><label for="pr">Precio</label><div class="affix"><span>$</span><input class="input" id="pr" value="2500"></div></div>
+        <div class="field"><label for="st">Stock inicial</label><input class="input num" id="st" value="18"></div>
+        <div class="field full"><label for="d">Descripción (opcional)</label><textarea class="input" id="d">Doble medallón, doble cheddar y pan brioche.</textarea></div>
+        <div class="full" style="display:grid;gap:var(--space-1)"><button class="switch" type="button" role="switch" aria-checked="true"><i></i>Disponible para la venta</button><span class="hint">Si lo apagás, se crea oculto del catálogo.</span></div>
+      </div></section>
+    <section class="form-sec"><h2>Categorías</h2><p>Marcá una o más. La principal es la que se muestra en la tarjeta del catálogo.</p>
+      <ul class="checks" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <li><label class="check"><input type="checkbox">Bebidas</label></li><li><label class="check"><input type="checkbox">Gaseosas</label></li><li><label class="check"><input type="checkbox" checked>Hamburguesas</label></li>
+        <li><label class="check"><input type="checkbox">Sin TACC</label></li><li><label class="check"><input type="checkbox">Veganas</label></li><li><label class="check"><input type="checkbox">Postres</label></li></ul>
+      <div class="field" style="max-width:320px"><label for="cp">Categoría principal</label><select class="input" id="cp"><option>Hamburguesas</option></select><span class="hint">Solo ofrece las categorías marcadas.</span></div></section>
+    <section class="form-sec"><h2>Ingredientes</h2><p>«Se puede quitar» permite que el cliente lo saque al personalizar su pedido.</p>
+      <div class="ing-rows">
+        
+        <div class="ing-row"><div class="field ing-sel"><label class="sr" for="i0">Ingrediente 1</label><select class="input" id="i0"><option>Pan Brioche (alérgeno)</option></select></div>
+          <div class="field"><label class="sr" for="c0">Cantidad</label><input class="input num" id="c0" value="1"></div>
+          <div class="field"><label class="sr" for="u0">Unidad</label><select class="input" id="u0"><option>Unidad (u)</option></select></div>
+          <label class="check" style="min-height:40px"><input type="checkbox">Se puede quitar</label>
+          <button class="icon-btn" type="button" aria-label="Quitar ingrediente 1"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg></button></div>
+        <div class="ing-row"><div class="field ing-sel"><label class="sr" for="i1">Ingrediente 2</label><select class="input" id="i1"><option>Carne Vacuna 250g</option></select></div>
+          <div class="field"><label class="sr" for="c1">Cantidad</label><input class="input num" id="c1" value="2"></div>
+          <div class="field"><label class="sr" for="u1">Unidad</label><select class="input" id="u1"><option>Unidad (u)</option></select></div>
+          <label class="check" style="min-height:40px"><input type="checkbox">Se puede quitar</label>
+          <button class="icon-btn" type="button" aria-label="Quitar ingrediente 2"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg></button></div>
+        <div class="ing-row"><div class="field ing-sel"><label class="sr" for="i2">Ingrediente 3</label><select class="input" id="i2"><option>Queso Cheddar (alérgeno)</option></select></div>
+          <div class="field"><label class="sr" for="c2">Cantidad</label><input class="input num" id="c2" value="2"></div>
+          <div class="field"><label class="sr" for="u2">Unidad</label><select class="input" id="u2"><option>Unidad (u)</option></select></div>
+          <label class="check" style="min-height:40px"><input type="checkbox" checked>Se puede quitar</label>
+          <button class="icon-btn" type="button" aria-label="Quitar ingrediente 3"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg></button></div>
+        <div class="ing-row"><div class="field ing-sel"><label class="sr" for="i3">Ingrediente 4</label><select class="input" id="i3"><option>Cebolla Caramelizada</option></select></div>
+          <div class="field"><label class="sr" for="c3">Cantidad</label><input class="input num" id="c3" value="30"></div>
+          <div class="field"><label class="sr" for="u3">Unidad</label><select class="input" id="u3"><option>Gramo (g)</option></select></div>
+          <label class="check" style="min-height:40px"><input type="checkbox" checked>Se puede quitar</label>
+          <button class="icon-btn" type="button" aria-label="Quitar ingrediente 4"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg></button></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" type="button" style="justify-self:start"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg>Agregar ingrediente</button></section>
+    <div class="form-actions"><a class="btn btn-ghost" href="productos.html">Cancelar</a><button class="btn btn-primary" type="submit">Crear producto</button></div>
+  </form>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direcciones · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-17-c-15-fe-direcciones/mockups/direcciones-lista.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: 3 direcciones, una principal; ?estado=eliminar (diálogo) -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="direcciones">
+<main class="page has-band">
+  <header class="page-band is-sticky"><div class="band-inner">
+    
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Tu cuenta</span><div class="band-h"><h1>Direcciones</h1></div><div class="band-sub"><p>Guardá dónde querés recibir tus pedidos. La principal se elige sola al pedir.</p></div></div>
+      <div class="band-actions"><a class="btn btn-primary" href="direcciones-form.html"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg><span class="lbl-m">Agregar dirección</span></a></div>
+    </div>
+    
+    <div class="band-active"><span class="band-count" role="status">3 direcciones</span></div>
+  </div></header>
+  <div class="page-body">
+  <ul class="addr-grid">
+    <li class="addr panel is-main"><div class="addr-head"><strong>Casa</strong><span class="stock" style="--dot:var(--color-accent)">Principal</span></div>
+  <p>Av. San Martín 1234, piso 3, depto. B<small>Mendoza, Mendoza · CP 5500</small></p>
+  <div class="acts"><span class="spacer"></span><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></div></li>
+    <li class="addr panel"><div class="addr-head"><strong>Trabajo</strong></div>
+  <p>Belgrano 455<small>Godoy Cruz, Mendoza · CP 5501</small></p>
+  <div class="acts"><button class="btn btn-ghost btn-sm" type="button">Marcar como principal</button><span class="spacer"></span><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></div></li>
+    <li class="addr panel"><div class="addr-head"><strong><span class="muted" style="font-family:var(--font-sans);font-size:var(--text-base);font-weight:500;letter-spacing:0">Sin alias</span></strong></div>
+  <p>Ruta 40 km 3200<small>Luján de Cuyo</small></p>
+  <div class="acts"><button class="btn btn-ghost btn-sm" type="button">Marcar como principal</button><span class="spacer"></span><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></div></li>
+  </ul>
+  </div>
+</main>
+<div id="dlg" hidden data-after-main><div data-after-main><div class="dialog-scrim"></div><div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dt"><h2 id="dt">¿Eliminar «Trabajo»?</h2><p>Ya no la vas a ver al pedir. Los pedidos hechos con esta dirección no cambian.</p><div class="actions"><button class="btn btn-secondary" type="button">Cancelar</button><button class="btn btn-destructive" type="button">Eliminar</button></div></div></div></div>
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+if (q.get('estado') === 'eliminar') document.getElementById('dlg').hidden = false;
+})();
+</script>
+</body>
+</html>

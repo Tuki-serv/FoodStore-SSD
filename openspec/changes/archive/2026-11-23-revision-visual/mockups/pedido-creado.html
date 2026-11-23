@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedido creado · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-19-c-19-fe-checkout-pedido/mockups/pedido-creado.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: EFECTIVO por defecto; ?estado=precios (aviso de precios actualizados) -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="mis-pedidos" data-cart="0">
+<main class="page">
+  <div class="hero-ok"><span class="mark"><svg class="ico" aria-hidden="true"><use href="#i-exito"/></svg></span><div><h1>Pedido #57 recibido</h1><p>Lo vas a poder seguir desde «Mis pedidos».</p></div></div>
+  <div id="alert-slot"></div>
+  <div class="two-col">
+    <div>
+      <section class="block" aria-labelledby="qs"><h2 id="qs">¿Qué sigue?</h2>
+        <ol class="next">
+          <li><div><strong>El local confirma tu pago en efectivo</strong><p>Pagás al recibirlo o al retirarlo. Mientras tanto, el pedido figura como pendiente.</p></div></li>
+          <li><div><strong>El pedido pasa a «Confirmado» y se prepara</strong><p>La confirmación es manual: la hace el equipo del local, no es automática.</p></div></li>
+          <li><div><strong>Seguilo en «Mis pedidos»</strong><p>Vas a ver cada cambio de estado hasta la entrega.</p></div></li>
+        </ol></section>
+      <section class="block" aria-labelledby="de"><h2 id="de">Detalle</h2>
+        <dl class="kv"><dt>Estado</dt><dd><span class="badge b-pendiente">Pendiente</span></dd>
+          <dt>Entrega</dt><dd><strong>Casa</strong><small>Av. San Martín 1234, piso 3, depto. B</small><small>Mendoza, Mendoza · CP 5500</small></dd>
+          <dt>Forma de pago</dt><dd>Efectivo</dd></dl></section>
+      <div class="hstack"><a class="btn btn-primary" href="mis-pedidos.html">Ver mis pedidos</a><a class="btn btn-secondary" href="catalogo.html">Seguir comprando</a></div>
+    </div>
+    <aside class="summary zone" aria-labelledby="pd"><h2 id="pd">Pedido #57</h2><ul class="lines">
+  <li><span class="q">2 ×</span><span><strong>Hamburguesa Clásica</strong><small>Sin cebolla, sin tomate</small></span><span class="amt">$ 3.000</span></li>
+  <li><span class="q">1 ×</span><span><strong>Coca-Cola 500ml</strong></span><span class="amt">$ 800</span></li>
+</ul><dl class="totals">
+  <div><dt>Subtotal</dt><dd>$ 3.800</dd></div><div><dt>Costo de envío</dt><dd>$ 50</dd></div><div><dt>Descuento</dt><dd>$ 0</dd></div>
+  <div class="grand"><dt>Total</dt><dd><span class="price"><small>$</small>3.850</span></dd></div></dl>
+  <p class="fine">Si algún producto se agota antes de que se confirme, el pedido puede cancelarse por falta de stock.</p></aside>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+if (q.get('estado') === 'precios') document.getElementById('alert-slot').innerHTML = '<div class="alert warn" style="margin-bottom:var(--space-6)">' + M.ico('info') + '<div><strong>Los precios se actualizaron</strong>El total final ($ 3.850) es distinto del estimado: tomamos los precios vigentes al crear el pedido.</div></div>';
+})();
+</script>
+</body>
+</html>

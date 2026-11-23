@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedido creado con Mercado Pago · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-19-c-20b-fe-pago-seguimiento/mockups/pedido-creado-pago.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: por defecto ?pago=sin-intentos; ?pago=rechazado | en-confirmacion | aprobado -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="mis-pedidos" data-cart="0">
+<main class="page">
+  <div class="hero-ok"><span class="mark" id="mk"><svg class="ico" aria-hidden="true"><use href="#i-exito"/></svg></span><div><h1>Pedido #58 recibido</h1><p id="sub">Falta un paso: pagalo con tarjeta para que se confirme.</p></div></div>
+  <div class="two-col">
+    <div>
+      <section class="block" id="pay-block"><div class="status-card panel" style="grid-template-columns:40px minmax(0,1fr)"><span class="halo" style="color:var(--color-primary)"><svg class="ico" aria-hidden="true"><use href="#i-tarjeta"/></svg></span>
+        <div style="display:grid;gap:var(--space-3)"><div><h2 id="pt">Pagá con tarjeta</h2><p id="pp">Cargás la tarjeta en el formulario seguro de Mercado Pago. Tu pedido se confirma cuando se aprueba el pago.</p></div>
+        <div id="pcta"><a class="btn btn-primary" href="pago-pedido.html">Pagar <span class="num">$ 3.850</span> con tarjeta</a></div></div></div></section>
+      <section class="block" aria-labelledby="de"><h2 id="de">Detalle</h2>
+        <dl class="kv" id="kv"><dt>Estado</dt><dd id="est"><span class="badge b-pendiente">Pendiente</span></dd>
+          <dt>Pago</dt><dd id="pago">Pendiente de pago</dd>
+          <dt>Entrega</dt><dd><strong>Casa</strong><small>Av. San Martín 1234, piso 3, depto. B</small><small>Mendoza, Mendoza · CP 5500</small></dd>
+          <dt>Forma de pago</dt><dd>Tarjeta (Mercado Pago)</dd></dl></section>
+      <div class="hstack"><a class="btn btn-secondary" href="mis-pedidos.html">Ver mis pedidos</a><a class="btn btn-ghost" href="catalogo.html">Seguir comprando</a></div>
+    </div>
+    <aside class="summary zone" aria-labelledby="pd"><h2 id="pd">Pedido #58</h2><ul class="lines">
+  <li><span class="q">2 ×</span><span><strong>Hamburguesa Clásica</strong><small>Sin cebolla, sin tomate</small></span><span class="amt">$ 3.000</span></li>
+  <li><span class="q">1 ×</span><span><strong>Coca-Cola 500ml</strong></span><span class="amt">$ 800</span></li>
+</ul><dl class="totals">
+  <div><dt>Subtotal</dt><dd>$ 3.800</dd></div><div><dt>Costo de envío</dt><dd>$ 50</dd></div><div><dt>Descuento</dt><dd>$ 0</dd></div>
+  <div class="grand"><dt>Total</dt><dd><span class="price"><small>$</small>3.850</span></dd></div></dl>
+  <p class="fine">Si algún producto se agota antes de que se confirme, el pedido puede cancelarse por falta de stock.</p></aside>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+var p = q.get('pago');
+var $ = function (id) { return document.getElementById(id); };
+$('pay-block').querySelector('.halo').style.cssText = 'width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--color-primary-soft)';
+if (p === 'rechazado') { $('pt').textContent = 'Intentá de nuevo'; $('pp').textContent = 'El último intento no se cobró. El pedido sigue pendiente: podés pagarlo con otra tarjeta.'; $('pcta').innerHTML = '<a class="btn btn-primary" href="pago-pedido.html">Reintentar el pago de <span class="num">$ 3.850</span></a>'; $('pago').innerHTML = 'Último intento de pago: rechazado<small>La tarjeta no tiene fondos suficientes.</small>'; $('pay-block').querySelector('.halo').style.color = 'var(--color-danger)'; $('pay-block').querySelector('.halo').style.background = 'var(--color-danger-bg)'; }
+if (p === 'en-confirmacion') { $('sub').textContent = 'Mercado Pago está confirmando tu pago.'; $('pay-block').remove(); $('pago').innerHTML = 'Pago en confirmación<small><a class="link" href="pago-pedido.html?estado=pendiente">Ver el estado del pago</a></small>'; }
+if (p === 'aprobado') { $('sub').textContent = 'Pago aprobado: el local ya lo está por preparar.'; $('pay-block').remove(); $('est').innerHTML = '<span class="badge b-confirmado">Confirmado</span>'; $('pago').textContent = 'Pago aprobado'; }
+})();
+</script>
+</body>
+</html>

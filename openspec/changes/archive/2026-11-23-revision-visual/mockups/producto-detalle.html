@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detalle de producto · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-18-c-16b-fe-catalogo-publico/mockups/producto-detalle.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: por defecto («Quedan 3», alérgenos); ?estado=agotado; ?estado=no-disponible -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="catalogo" class="has-buybar">
+<main class="page has-band" id="pg">
+  <header class="page-band"><div class="band-inner" style="padding-bottom:0"><nav class="band-crumbs" aria-label="Ruta"><a href="catalogo.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Catálogo</a><span class="sep" aria-hidden="true">/</span><a href="catalogo-categoria.html">Hamburguesas</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Hamburguesa Clásica</span></nav></div></header>
+  <div class="page-body">
+  <div class="pd">
+    <div class="pd-media" id="media"></div>
+    <div class="pd-info">
+      <span class="tagline">Hamburguesas</span>
+      <h1>Hamburguesa Clásica</h1>
+      <div class="pd-price" id="price"><span class="price"><small>$</small>1.500</span></div>
+      <p class="muted" style="max-width:52ch">La de siempre, perfecta de siempre. Medallón de carne vacuna, cheddar fundido y vegetales frescos en pan brioche.</p>
+      <div class="pd-buy" id="buy">
+        <div class="qty lg" aria-label="Cantidad"><button type="button" aria-label="Quitar uno"><svg class="ico" aria-hidden="true"><use href="#i-menos"/></svg></button><span>2</span><button type="button" aria-label="Agregar uno"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg></button></div>
+        <button class="btn btn-primary" type="button">Agregar al carrito · <span class="num">$ 3.000</span></button>
+      </div>
+      <div class="pd-section">
+        <div class="note warn"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><div><strong>Contiene alérgenos</strong><p>Pan Brioche, Queso Cheddar, Mayonesa</p></div></div>
+      </div>
+      <div class="pd-section">
+        <h2>Ingredientes</h2>
+        <ul class="ing-list">
+          <li>Pan Brioche<span class="al"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg>Alérgeno</span></li><li>Carne Vacuna 250g</li>
+          <li>Queso Cheddar<span class="al"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg>Alérgeno</span></li><li>Lechuga</li><li>Tomate</li>
+          <li>Mayonesa<span class="al"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg>Alérgeno</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  </div>
+</main>
+<div class="buybar" id="buybar" data-after-main><div class="qty"><button type="button" aria-label="Quitar uno"><svg class="ico" aria-hidden="true"><use href="#i-menos"/></svg></button><span>2</span><button type="button" aria-label="Agregar uno"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg></button></div><button class="btn btn-primary" type="button">Agregar · <span class="num">$ 3.000</span></button></div>
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+var e = q.get('estado');
+document.getElementById('media').innerHTML = M.respaldo('Hamburguesa Clásica', 'lg') + (e === 'agotado' ? '<span class="stock out">Agotado</span>' : '<span class="stock low">Quedan 3</span>');
+if (e === 'agotado') {
+  document.querySelector('.pd-info h1').textContent = 'Burger BBQ Bacon';
+  document.getElementById('media').innerHTML = M.respaldo('Burger BBQ Bacon', 'lg') + '<span class="stock out">Agotado</span>';
+  document.querySelector('#media .ph').style.filter = 'grayscale(1)'; document.querySelector('#media .ph').style.opacity = '.45';
+  document.querySelector('#price .price').innerHTML = '<small>$</small>1.900'; document.querySelector('#price .price').classList.add('muted');
+  document.getElementById('buy').innerHTML = '<button class="btn btn-secondary" type="button" disabled>Agotado</button><span class="small muted">Volvé más tarde: el local repone el stock a diario.</span>';
+  document.getElementById('buybar').innerHTML = '<button class="btn btn-secondary btn-block" type="button" disabled>Agotado</button>';
+}
+if (e === 'no-disponible') {
+  document.getElementById('buybar').remove();
+  document.getElementById('pg').innerHTML = '<div class="page-body"><div class="state-page"><span class="halo">' + M.ico('vacio') + '</span><h1>Este producto no está disponible</h1><p>Puede que el local lo haya sacado del menú.</p><div class="hstack"><a class="btn btn-primary" href="catalogo.html">Ver el catálogo</a></div></div></div>';
+}
+})();
+</script>
+</body>
+</html>

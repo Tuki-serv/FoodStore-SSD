@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finalizar compra · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-19-c-19-fe-checkout-pedido/mockups/finalizar-compra.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: por defecto; ?estado=validacion | efectivo | mercadopago | enviando; ?error=stock -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="carrito">
+<main class="page has-band">
+  <header class="page-band"><div class="band-inner">
+    <nav class="band-crumbs" aria-label="Ruta"><a href="carrito.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Carrito</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Finalizar compra</span></nav>
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Tu compra</span><div class="band-h"><h1>Finalizar compra</h1></div><div class="band-sub"><p>Elegí cómo lo recibís y cómo pagás.</p></div></div>
+      <div class="band-actions"><span class="band-meta"><span class="num">3</span> unidades · total estimado <strong class="num" style="color:var(--color-text)">$ 3.850</strong></span></div>
+    </div>
+    
+    
+  </div></header>
+  <div class="page-body">
+  <div class="two-col">
+    <div class="steps" id="steps">
+      <div id="alert-slot"></div>
+      <section class="step" aria-labelledby="s1"><span class="step-n">1</span><div class="step-body">
+        <h2 id="s1">¿Dónde lo recibís?</h2>
+        
+        <ul class="options" role="radiogroup">
+          <li><label class="option is-checked"><input type="radio" name="dir" checked><span><strong>Casa</strong> <span class="tagline">· Principal</span><small>Av. San Martín 1234, piso 3, depto. B</small><small>Mendoza, Mendoza · CP 5500</small></span><svg class="ico" aria-hidden="true"><use href="#i-direcciones"/></svg></label></li>
+          <li><label class="option"><input type="radio" name="dir"><span><strong>Trabajo</strong><small>Belgrano 455</small><small>Godoy Cruz, Mendoza · CP 5501</small></span><svg class="ico" aria-hidden="true"><use href="#i-direcciones"/></svg></label></li>
+          <li><label class="option"><input type="radio" name="dir"><span><strong>Retiro en el local</strong><small>Pasás a buscarlo cuando esté listo</small></span><svg class="ico" aria-hidden="true"><use href="#i-tienda"/></svg></label></li>
+        </ul>
+        <p class="small muted">¿Otra dirección? <a class="link" href="direcciones-lista.html">Gestionar direcciones</a></p>
+      </div></section>
+      <section class="step" aria-labelledby="s2"><span class="step-n">2</span><div class="step-body" id="pago">
+        <h2 id="s2">¿Cómo pagás?</h2>
+        <ul class="options" role="radiogroup" id="opts-pago">
+          <li><label class="option" data-k="mercadopago"><input type="radio" name="pago"><span><strong>Tarjeta (Mercado Pago)</strong><small>Crédito o débito</small></span><svg class="ico" aria-hidden="true"><use href="#i-tarjeta"/></svg></label></li>
+          <li><label class="option" data-k="efectivo"><input type="radio" name="pago"><span><strong>Efectivo</strong><small>Pagás al recibirlo o retirarlo</small></span><svg class="ico" aria-hidden="true"><use href="#i-efectivo"/></svg></label></li>
+          <li><label class="option" data-k="transferencia"><input type="radio" name="pago"><span><strong>Transferencia bancaria</strong><small>El local te pasa los datos</small></span><svg class="ico" aria-hidden="true"><use href="#i-transferencia"/></svg></label></li>
+        </ul>
+        <div id="pago-note"></div>
+        <button class="link small" type="button" style="justify-self:start">Agregar una nota para el local</button>
+      </div></section>
+    </div>
+    <aside class="summary zone" aria-labelledby="tu">
+      <h2 id="tu">Tu pedido</h2>
+      <ul class="lines" style="margin-top:calc(var(--space-2) * -1)">
+  <li><span class="q">2 ×</span><span><strong>Hamburguesa Clásica</strong><small>Sin cebolla, sin tomate</small></span><span class="amt">$ 3.000</span></li>
+  <li><span class="q">1 ×</span><span><strong>Coca-Cola 500ml</strong></span><span class="amt">$ 800</span></li>
+</ul>
+      <dl class="totals"><div><dt>Subtotal (3 unidades)</dt><dd>$ 3.800</dd></div><div><dt>Costo de envío</dt><dd>$ 50</dd></div><div><dt>Descuento</dt><dd>$ 0</dd></div>
+        <div class="grand"><dt>Total estimado</dt><dd><span class="price"><small>$</small>3.850</span></dd></div></dl>
+      <p class="fine">El total final lo confirma el servidor con los precios vigentes. Verificamos el stock al crear el pedido, pero no lo reservamos: se descuenta cuando el pedido se confirma.</p>
+      <button class="btn btn-primary btn-block" type="button" id="confirmar">Confirmar pedido</button>
+    </aside>
+  </div>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+var e = q.get('estado'), err = q.get('error');
+function pick(k) { var o = document.querySelector('[data-k="' + k + '"]'); o.classList.add('is-checked'); o.querySelector('input').checked = true; }
+var note = document.getElementById('pago-note');
+if (e === 'validacion') { document.getElementById('opts-pago').classList.add('invalid'); note.innerHTML = '<p class="err" role="alert">Elegí una forma de pago.</p>'; }
+if (e === 'efectivo') { pick('efectivo'); note.innerHTML = '<div class="note info">' + M.ico('info') + '<div><strong>Confirmación manual</strong><p>El local confirma el pedido cuando recibe el pago.</p></div></div>'; }
+if (e === 'mercadopago') { pick('mercadopago'); note.innerHTML = '<div class="note info">' + M.ico('tarjeta') + '<div><strong>Pago en el paso siguiente</strong><p>Al confirmar, cargás la tarjeta en el formulario seguro de Mercado Pago.</p></div></div>'; }
+if (e === 'enviando') { pick('efectivo'); document.querySelectorAll('#steps input').forEach(function (i) { i.disabled = true; }); var b = document.getElementById('confirmar'); b.disabled = true; b.style.background = 'var(--color-primary)'; b.style.color = '#fff'; b.innerHTML = '<span class="spinner" aria-hidden="true"></span>Creando pedido…'; }
+if (err === 'stock') { pick('efectivo'); document.getElementById('alert-slot').innerHTML = '<div class="alert" role="alert" tabindex="-1">' + M.ico('alerta') + '<div><strong>No pudimos crear el pedido</strong>No hay stock suficiente de «Coca-Cola 500ml» (quedan 0). <a class="link" href="carrito.html">Revisar carrito</a></div></div>'; }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Productos y stock · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-18-c-17b-fe-admin-productos-stock/mockups/productos.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: listado con stock editable, disponibilidad como interruptor, un solo distintivo (stock) por fila -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="admin" data-current="productos">
+<main class="page has-band">
+  <header class="page-band is-sticky"><div class="band-inner">
+    
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Administración</span><div class="band-h"><h1>Productos y stock</h1></div><div class="band-sub"><p>Cargá productos con sus categorías e ingredientes y mantené el stock y la disponibilidad al día.</p></div></div>
+      <div class="band-actions"><a class="btn btn-primary" href="producto-form.html"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg><span class="lbl-m">Nuevo producto</span></a></div>
+    </div>
+    <div class="band-toolbar"><form class="search" role="search"><label class="sr" for="q">Buscar productos por nombre</label><svg class="ico" aria-hidden="true"><use href="#i-buscar"/></svg><input class="input" id="q" type="search" placeholder="Buscar por nombre"></form>
+      <button class="chip filter-btn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-filtros"/></svg>Filtros<span class="count">1</span></button>
+      <div class="field desktop-only"><label for="c">Categoría</label><select class="input" id="c"><option>Hamburguesas</option></select></div>
+      <div class="seg desktop-only" role="group" aria-label="Disponibilidad"><button type="button" aria-pressed="true">Todos</button><button type="button" aria-pressed="false">Disponibles</button><button type="button" aria-pressed="false">No disponibles</button></div></div>
+    <div class="band-active"><span class="band-count" role="status">7 productos <small>· 1 no disponible</small></span><span class="tag">Hamburguesas<button type="button" aria-label="Quitar filtro Hamburguesas"><svg class="ico" aria-hidden="true"><use href="#i-cerrar"/></svg></button></span><button class="link small" type="button">Limpiar filtros</button></div>
+  </div></header>
+  <div class="page-body">
+  <div class="panel table-panel"><table class="resp"><thead><tr><th>Producto</th><th class="num">Precio</th><th>Stock</th><th>Disponibilidad</th><th><span class="sr">Acciones</span></th></tr></thead><tbody>
+  <tr><td class="wide"><strong>Hamburguesa Clásica</strong><span class="allergen" style="margin:0 0 0 6px;vertical-align:-3px" title="Alérgeno"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><span class="sr">Alérgeno</span></span><small>Hamburguesas · 6 ingredientes · 3 alérgenos</small></td>
+    <td class="num" data-l="Precio">$ 1.500</td>
+    <td data-l="Stock"><div class="stock-edit"><label class="sr" for="st-Hamburguesa Clásica">Stock de Hamburguesa Clásica</label><input class="input" id="st-Hamburguesa Clásica" value="50"><button class="btn btn-ghost btn-sm" type="button">Guardar</button></div></td>
+    <td class="end"><button class="switch" type="button" role="switch" aria-checked="true"><i></i><span class="">Disponible</span></button></td>
+    <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></td></tr>
+  <tr><td class="wide"><strong>Burger BBQ Bacon</strong><span class="allergen" style="margin:0 0 0 6px;vertical-align:-3px" title="Alérgeno"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><span class="sr">Alérgeno</span></span><small>Hamburguesas · 6 ingredientes · 2 alérgenos</small></td>
+    <td class="num" data-l="Precio">$ 1.900</td>
+    <td data-l="Stock"><div class="stock-edit"><label class="sr" for="st-Burger BBQ Bacon">Stock de Burger BBQ Bacon</label><input class="input" id="st-Burger BBQ Bacon" value="30"><button class="btn btn-ghost btn-sm" type="button">Guardar</button></div></td>
+    <td class="end"><button class="switch" type="button" role="switch" aria-checked="true"><i></i><span class="">Disponible</span></button></td>
+    <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></td></tr>
+  <tr><td class="wide"><strong>Burger Vegana</strong><span class="allergen" style="margin:0 0 0 6px;vertical-align:-3px" title="Alérgeno"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><span class="sr">Alérgeno</span></span><small>Hamburguesas · Veganas · 5 ingredientes · 1 alérgeno</small></td>
+    <td class="num" data-l="Precio">$ 1.800</td>
+    <td data-l="Stock"><div class="stock-edit"><label class="sr" for="st-Burger Vegana">Stock de Burger Vegana</label><input class="input" id="st-Burger Vegana" value="12"><button class="btn btn-ghost btn-sm" type="button">Guardar</button></div></td>
+    <td class="end"><button class="switch" type="button" role="switch" aria-checked="true"><i></i><span class="">Disponible</span></button></td>
+    <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></td></tr>
+  <tr><td class="wide"><strong>Burger Sin TACC</strong><span class="allergen" style="margin:0 0 0 6px;vertical-align:-3px" title="Alérgeno"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><span class="sr">Alérgeno</span></span><small>Hamburguesas · Sin TACC · 5 ingredientes · 1 alérgeno</small></td>
+    <td class="num" data-l="Precio">$ 1.700</td>
+    <td data-l="Stock"><div class="stock-edit"><label class="sr" for="st-Burger Sin TACC">Stock de Burger Sin TACC</label><input class="input" id="st-Burger Sin TACC" value="4"><button class="btn btn-ghost btn-sm" type="button">Guardar</button><span class="stock low">Quedan 4</span></div></td>
+    <td class="end"><button class="switch" type="button" role="switch" aria-checked="true"><i></i><span class="">Disponible</span></button></td>
+    <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></td></tr>
+  <tr><td class="wide"><strong>Coca-Cola 500ml</strong><small>Bebidas · Gaseosas · sin ingredientes</small></td>
+    <td class="num" data-l="Precio">$ 800</td>
+    <td data-l="Stock"><div class="stock-edit"><label class="sr" for="st-Coca-Cola 500ml">Stock de Coca-Cola 500ml</label><input class="input" id="st-Coca-Cola 500ml" value="100"><button class="btn btn-ghost btn-sm" type="button">Guardar</button></div></td>
+    <td class="end"><button class="switch" type="button" role="switch" aria-checked="true"><i></i><span class="">Disponible</span></button></td>
+    <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></td></tr>
+  <tr><td class="wide"><strong>Limonada Natural</strong><small>Bebidas · sin ingredientes</small></td>
+    <td class="num" data-l="Precio">$ 700</td>
+    <td data-l="Stock"><div class="stock-edit"><label class="sr" for="st-Limonada Natural">Stock de Limonada Natural</label><input class="input" id="st-Limonada Natural" value="0"><button class="btn btn-ghost btn-sm" type="button">Guardar</button><span class="stock out">Agotado</span></div></td>
+    <td class="end"><button class="switch" type="button" role="switch" aria-checked="false"><i></i><span class="muted">No disponible</span></button></td>
+    <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></td></tr>
+  <tr><td class="wide"><strong>Burger Doble</strong><span class="allergen" style="margin:0 0 0 6px;vertical-align:-3px" title="Alérgeno"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><span class="sr">Alérgeno</span></span><small>Hamburguesas · 4 ingredientes · 2 alérgenos</small></td>
+    <td class="num" data-l="Precio">$ 2.500</td>
+    <td data-l="Stock"><div class="stock-edit"><label class="sr" for="st-Burger Doble">Stock de Burger Doble</label><input class="input" id="st-Burger Doble" value="18"><button class="btn btn-ghost btn-sm" type="button">Guardar</button></div></td>
+    <td class="end"><button class="switch" type="button" role="switch" aria-checked="true"><i></i><span class="">Disponible</span></button></td>
+    <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button"><svg class="ico" aria-hidden="true"><use href="#i-basura"/></svg>Eliminar</button></td></tr></tbody></table></div>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personalizar producto · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-19-c-18-fe-carrito-personalizacion/mockups/producto-personalizar.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: por defecto («Sin Cebolla» marcada); ?estado=agregado (toast) -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="catalogo" class="has-buybar">
+<main class="page has-band">
+  <header class="page-band"><div class="band-inner" style="padding-bottom:0"><nav class="band-crumbs" aria-label="Ruta"><a href="catalogo.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Catálogo</a><span class="sep" aria-hidden="true">/</span><a href="catalogo-categoria.html">Hamburguesas</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Hamburguesa Clásica</span></nav></div></header>
+  <div class="page-body">
+  <div class="pd">
+    <div class="pd-media" id="media"></div>
+    <div class="pd-info">
+      <span class="tagline">Hamburguesas</span>
+      <h1>Hamburguesa Clásica</h1>
+      <div class="pd-price"><span class="price"><small>$</small>1.500</span></div>
+      <p class="muted" style="max-width:52ch">La de siempre, perfecta de siempre. Medallón de carne vacuna, cheddar fundido y vegetales frescos en pan brioche.</p>
+      <section class="zone pad" style="display:grid;gap:var(--space-3)" aria-labelledby="pers">
+        <div><h2 id="pers" style="font-size:var(--text-lg);font-weight:var(--weight-semibold);letter-spacing:-0.01em">Personalizá tu pedido</h2>
+        <p class="small muted">Marcá lo que querés sacar. Si no marcás nada, va tal cual.</p></div>
+        <ul class="checks">
+          <li><label class="check"><input type="checkbox">Sin Queso Cheddar<span class="al" title="Alérgeno"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><span class="sr">Alérgeno</span></span></label></li>
+          <li><label class="check"><input type="checkbox" checked>Sin Cebolla</label></li>
+          <li><label class="check"><input type="checkbox">Sin Lechuga</label></li>
+          <li><label class="check"><input type="checkbox">Sin Tomate</label></li>
+          <li><label class="check"><input type="checkbox">Sin Mayonesa</label></li>
+        </ul>
+      </section>
+      <div class="pd-buy">
+        <div class="qty lg" aria-label="Cantidad"><button type="button" aria-label="Quitar uno" disabled><svg class="ico" aria-hidden="true"><use href="#i-menos"/></svg></button><span>1</span><button type="button" aria-label="Agregar uno"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg></button></div>
+        <button class="btn btn-primary" type="button">Agregar al carrito · <span class="num">$ 1.500</span></button>
+      </div>
+      <div class="pd-section"><div class="note warn"><svg class="ico" aria-hidden="true"><use href="#i-alergeno"/></svg><div><strong>Contiene alérgenos</strong><p>Pan Brioche, Queso Cheddar</p></div></div></div>
+    </div>
+  </div>
+  </div>
+</main>
+<div class="buybar" data-after-main><div class="qty"><button type="button" aria-label="Quitar uno" disabled><svg class="ico" aria-hidden="true"><use href="#i-menos"/></svg></button><span>1</span><button type="button" aria-label="Agregar uno"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg></button></div><button class="btn btn-primary" type="button">Agregar · <span class="num">$ 1.500</span></button></div>
+<div class="toast-region" id="toasts" data-after-main hidden><div class="toast t-success" role="status"><svg class="ico" aria-hidden="true"><use href="#i-exito"/></svg><div><strong>Agregado al carrito</strong><p>1 × Hamburguesa Clásica, sin cebolla</p></div></div></div>
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+document.getElementById('media').innerHTML = M.respaldo('Hamburguesa Clásica', 'lg') + '<span class="stock low">Quedan 3</span>';
+if (q.get('estado') === 'agregado') { document.getElementById('toasts').hidden = false; document.body.setAttribute('data-cart', '3'); if (matchMedia('(max-width:719.98px)').matches) document.getElementById('toasts').style.bottom = '88px'; }
+})();
+</script>
+</body>
+</html>

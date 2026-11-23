@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestión de pedidos · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-19-c-22-fe-gestion-operativa-pedidos/mockups/gestion-pedidos.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: listado con próxima acción por fila (ADMIN y PEDIDOS ven lo mismo) -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="pedidos" data-current="gestion">
+<main class="page has-band">
+  <header class="page-band is-sticky"><div class="band-inner">
+    
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Operación</span><div class="band-h"><h1>Gestión de pedidos</h1></div><div class="band-sub"><p>Confirmá los pagos en efectivo o transferencia y llevá cada pedido hasta la entrega.</p></div></div>
+      <div class="band-actions"><span class="band-meta hide-m">Actualizado a las <span class="num">12:41</span></span><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-reintentar"/></svg><span class="lbl-m">Actualizar</span></button></div>
+    </div>
+    <div class="band-toolbar"><div class="band-scroll"><div class="seg" role="group" aria-label="Filtrar por estado"><button type="button" aria-pressed="true">Todos</button><button type="button" aria-pressed="false">Pendiente</button><button type="button" aria-pressed="false">Confirmado</button><button type="button" aria-pressed="false">En preparación</button><button type="button" aria-pressed="false">En camino</button><button type="button" aria-pressed="false">Entregado</button><button type="button" aria-pressed="false">Cancelado</button></div></div><span class="vr desktop-only"></span>
+      <div class="field desktop-only"><label class="sr" for="d">Desde</label><input class="input num" id="d" type="date" value="2026-11-19"></div>
+      <span class="muted desktop-only" aria-hidden="true">–</span>
+      <div class="field desktop-only"><label class="sr" for="h">Hasta</label><input class="input num" id="h" type="date" value="2026-11-19"></div>
+      <button class="chip filter-btn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-calendario"/></svg>Fechas<span class="count">1</span></button></div>
+    <div class="band-active"><span class="band-count" role="status">45 pedidos <small>del 19/11/2026 · día del servidor, UTC</small></span><span class="tag">Desde 19/11/2026<button type="button" aria-label="Quitar filtro Desde 19/11/2026"><svg class="ico" aria-hidden="true"><use href="#i-cerrar"/></svg></button></span><span class="tag">Hasta 19/11/2026<button type="button" aria-label="Quitar filtro Hasta 19/11/2026"><svg class="ico" aria-hidden="true"><use href="#i-cerrar"/></svg></button></span><button class="link small" type="button">Limpiar filtros</button></div>
+  </div></header>
+  <div class="page-body">
+  <div class="panel table-panel"><table class="resp"><thead><tr><th>Pedido</th><th>Estado</th><th>Cliente</th><th>Forma de pago</th><th class="num">Total</th><th class="act">Próxima acción</th></tr></thead><tbody>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#63</a><small class="num">19/11 · 12:50</small></td>
+    <td class="end"><span class="badge b-pendiente">Pendiente</span></td>
+    <td data-l="Cliente">Diego Ramos</td><td data-l="Forma de pago" class="muted">Tarjeta (Mercado Pago)</td>
+    <td class="num end" data-l="Total">$ 2.650</td>
+    <td class="act"><span class="small muted">Espera el pago en Mercado Pago</span></td></tr>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#58</a><small class="num">19/11 · 12:40</small></td>
+    <td class="end"><span class="badge b-pendiente">Pendiente</span></td>
+    <td data-l="Cliente">Ana López</td><td data-l="Forma de pago" class="muted">Efectivo</td>
+    <td class="num end" data-l="Total">$ 3.850</td>
+    <td class="act"><button class="btn btn-secondary btn-sm" type="button">Confirmar pago</button></td></tr>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#57</a><small class="num">19/11 · 12:31</small></td>
+    <td class="end"><span class="badge b-confirmado">Confirmado</span></td>
+    <td data-l="Cliente">Bruno Díaz</td><td data-l="Forma de pago" class="muted">Tarjeta (Mercado Pago)</td>
+    <td class="num end" data-l="Total">$ 5.350</td>
+    <td class="act"><button class="btn btn-secondary btn-sm" type="button">Pasar a preparación</button></td></tr>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#56</a><small class="num">19/11 · 12:22</small></td>
+    <td class="end"><span class="badge b-pendiente">Pendiente</span></td>
+    <td data-l="Cliente">Carmen Vega</td><td data-l="Forma de pago" class="muted">Transferencia bancaria</td>
+    <td class="num end" data-l="Total">$ 2.550</td>
+    <td class="act"><button class="btn btn-secondary btn-sm" type="button">Confirmar pago</button></td></tr>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#54</a><small class="num">19/11 · 11:58</small></td>
+    <td class="end"><span class="badge b-en-prep">En preparación</span></td>
+    <td data-l="Cliente">Elena Torres</td><td data-l="Forma de pago" class="muted">Efectivo</td>
+    <td class="num end" data-l="Total">$ 7.950</td>
+    <td class="act"><button class="btn btn-secondary btn-sm" type="button">Despachar</button></td></tr>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#53</a><small class="num">19/11 · 11:20</small></td>
+    <td class="end"><span class="badge b-en-camino">En camino</span></td>
+    <td data-l="Cliente">Facundo Gil</td><td data-l="Forma de pago" class="muted">Tarjeta (Mercado Pago)</td>
+    <td class="num end" data-l="Total">$ 3.450</td>
+    <td class="act"><button class="btn btn-secondary btn-sm" type="button">Marcar entregado</button></td></tr>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#52</a><small class="num">19/11 · 10:42</small></td>
+    <td class="end"><span class="badge b-entregado">Entregado</span></td>
+    <td data-l="Cliente">Gabriela Sosa</td><td data-l="Forma de pago" class="muted">Transferencia bancaria</td>
+    <td class="num end" data-l="Total">$ 4.450</td>
+    <td class="act act-empty"><span class="muted" aria-label="Sin acciones">—</span></td></tr>
+  <tr><td><a class="order-n" href="gestion-pedido-detalle.html">#51</a><small class="num">19/11 · 10:05</small></td>
+    <td class="end"><span class="badge b-cancelado">Cancelado</span></td>
+    <td data-l="Cliente">Hernán Paz</td><td data-l="Forma de pago" class="muted">Efectivo</td>
+    <td class="num end" data-l="Total">$ 2.250</td>
+    <td class="act act-empty"><span class="muted" aria-label="Sin acciones">—</span></td></tr></tbody></table></div>
+  <nav class="pager" aria-label="Paginación"><span class="num">Mostrando 1–20 de 45</span><span class="hstack"><button class="btn btn-secondary btn-sm" type="button" disabled>Anterior</button><span class="num">Página 1 de 3</span><button class="btn btn-secondary btn-sm" type="button">Siguiente</button></span></nav>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>
