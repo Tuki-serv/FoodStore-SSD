@@ -59,6 +59,44 @@ describe('AppShell sin sesión en desktop', () => {
   });
 });
 
+describe('AppShell: logo de Revision 4', () => {
+  it('el logo tiene nombre accesible «Food Store» y ningún texto del shell dice «PROVISIONAL» ni «(TBD)»', () => {
+    setViewport(1440);
+    renderShell('/catalogo');
+
+    const logo = within(sidebar() as HTMLElement).getByRole('img', { name: 'Food Store' });
+    expect(logo).toHaveClass('sidebar-logo');
+    const textos = [document.body.textContent ?? '', ...Array.from(document.querySelectorAll('[alt],[aria-label],[title]')).map((el) => el.getAttribute('alt') ?? el.getAttribute('aria-label') ?? el.getAttribute('title') ?? '')];
+    for (const texto of textos) expect(texto).not.toMatch(/PROVISIONAL|\(TBD\)|provisional/i);
+  });
+
+  it('con el panel colapsado el encabezado muestra solo el isotipo, que conserva el nombre «Food Store»', async () => {
+    setViewport(1440);
+    const usuario = userEvent.setup();
+    renderShell('/catalogo');
+
+    await usuario.click(screen.getByRole('button', { name: 'Colapsar panel' }));
+
+    const imagenes = within(sidebar() as HTMLElement).getAllByRole('img', { name: 'Food Store' });
+    expect(imagenes).toHaveLength(1);
+    expect(imagenes[0]).toHaveClass('sidebar-mark');
+    expect(imagenes[0]).not.toHaveClass('sidebar-logo');
+  });
+
+  it('al expandir de nuevo vuelve el logo completo y desaparece el isotipo', async () => {
+    setViewport(1440);
+    const usuario = userEvent.setup();
+    renderShell('/catalogo');
+    await usuario.click(screen.getByRole('button', { name: 'Colapsar panel' }));
+
+    await usuario.click(screen.getByRole('button', { name: 'Expandir panel' }));
+
+    const imagenes = within(sidebar() as HTMLElement).getAllByRole('img', { name: 'Food Store' });
+    expect(imagenes).toHaveLength(1);
+    expect(imagenes[0]).toHaveClass('sidebar-logo');
+  });
+});
+
 describe('AppShell colapsable en desktop', () => {
   it('colapsa y expande con el botón del encabezado, conservando el nombre de los enlaces', async () => {
     setViewport(1440);

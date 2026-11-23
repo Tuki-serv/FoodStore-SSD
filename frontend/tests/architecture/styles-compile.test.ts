@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import postcss from 'postcss';
 import postcssImport from 'postcss-import';
@@ -7,6 +7,7 @@ import tailwindcss from 'tailwindcss';
 import { describe, expect, it } from 'vitest';
 import config from '../../tailwind.config';
 import { claseEstado, ESTADOS_PEDIDO } from '../../src/entities/pedido/model/estados';
+import { declaracionesFontFace, primeraFamiliaDeToken, urlsRemotas } from './fuentes';
 
 const RAIZ = process.cwd();
 const ENTRADA = resolve(RAIZ, 'src/app/styles/index.css');
@@ -89,5 +90,80 @@ describe('título del 404 (C-25b1, mockup aprobado de C-13a)', () => {
     const css = await compilar('<h1 class="text-[2rem]">x</h1>');
 
     expect(css.replace(/\s+/g, '')).toContain('.text-\\[2rem\\]{font-size:2rem;}');
+  });
+});
+
+describe('fuentes autoalojadas (revision-visual 3.1, spec frontend-visual-language)', () => {
+  const DESIGN_SYSTEM = resolve(RAIZ, '../design-system');
+
+  it('detecta @font-face, familias y urls en un CSS de ejemplo', () => {
+    const css = '@font-face{font-family:"Foo Sans";font-display:swap;src:url("a/foo.woff2") format("woff2"),url(b/foo.woff) format("woff")}:root{--font-x:"Foo Sans", system-ui, sans-serif}';
+
+    expect(declaracionesFontFace(css)).toEqual([{ familia: 'Foo Sans', urls: ['a/foo.woff2', 'b/foo.woff'], fontDisplay: 'swap' }]);
+    expect(primeraFamiliaDeToken(css, '--font-x')).toBe('Foo Sans');
+    expect(urlsRemotas(['a/foo.woff2', 'https://fonts.gstatic.com/x.woff2', '//cdn.x/y.woff2', 'http://h/z'])).toEqual([
+      'https://fonts.gstatic.com/x.woff2',
+      '//cdn.x/y.woff2',
+      'http://h/z',
+    ]);
+  });
+
+  it('cada @font-face compilado apunta a un archivo local existente, sin urls remotas y con font-display: swap', async () => {
+    const faces = declaracionesFontFace(await compilar());
+    const urls = faces.flatMap((f) => f.urls);
+
+    expect(faces.length).toBeGreaterThanOrEqual(2);
+    expect(urlsRemotas(urls)).toEqual([]);
+    for (const url of urls) expect(existsSync(resolve(DESIGN_SYSTEM, url)), url).toBe(true);
+    for (const face of faces) expect(face.fontDisplay, face.familia).toBe('swap');
+  });
+
+  it('las familias de --font-display y --font-sans tienen su @font-face compilado', async () => {
+    const css = await compilar();
+    const familias = declaracionesFontFace(css).map((f) => f.familia);
+
+    expect(primeraFamiliaDeToken(css, '--font-display')).toBe('Bricolage Grotesque');
+    expect(primeraFamiliaDeToken(css, '--font-sans')).toBe('Geist');
+    expect(familias).toEqual(expect.arrayContaining([primeraFamiliaDeToken(css, '--font-display'), primeraFamiliaDeToken(css, '--font-sans')]));
+  });
+
+  it('el HTML de entrada no pide hojas de estilo ni fuentes a hosts externos', () => {
+    const html = readFileSync(resolve(RAIZ, 'index.html'), 'utf8');
+
+    expect(html).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
+    expect(html).not.toMatch(/<link[^>]+href="https?:\/\//);
+  });
+});
+
+describe('utilidades de Revision 4 (revision-visual 3.2)', () => {
+  it('las superficies, la presión y el z-index del encabezado salen como variables del design system', async () => {
+    const css = await compilar('<div class="bg-surface-section bg-surface-raised active:scale-press z-page-header ease-drawer"></div>');
+
+    expect(css).toMatch(/\.bg-surface-section\s*\{[^}]*background-color:\s*var\(--surface-section\)/);
+    expect(css).toMatch(/\.bg-surface-raised\s*\{[^}]*background-color:\s*var\(--surface-raised\)/);
+    expect(css).toMatch(/\.active\\:scale-press:active\s*\{[^}]*--tw-scale-x:\s*var\(--press-scale\)/);
+    expect(css).toMatch(/\.z-page-header\s*\{[^}]*z-index:\s*var\(--z-page-header\)/);
+    expect(css).toMatch(/\.ease-drawer\s*\{[^}]*var\(--ease-drawer\)/);
+  });
+
+  it('num-tabular aplica --numeric-tabular sin literales', async () => {
+    const css = await compilar('<span class="num-tabular"></span>');
+
+    expect(css).toMatch(/\.num-tabular\s*\{[^}]*font-variant-numeric:\s*var\(--numeric-tabular\)/);
+  });
+});
+
+describe('entrada escalonada (revision-visual 3.5)', () => {
+  it('la clase de entrada anima los hijos con retardo = min(--i, 8) × --stagger-step y existe su @keyframes', async () => {
+    const css = (await compilar()).replace(/\s+/g, '');
+
+    expect(css).toContain('@keyframesentrada');
+    expect(css).toMatch(/\.stagger>:not\(\.ohead\)\{animation:entradavar\(--motion-slow\)var\(--ease-out\)both;animation-delay:calc\(min\(var\(--i,0\),8\)\*var\(--stagger-step\)\)/);
+  });
+
+  it('con movimiento reducido la entrada se anula', async () => {
+    const css = (await compilar()).replace(/\s+/g, '');
+
+    expect(css).toMatch(/@media\(prefers-reduced-motion:reduce\)\{\.stagger>:not\(\.ohead\)\{animation:none/);
   });
 });

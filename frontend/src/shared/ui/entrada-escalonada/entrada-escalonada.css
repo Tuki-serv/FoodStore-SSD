@@ -1,0 +1,7 @@
+/* Entrada escalonada de las listas principales, solo en el primer montaje (la clase la pone `usePrimerMontaje`; `--i` lo pone cada hijo, topado en 8).
+   Con movimiento reducido tokens.css deja --stagger-step y --motion-slow en 0ms: la entrada queda instantánea y sin desplazamiento visible. */
+@layer components {
+  @keyframes entrada{from{opacity:0;transform:translateY(6px)}}
+  .stagger>:not(.ohead){animation:entrada var(--motion-slow) var(--ease-out) both;animation-delay:calc(min(var(--i,0),8) * var(--stagger-step))}
+  @media (prefers-reduced-motion:reduce){.stagger>:not(.ohead){animation:none}}
+}

@@ -24,7 +24,7 @@ describe('Listado de gestión de pedidos · filtros', () => {
     await screen.findByRole('heading', { name: TITULO, level: 1 });
     expect(await filas()).toHaveLength(3);
 
-    await usuario.selectOptions(screen.getByLabelText('Estado'), 'En preparación');
+    await usuario.click(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'En preparación' }));
 
     await waitFor(async () => expect(await filas()).toHaveLength(2));
     expect(router.state.location.search).toBe('?estado=EN_PREP');
@@ -83,28 +83,67 @@ describe('Listado de gestión de pedidos · filtros', () => {
 
     expect(listado).toHaveLength(1);
     expect(listado[0]).toHaveTextContent('#58');
-    expect(screen.getByLabelText('Estado')).toHaveValue('PENDIENTE');
+    expect(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Pendiente' })).toHaveAttribute('aria-pressed', 'true');
     expect(estado.consultasLista[0]).toEqual({ estado: 'PENDIENTE', page: '1', size: '20' });
   });
 
-  it('los filtros tienen etiquetas visibles y avisan que las fechas son del día UTC del servidor', async () => {
+  it('el estado es un control segmentado (Todos y los seis estados, en orden) con «Todos» marcado por defecto', async () => {
     montarGestion('/gestion-pedidos');
     await screen.findByRole('heading', { name: TITULO, level: 1 });
 
-    expect(screen.getByLabelText('Estado')).toBeVisible();
-    expect(screen.getByLabelText('Desde')).toBeVisible();
-    expect(screen.getByLabelText('Hasta')).toBeVisible();
-    expect(screen.getByText('Fechas según el día del servidor (UTC)')).toBeInTheDocument();
+    const grupo = screen.getByRole('group', { name: 'Estado' });
+    const botones = within(grupo).getAllByRole('button');
+    expect(botones.map((boton) => boton.textContent)).toEqual(['Todos', 'Pendiente', 'Confirmado', 'En preparación', 'En camino', 'Entregado', 'Cancelado']);
+    expect(botones.map((boton) => boton.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false', 'false', 'false', 'false']);
+  });
+
+  it('el rango «desde – hasta» comparte fila con el control de estado y sus campos conservan los nombres «Desde» y «Hasta»', async () => {
+    montarGestion('/gestion-pedidos');
+    await screen.findByRole('heading', { name: TITULO, level: 1 });
+
+    const fila = screen.getByRole('group', { name: 'Estado' }).closest('.gp-filters-row')!;
+    expect(fila).toContainElement(screen.getByLabelText('Desde'));
+    expect(fila).toContainElement(screen.getByLabelText('Hasta'));
+    expect(fila.textContent).toContain('–');
+    expect(screen.queryByText('Fechas según el día del servidor (UTC)')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['?desde=2026-11-19&hasta=2026-11-19', '2 pedidos del 19/11/2026 · día del servidor, UTC'],
+    ['?desde=2026-11-18&hasta=2026-11-19', '2 pedidos del 18/11/2026 al 19/11/2026 · día del servidor, UTC'],
+    ['?desde=2026-11-18', '2 pedidos desde 18/11/2026 · día del servidor, UTC'],
+    ['?hasta=2026-11-20', '2 pedidos hasta 20/11/2026 · día del servidor, UTC'],
+    ['?estado=PENDIENTE', '2 pedidos con estos filtros'],
+    ['', '2 pedidos'],
+  ])('la línea de conteo de %s dice «%s»', async (busqueda, texto) => {
+    montarGestion(`/gestion-pedidos${busqueda}`, { pedidos: [pedido58(), pedido58({ id: 59 })] });
+    await filas();
+
+    expect(within(document.querySelector<HTMLElement>('header.page-band')!).getByRole('status').textContent?.replace(/\s+/g, ' ').trim()).toBe(texto);
+  });
+
+  it('«Limpiar filtros» vive junto a los chips y aparece con dos o más filtros', async () => {
+    montarGestion('/gestion-pedidos?estado=PENDIENTE&desde=2026-11-18');
+    await filas();
+
+    expect(within(document.querySelector<HTMLElement>('header.page-band')!).getAllByRole('button', { name: 'Limpiar filtros' })).toHaveLength(1);
+  });
+
+  it('con un solo filtro no hay «Limpiar filtros»: alcanza con quitar su chip', async () => {
+    montarGestion('/gestion-pedidos?estado=PENDIENTE');
+    await filas();
+
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
   });
 
   it('«Limpiar filtros» quita todo de la URL y vuelve a listar todos', async () => {
     const { router, usuario } = montarGestion('/gestion-pedidos?estado=EN_PREP&desde=2026-11-18&page=1', { pedidos: variados() });
     await screen.findByRole('heading', { name: TITULO, level: 1 });
 
-    await usuario.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
+    await usuario.click(await screen.findByRole('button', { name: 'Limpiar filtros' }));
 
     await waitFor(() => expect(router.state.location.search).toBe(''));
-    expect(screen.getByLabelText('Estado')).toHaveValue('');
+    expect(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByLabelText('Desde')).toHaveValue('');
     await waitFor(async () => expect(await filas()).toHaveLength(3));
   });
@@ -139,7 +178,7 @@ describe('Listado de gestión de pedidos · paginación', () => {
     const { router, usuario } = montarGestion('/gestion-pedidos?page=3', { pedidos: pedidosEnMasa(45) });
     await filas();
 
-    await usuario.selectOptions(screen.getByLabelText('Estado'), 'Pendiente');
+    await usuario.click(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Pendiente' }));
 
     await waitFor(() => expect(router.state.location.search).toBe('?estado=PENDIENTE'));
   });

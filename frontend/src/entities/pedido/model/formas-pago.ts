@@ -20,3 +20,8 @@ export const FORMAS_PAGO: readonly FormaPago[] = [
 export function esConfirmacionManual(codigo: string): boolean {
   return FORMAS_PAGO.some((forma) => forma.codigo === codigo && forma.confirmacionManual);
 }
+
+/** Nombre de una forma de pago; un código desconocido se muestra tal cual. */
+export function etiquetaFormaPago(codigo: string): string {
+  return FORMAS_PAGO.find((forma) => forma.codigo === codigo)?.etiqueta ?? codigo;
+}

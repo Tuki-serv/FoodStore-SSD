@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { etiquetaEstado, pedidoQueries } from '@/entities/pedido';
 import { aApiError } from '@/shared/api';
 import { INTERVALO_ACTUALIZACION_MS, RUTAS } from '@/shared/config';
-import { AvisoActualizacionFallida, claseBoton, EstadoError, EstadoVacio, Icon, MarcaActualizacion, Paginacion } from '@/shared/ui';
+import { AvisoActualizacionFallida, claseBoton, EncabezadoPagina, EstadoError, EstadoVacio, Icon, MarcaActualizacion, Paginacion } from '@/shared/ui';
 import { aParametros, debeActualizarLista, leerFiltroMisPedidos, TAMANO_PAGINA, type FiltroMisPedidos as Filtro } from '../model';
 import { FiltroMisPedidos } from './filtro-mis-pedidos';
 import { EsqueletoMisPedidos, ListaMisPedidos } from './lista-mis-pedidos';
@@ -20,28 +21,32 @@ export function MisPedidosPage() {
     refetchIntervalInBackground: false,
   });
   const { data } = consulta;
+  const tituloRef = useRef<HTMLHeadingElement>(null);
   const irA = (siguiente: Filtro): void => setParametros(aParametros(siguiente));
   const actualizar = (): void => void consulta.refetch();
   const limpiar = (): void => irA(SIN_FILTRO);
 
+  const filtrosActivos = filtro.estado === null ? [] : [{ id: 'estado', etiqueta: etiquetaEstado(filtro.estado), onQuitar: limpiar }];
+
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6">
-      <header className="page-head">
-        <h1 tabIndex={-1} className="text-2xl">
-          Mis pedidos
-        </h1>
-        <p>Seguí cada pedido y cancelalo mientras esté pendiente o confirmado.</p>
-      </header>
-      <FiltroMisPedidos estado={filtro.estado} onCambiar={(estado) => irA({ estado, page: 1 })} onLimpiar={limpiar} />
-      {data === undefined ? null : (
-        <div className="gp-bar">
-          <p className="admin-summary" role="status">
-            <strong>{`${data.total} ${data.total === 1 ? 'pedido' : 'pedidos'}`}</strong>
-            {filtro.estado === null ? '' : ` en ${etiquetaEstado(filtro.estado)}`}
-          </p>
-          <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching} onActualizar={actualizar} />
-        </div>
-      )}
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        herramientasColapsables
+        eyebrow="Tu cuenta"
+        titulo="Mis pedidos"
+        tituloRef={tituloRef}
+        subtitulo="Seguí cada pedido y cancelalo mientras esté pendiente o confirmado."
+        acciones={data === undefined ? undefined : <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching} onActualizar={actualizar} />}
+        herramientas={<FiltroMisPedidos estado={filtro.estado} onCambiar={(estado) => irA({ estado, page: 1 })} onLimpiar={limpiar} />}
+        {...(data === undefined ? {} : { filtrosActivos: { conteo: (
+                <>
+                  {`${data.total} ${data.total === 1 ? 'pedido' : 'pedidos'}`}
+                  {filtro.estado === null ? null : <small>{` en ${etiquetaEstado(filtro.estado)}`}</small>}
+                </>
+              ), filtros: filtrosActivos } })}
+      />
+      <div className="page-body flex flex-col gap-5">
       {consulta.isError && data !== undefined ? <AvisoActualizacionFallida actualizadoEn={consulta.dataUpdatedAt} onReintentar={actualizar} /> : null}
       {data === undefined ? (
         consulta.isError ? (
@@ -73,6 +78,7 @@ export function MisPedidosPage() {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }

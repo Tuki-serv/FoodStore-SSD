@@ -1,6 +1,6 @@
 /* Single source for the displayed product name. Replace BRAND_NAME to rename all previews/mockups. */
 (function () {
-  var BRAND_NAME = "Food Store"; // (TBD) final name not confirmed
+  var BRAND_NAME = "Food Store"; // confirmed by the user (2026-11-23)
   window.BRAND_NAME = BRAND_NAME;
   function bind() {
     var nodes = document.querySelectorAll("[data-brand-name]");

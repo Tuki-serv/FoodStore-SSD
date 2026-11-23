@@ -3,8 +3,8 @@
   .checkout{display:grid;gap:var(--space-5);grid-template-columns:minmax(0,1fr) 360px;align-items:start}
   .steps{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
   .steps-campos{display:flex;flex-direction:column;gap:var(--space-4);border:0;margin:0;padding:0;min-width:0}
-  .step{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
-  .step.is-invalid{border-color:var(--color-danger);box-shadow:inset 4px 0 0 var(--color-danger)}
+  .step{display:flex;flex-direction:column;gap:var(--space-4);padding-bottom:var(--space-6);border-bottom:1px solid var(--color-border)}
+  .step.is-invalid{border-bottom-color:var(--color-danger);box-shadow:inset 4px 0 0 var(--color-danger)}
   .step-num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--color-primary);color:#fff;font-weight:800;font-size:var(--text-sm);margin-right:var(--space-2);flex:none}
   .step h2{font-size:var(--text-lg);display:flex;align-items:center}
   .step .step-opt{font-family:var(--font-sans);font-weight:400;color:var(--color-text-muted);font-size:var(--text-sm);margin-left:var(--space-2)}
@@ -27,7 +27,8 @@
   .nota-toggle .ico{width:18px;height:18px}
   .sum-items{list-style:none;margin:0 0 var(--space-2);padding:0 0 var(--space-3);border-bottom:1px solid var(--color-border);display:flex;flex-direction:column;gap:var(--space-3)}
   .sum-items li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--space-2);align-items:baseline;font-size:var(--text-sm)}
-  .sum-items .q{font-weight:800;color:var(--color-text-muted)}
+  .sum-items .q{font-weight:800;color:var(--color-text-muted);font-variant-numeric:var(--numeric-tabular)}
+  .sum-items li>:last-child{font-variant-numeric:var(--numeric-tabular)}
   .sum-items .n{font-weight:700;overflow-wrap:anywhere}
   .sum-items .n small{display:block;font-weight:600;color:var(--color-text-muted)}
   .summary .line .muted-tag{font-size:var(--text-xs)}
@@ -41,6 +42,6 @@
   @media (max-width:1023.98px){.checkout{grid-template-columns:1fr}}
   @media (max-width:719.98px){
     .pay-opts{grid-template-columns:1fr}
-    .step{padding:var(--space-4)}
+    .step{padding-bottom:var(--space-5)}
   }
 }

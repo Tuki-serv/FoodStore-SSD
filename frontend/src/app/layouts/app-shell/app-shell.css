@@ -7,10 +7,11 @@
   .shell.is-ready>.sidebar{transition:width var(--motion-base) var(--ease-out)}
   .sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-3);min-height:68px;border-bottom:1px solid var(--color-border)}
   .sidebar-logo{height:36px;max-width:170px;min-width:0}
+  .sidebar-mark{width:32px;height:32px;flex:none}
   .sidebar-nav{flex:1;overflow-y:auto;padding:var(--space-3) var(--space-2);display:flex;flex-direction:column;gap:var(--space-1)}
   .nav-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-1)}
   .nav-item{position:relative;display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-min);padding:0 var(--space-3);border-radius:var(--radius-md);color:var(--color-text);text-decoration:none;font-weight:600;white-space:nowrap;transition:background var(--motion-fast) var(--ease-out),color var(--motion-fast) var(--ease-out)}
-  .nav-item:hover{background:var(--color-surface-alt)}
+  @media (hover:hover) and (pointer:fine){.nav-item:hover{background:var(--color-surface-alt)}}
   .nav-item:focus-visible{outline:none;box-shadow:var(--focus-ring)}
   .nav-item[aria-current=page]{background:var(--color-primary-soft);color:var(--color-primary-hover)}
   .nav-item[aria-current=page]::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:var(--radius-pill);background:var(--color-primary)}
@@ -23,18 +24,18 @@
   .user-meta strong,.user-meta small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .user-meta small{color:var(--color-text-muted);font-size:var(--text-xs)}
   .icon-btn{position:relative;width:var(--tap-min);height:var(--tap-min);flex:none;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:var(--radius-md);color:var(--color-text);cursor:pointer;transition:background var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out)}
-  .icon-btn:hover{background:var(--color-surface-alt)} .icon-btn:active{transform:scale(.94)}
+  @media (hover:hover) and (pointer:fine){.icon-btn:hover{background:var(--color-surface-alt)}} .icon-btn:active{transform:scale(var(--press-scale))}
   .icon-btn:focus-visible{outline:none;box-shadow:var(--focus-ring)}
   .sidebar.is-collapsed{width:var(--sidebar-width-collapsed)}
-  .sidebar.is-collapsed .sidebar-head{justify-content:center}
-  .sidebar.is-collapsed .sidebar-logo,.sidebar.is-collapsed .nav-label,.sidebar.is-collapsed .user-meta,.sidebar.is-collapsed .btn-logout,.sidebar.is-collapsed .nav-group-title span{display:none}
+  .sidebar.is-collapsed .sidebar-head{justify-content:center;flex-direction:column;padding:var(--space-3) 0}
+  .sidebar.is-collapsed .nav-label,.sidebar.is-collapsed .user-meta,.sidebar.is-collapsed .btn-logout,.sidebar.is-collapsed .nav-group-title span{display:none}
   .sidebar.is-collapsed .nav-item{justify-content:center;padding:0}
   .sidebar.is-collapsed .nav-group-title{height:0;border-top:1px solid var(--color-border);margin:var(--space-2)}
   .sidebar.is-collapsed .sidebar-foot{justify-content:center}
   .topbar{display:none;align-items:center;gap:var(--space-2);height:var(--topbar-height);padding:0 var(--space-2);background:var(--color-surface);border-bottom:1px solid var(--color-border);position:sticky;top:0;z-index:var(--z-topbar)}
   .topbar img{height:30px;min-width:0;max-width:150px;margin-right:auto}
   /* Contador del carrito (design-system components.html): ítem del panel, panel colapsado y botón de la barra superior. */
-  .count{background:var(--color-primary);color:#fff;border-radius:var(--radius-pill);font-size:var(--text-xs);padding:0 7px;margin-left:6px;font-weight:700;line-height:20px;font-variant-numeric:tabular-nums}
+  .count{background:var(--color-primary);color:#fff;border-radius:var(--radius-pill);font-size:var(--text-xs);padding:0 7px;margin-left:6px;font-weight:700;line-height:20px;font-variant-numeric:var(--numeric-tabular)}
   .nav-item .count{margin-left:0}
   .icon-btn .count{position:absolute;top:2px;right:0;margin:0}
   .sidebar.is-collapsed .nav-item .count{position:absolute;top:2px;right:6px;margin:0;font-size:10px;line-height:16px;padding:0 5px}

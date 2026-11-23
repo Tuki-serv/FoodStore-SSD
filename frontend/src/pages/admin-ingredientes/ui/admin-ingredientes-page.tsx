@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ingredienteQueries, type Ingrediente } from '@/entities/ingrediente';
 import { unidadMedidaQueries } from '@/entities/unidad-medida';
 import { aApiError } from '@/shared/api';
-import { AvisoDesactualizado, claseBoton, EsqueletoFilas, EstadoError, EstadoVacio, Icon, Paginacion } from '@/shared/ui';
+import { AvisoDesactualizado, claseBoton, EncabezadoPagina, EsqueletoFilas, EstadoError, EstadoVacio, Icon, Paginacion } from '@/shared/ui';
 import { alergenoDeFiltro, aParametros, leerEstadoListado, type FiltroAlergeno } from '../model';
 import { DialogoBajaIngrediente } from './dialogo-baja-ingrediente';
 import { FiltroAlergenos } from './filtro-alergenos';
@@ -67,7 +67,6 @@ export function AdminIngredientesPage() {
   }, [data, filtro, setParametros]);
 
   const reintentar = (): void => void consulta.refetch();
-  const contenedor = 'mx-auto flex w-full max-w-[1040px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
   // El diálogo devolvió el foco al botón «Eliminar», que el refetch ya quitó del DOM: tras eliminar, el foco pasa al título.
   const terminarBaja = (): void => {
     setBaja(null);
@@ -79,45 +78,49 @@ export function AdminIngredientesPage() {
 
   if (modo.tipo !== 'lista') {
     return (
-      <div className={contenedor}>
-        <h1 className="sr-only">Ingredientes</h1>
-        <FormularioIngrediente
-          key={modo.tipo === 'edicion' ? modo.ingrediente.id : 'alta'}
-          {...(modo.tipo === 'edicion' ? { ingrediente: modo.ingrediente } : {})}
-          onCancelar={cerrarFormulario}
-          onTerminar={terminarFormulario}
-        />
+      <div className="flex flex-1 flex-col">
+        <EncabezadoPagina eyebrow="Administración" titulo="Ingredientes" />
+        <div className="page-body flex flex-col gap-5">
+          <FormularioIngrediente
+            key={modo.tipo === 'edicion' ? modo.ingrediente.id : 'alta'}
+            {...(modo.tipo === 'edicion' ? { ingrediente: modo.ingrediente } : {})}
+            onCancelar={cerrarFormulario}
+            onTerminar={terminarFormulario}
+          />
+        </div>
       </div>
     );
   }
 
+  const etiquetaFiltro = filtro === 'si' ? 'Alérgenos' : 'No alérgenos';
+
   return (
-    <div className={contenedor}>
-      <div className="page-head-row">
-        <header className="page-head">
-          <h1 ref={tituloRef} tabIndex={-1} className="text-2xl">
-            Ingredientes
-          </h1>
-          <p>Cargá los ingredientes y marcá los alérgenos: se destacan en el detalle de cada producto.</p>
-        </header>
-        {sinNingunoYSinFiltro ? null : (
-          <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="nuevo" onClick={nuevo}>
-            <Icon name="mas" />
-            Nuevo ingrediente
-          </button>
-        )}
-      </div>
-      <div className="toolbar">
-        <FiltroAlergenos filtro={filtro} onCambiar={(siguiente) => irA({ filtro: siguiente, page: 1 })} />
-        {data === undefined ? null : (
-          <p className="admin-summary" role="status">
-            <strong>
-              {data.total} {data.total === 1 ? 'ingrediente' : 'ingredientes'}
-            </strong>
-            {filtro === 'todos' ? '' : filtro === 'si' ? ' alérgenos' : ' no alérgenos'}
-          </p>
-        )}
-      </div>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        eyebrow="Administración"
+        titulo="Ingredientes"
+        tituloRef={tituloRef}
+        subtitulo="Cargá los ingredientes y marcá los alérgenos: se destacan en el detalle de cada producto."
+        acciones={
+          sinNingunoYSinFiltro ? undefined : (
+            <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="nuevo" onClick={nuevo}>
+              <Icon name="mas" />
+              Nuevo ingrediente
+            </button>
+          )
+        }
+        herramientas={<FiltroAlergenos filtro={filtro} onCambiar={(siguiente) => irA({ filtro: siguiente, page: 1 })} />}
+        {...(data === undefined
+          ? {}
+          : {
+              filtrosActivos: {
+                conteo: `${data.total} ${data.total === 1 ? 'ingrediente' : 'ingredientes'}${filtro === 'todos' ? '' : filtro === 'si' ? ' alérgenos' : ' no alérgenos'}`,
+                filtros: filtro === 'todos' ? [] : [{ id: 'alergeno', etiqueta: etiquetaFiltro, onQuitar: () => irA({ filtro: 'todos', page: 1 }) }],
+              },
+            })}
+      />
+      <div className="page-body flex flex-col gap-5">
       {consulta.isError && data !== undefined ? <AvisoDesactualizado texto="No pudimos actualizar los ingredientes" onReintentar={reintentar} /> : null}
       {data === undefined ? (
         consulta.isError ? (
@@ -147,6 +150,7 @@ export function AdminIngredientesPage() {
         </>
       )}
       {baja === null ? null : <DialogoBajaIngrediente ingrediente={baja} onCerrar={() => setBaja(null)} onEliminado={terminarBaja} />}
+      </div>
     </div>
   );
 }

@@ -286,6 +286,34 @@ def test_seed_sobre_base_nueva_crea_los_datos_de_demostracion_con_sus_relaciones
     assert _filas(migrations_db, "SELECT COUNT(*) FROM categorias WHERE parent_id IS NOT NULL") == [(3,)]
 
 
+def test_seed_sobre_base_nueva_deja_categorias_de_demo_legibles_por_el_contrato_de_la_api(migrations_db: Engine) -> None:
+    """Sin imagen, la categoría lleva `imagen_url = ''` (contrato de `CategoriaRead`): con NULL, `GET /categorias/arbol` da 500."""
+    from app.modules.categorias.schemas import CategoriaRead
+
+    _migrar_y_sembrar(migrations_db)
+
+    filas = _filas(migrations_db, "SELECT id, parent_id, nombre, descripcion, imagen_url, imagen_public_id FROM categorias ORDER BY id")
+    columnas = ("id", "parent_id", "nombre", "descripcion", "imagen_url", "imagen_public_id")
+
+    assert len(filas) == 6
+    for fila in filas:
+        CategoriaRead.model_validate(dict(zip(columnas, fila)))
+    assert {imagen for (_, _, _, _, imagen, _) in filas} == {""}
+
+
+def test_seed_sobre_base_nueva_no_deja_urls_de_imagen_externas_en_el_catalogo_de_demo(migrations_db: Engine) -> None:
+    _migrar_y_sembrar(migrations_db)
+
+    urls_de_productos = _filas(migrations_db, "SELECT unnest(imagenes_url) FROM productos WHERE imagenes_url IS NOT NULL")
+    urls_de_categorias = _filas(migrations_db, "SELECT imagen_url FROM categorias WHERE imagen_url IS NOT NULL")
+
+    assert [url for (url,) in urls_de_productos + urls_de_categorias if url.lower().startswith(("http://", "https://"))] == []
+    # El respaldo tipográfico del frontend cubre la ausencia: ningún producto ni categoría de demo trae imagen.
+    assert urls_de_productos == []
+    assert urls_de_categorias == [("",)] * 6
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM productos") == [(6,)]
+
+
 def test_seed_no_recrea_un_producto_de_demo_dado_de_baja(migrations_db: Engine) -> None:
     _migrar_y_sembrar(migrations_db)
     with migrations_db.begin() as conn:

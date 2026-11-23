@@ -2,6 +2,7 @@ import type { KeyboardEvent, Ref } from 'react';
 import { LOGO_ALT } from '@/shared/config';
 import { atraparTab } from '@/shared/lib';
 import { Icon } from '@/shared/ui';
+import isotipo from '@design-system/assets/favicon.svg';
 import logo from '@design-system/assets/logo.svg';
 import type { SeccionNav } from './model';
 import { NavSections } from './nav-sections';
@@ -49,7 +50,8 @@ export function Sidebar({
   return (
     <div className={colapsado ? 'sidebar is-collapsed' : 'sidebar'} id="sidebar" {...propsModal}>
       <div className="sidebar-head">
-        <img className="sidebar-logo" src={logo} alt={LOGO_ALT} />
+        {/* Colapsado: solo el isotipo (Revision 4, `favicon.svg`); ambos conservan el nombre accesible de la marca. */}
+        {colapsado ? <img className="sidebar-mark" src={isotipo} alt={LOGO_ALT} /> : <img className="sidebar-logo" src={logo} alt={LOGO_ALT} />}
         {modal ? null : (
           <button
             className="icon-btn btn-collapse"

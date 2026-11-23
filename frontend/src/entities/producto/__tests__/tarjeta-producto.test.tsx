@@ -13,7 +13,7 @@ function Destino() {
   return <p data-testid="destino">{`${pathname}|${JSON.stringify(state)}`}</p>;
 }
 
-const montar = (producto: Producto, props: { accion?: React.ReactNode } = {}, ruta = '/catalogo') =>
+const montar = (producto: Producto, props: { accion?: React.ReactNode; categoriaActiva?: number } = {}, ruta = '/catalogo') =>
   render(
     <MemoryRouter initialEntries={[ruta]}>
       <ul>
@@ -44,6 +44,43 @@ describe('TarjetaProducto', () => {
     const { container } = montar(productoDto({ id: 9, nombre: 'Volcán' }));
 
     expect(container.querySelector('.cat')).toBeNull();
+  });
+
+  it('la categoría se muestra como texto, no como badge de estado', () => {
+    montar(clasica);
+
+    const categoria = screen.getByText('Hamburguesas');
+    expect(categoria.className).not.toMatch(/\bbadge\b|\bb-[a-z-]+\b/);
+  });
+
+  it('con el filtro activo igual a la categoría principal, la tarjeta no repite su texto', () => {
+    montar(clasica, { categoriaActiva: 1 });
+
+    expect(screen.queryByText('Hamburguesas')).not.toBeInTheDocument();
+  });
+
+  it('con un filtro activo de otra categoría, la tarjeta sigue mostrando su categoría principal', () => {
+    montar(clasica, { categoriaActiva: 2 });
+
+    expect(screen.getByText('Hamburguesas')).toBeInTheDocument();
+  });
+
+  it('con alérgenos muestra el ícono con nombre accesible «Contiene alérgenos»', () => {
+    montar(clasica);
+
+    expect(screen.getByRole('img', { name: 'Contiene alérgenos' })).toBeInTheDocument();
+  });
+
+  it('sin alérgenos no muestra el ícono', () => {
+    montar(productosSeed[1] as Producto);
+
+    expect(screen.queryByRole('img', { name: 'Contiene alérgenos' })).not.toBeInTheDocument();
+  });
+
+  it('el precio usa la clase de precio (fuente display y numerales tabulares por CSS)', () => {
+    montar(clasica);
+
+    expect(screen.getByText('$ 1.500')).toHaveClass('price');
   });
 
   it('stock 0: marca «Agotado» y la tarjeta queda atenuada', () => {

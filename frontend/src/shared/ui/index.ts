@@ -19,3 +19,5 @@ export { SelectorCantidad } from './selector-cantidad';
 export type { SelectorCantidadProps } from './selector-cantidad';
 export { TarjetaAuth } from './tarjeta-auth';
 export type { TarjetaAuthProps } from './tarjeta-auth';
+export { EncabezadoPagina } from './encabezado-pagina';
+export type { EncabezadoPaginaProps, FiltroActivo, FiltrosActivosProps } from './encabezado-pagina';

@@ -7,7 +7,7 @@ describe('PantallaCarga', () => {
     render(<PantallaCarga />);
 
     expect(screen.getByRole('status')).toHaveTextContent('Cargando…');
-    expect(screen.getByRole('img', { name: 'Food Store (logo provisional)' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Food Store' })).toBeInTheDocument();
   });
 
   it('el indicador giratorio es decorativo (no suma texto al estado)', () => {

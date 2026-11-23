@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   alergenos,
   estadoStock,
@@ -11,7 +10,6 @@ import {
   type Producto,
 } from '@/entities/producto';
 import { BotonAgregarAlCarrito, SelectorPersonalizacion } from '@/features/agregar-al-carrito';
-import { RUTAS } from '@/shared/config';
 import { useMediaQuery } from '@/shared/lib';
 import { Icon, SelectorCantidad } from '@/shared/ui';
 
@@ -49,42 +47,42 @@ export function DetalleProducto({ producto }: { producto: Producto }) {
     <>
       <article className="pd">
         <div className={agotado ? 'pd-media unavailable' : 'pd-media'}>
-          <ImagenProducto nombre={producto.nombre} url={imagenPrincipal(producto)} />
+          <ImagenProducto nombre={producto.nombre} url={imagenPrincipal(producto)} grande />
         </div>
         <div className="pd-info">
-          {producto.categorias.length === 0 ? null : (
-            <div className="pd-cats">
-              {categoriasOrdenadas(producto).map((categoria) => (
-                <Link key={categoria.id} to={`${RUTAS.catalogo}?categoria=${categoria.id}`} className={categoria.es_principal ? 'is-main' : undefined}>
-                  {categoria.nombre}
-                </Link>
-              ))}
-            </div>
-          )}
+          {producto.categorias.length === 0 ? null : <span className="tagline">{categoriasOrdenadas(producto).map((categoria) => categoria.nombre).join(' · ')}</span>}
           <h1>{producto.nombre}</h1>
           <div className="pd-price">
-            <Precio valor={producto.precio_base} />
+            <Precio valor={producto.precio_base} simboloChico />
             <MarcaStock stock={producto.stock_cantidad} />
           </div>
           {producto.descripcion === null ? null : <p className="pd-desc">{producto.descripcion}</p>}
           {agotado || removibles.length === 0 ? null : (
             <SelectorPersonalizacion ingredientes={removibles} excluidos={excluidos} onAlternar={alternar} />
           )}
-          {esMobile ? null : <div className="buy">{compra}</div>}
+          {esMobile ? null : <div className="pd-buy">{compra}</div>}
           {conAlergenos.length === 0 ? null : (
-            <div className="allergen-note" role="note">
-              <Icon name="alerta" />
-              <p>Contiene alérgenos: {conAlergenos.map((ingrediente) => ingrediente.nombre).join(', ')}</p>
+            <div className="pd-section pd-note" role="note">
+              <Icon name="alergeno" />
+              <div>
+                <strong>Contiene alérgenos</strong>
+                <p>{conAlergenos.map((ingrediente) => ingrediente.nombre).join(', ')}</p>
+              </div>
             </div>
           )}
           {producto.ingredientes.length === 0 ? null : (
-            <section className="ingr" aria-labelledby="ingredientes-titulo">
+            <section className="pd-section" aria-labelledby="ingredientes-titulo">
               <h2 id="ingredientes-titulo">Ingredientes</h2>
-              <ul>
+              <ul className="ing-list">
                 {producto.ingredientes.map((ingrediente) => (
-                  <li key={ingrediente.id} className={ingrediente.es_alergeno ? 'is-allergen' : undefined}>
+                  <li key={ingrediente.id}>
                     {ingrediente.nombre}
-                    {ingrediente.es_alergeno ? <span className="badge b-pendiente">Alérgeno</span> : null}
+                    {ingrediente.es_alergeno ? (
+                      <span className="al">
+                        <Icon name="alergeno" />
+                        Alérgeno
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>

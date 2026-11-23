@@ -8,7 +8,7 @@ import { CancelarMiPedido } from '@/features/cambiar-estado-pedido';
 
 import { aApiError } from '@/shared/api';
 import { INTERVALO_ACTUALIZACION_MS, RUTAS } from '@/shared/config';
-import { claseBoton, EstadoError, Icon, MarcaActualizacion } from '@/shared/ui';
+import { claseBoton, EncabezadoPagina, EstadoError, Icon, MarcaActualizacion } from '@/shared/ui';
 import { AccionesMiPedido } from './acciones-mi-pedido';
 import { ProgresoPedido } from './progreso-pedido';
 import { BloquePago, TarjetaEntregaYPago, TarjetaProductosMiPedido } from './tarjetas-mi-pedido';
@@ -157,20 +157,24 @@ export function MiPedidoDetallePage() {
   const historial: readonly EventoHistorial[] | undefined = consultaHistorial.data;
 
   return (
-    <div className={CONTENEDOR}>
-      <EnlaceVolver busqueda={busqueda} />
-      <div className="od-head">
-        <div className="od-title">
-          <h1 ref={tituloRef} tabIndex={-1}>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        ruta={<EnlaceVolver busqueda={busqueda} />}
+        titulo={
+          <>
             {`Pedido #${pedido.id}`}
             <BadgeEstado codigo={pedido.estado_codigo} />
-          </h1>
-          <p>{`Hecho el ${fechaLocal(pedido.created_at)} a las ${horaLocal(pedido.created_at)}`}</p>
-        </div>
-        {esEstadoTerminal(pedido.estado_codigo) ? null : (
-          <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching || consultaHistorial.isFetching} onActualizar={actualizar} />
-        )}
-      </div>
+          </>
+        }
+        tituloRef={tituloRef}
+        subtitulo={`Hecho el ${fechaLocal(pedido.created_at)} a las ${horaLocal(pedido.created_at)}`}
+        acciones={
+          esEstadoTerminal(pedido.estado_codigo) ? undefined : (
+            <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching || consultaHistorial.isFetching} onActualizar={actualizar} />
+          )
+        }
+      />
+      <div className="page-body flex flex-col gap-5">
       <div className="od">
         <div className="od-main">
           <section className="ocard c-seg" aria-labelledby="seguimiento-titulo">
@@ -206,6 +210,7 @@ export function MiPedidoDetallePage() {
         </div>
       </div>
       {cancelando ? <CancelarMiPedido pedido={pedido} onCerrar={cerrarCancelacion} onCancelado={cerrarCancelacion} /> : null}
+      </div>
     </div>
   );
 }

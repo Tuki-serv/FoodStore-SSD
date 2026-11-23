@@ -5,8 +5,8 @@ import { BadgeEstado, fechaLocal, horaLocal, LineaTiempoHistorial, pedidoQueries
 import { CambioEstadoPedido, type SolicitudCambio } from '@/features/cambiar-estado-pedido';
 import { aApiError } from '@/shared/api';
 import { INTERVALO_ACTUALIZACION_MS, RUTAS } from '@/shared/config';
-import { claseBoton, EstadoError, Icon, MarcaActualizacion } from '@/shared/ui';
-import { AccionesPedido } from './acciones-pedido';
+import { claseBoton, EncabezadoPagina, EstadoError, Icon, MarcaActualizacion } from '@/shared/ui';
+import { AccionesPedido, AvisoMercadoPago } from './acciones-pedido';
 import { TarjetaEntrega, TarjetaProductos } from './tarjetas-pedido';
 
 const CONTENEDOR = 'mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
@@ -123,25 +123,33 @@ export function GestionPedidoDetallePage() {
   }
 
   return (
-    <div className={CONTENEDOR}>
-      <EnlaceVolver busqueda={busqueda} />
-      <div className="od-head">
-        <div className="od-title">
-          <h1 ref={tituloRef} tabIndex={-1}>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        ruta={<EnlaceVolver busqueda={busqueda} />}
+        titulo={
+          <>
             {`Pedido #${pedido.id}`}
             <BadgeEstado codigo={pedido.estado_codigo} />
-          </h1>
-          <p>{`Creado el ${fechaLocal(pedido.created_at)} a las ${horaLocal(pedido.created_at)}`}</p>
-        </div>
-        <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching || consultaHistorial.isFetching} onActualizar={actualizar} />
-      </div>
+          </>
+        }
+        tituloRef={tituloRef}
+        subtitulo={`Creado el ${fechaLocal(pedido.created_at)} a las ${horaLocal(pedido.created_at)}`}
+        acciones={
+          <>
+            <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching || consultaHistorial.isFetching} onActualizar={actualizar} />
+            <AccionesPedido pedido={pedido} onAccion={(accion) => setSolicitud({ pedido, accion })} />
+          </>
+        }
+      />
+      <div className="page-body flex flex-col gap-5">
+      <AvisoMercadoPago pedido={pedido} />
       <div className="od">
         <div className="od-main">
           <TarjetaEntrega pedido={pedido} />
           <TarjetaProductos pedido={pedido} />
         </div>
         <div className="od-side">
-          <AccionesPedido pedido={pedido} onAccion={(accion) => setSolicitud({ pedido, accion })} />
           <section className="ocard historial" aria-labelledby="historial-titulo">
             <h2 id="historial-titulo">Historial</h2>
             {consultaHistorial.data !== undefined ? (
@@ -174,6 +182,7 @@ export function GestionPedidoDetallePage() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

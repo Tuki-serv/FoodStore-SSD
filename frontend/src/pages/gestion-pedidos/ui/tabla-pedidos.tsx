@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { PedidoResumen } from '@/entities/pedido';
+import { claseEntradaEscalonada, usePrimerMontaje } from '@/shared/lib';
 import { FilaPedido } from './fila-pedido';
 
 export interface TablaPedidosProps {
@@ -12,18 +13,19 @@ export interface TablaPedidosProps {
 
 /** Listado de pedidos: encabezado de columnas (solo desktop) y una fila por pedido; en mobile cada fila es una tarjeta. */
 export function TablaPedidos({ pedidos, accion, desactualizada = false }: TablaPedidosProps) {
+  const primerMontaje = usePrimerMontaje();
   return (
-    <ul className={desactualizada ? 'olist is-stale' : 'olist'} aria-label="Pedidos">
+    <ul className={claseEntradaEscalonada(primerMontaje, desactualizada ? 'olist is-stale' : 'olist')} aria-label="Pedidos">
       <li className="orow ohead" aria-hidden="true">
         <span>Pedido</span>
+        <span>Estado</span>
         <span>Cliente</span>
         <span>Forma de pago</span>
         <span className="r">Total</span>
-        <span>Estado</span>
         <span className="r">Próxima acción</span>
       </li>
-      {pedidos.map((pedido) => (
-        <FilaPedido key={pedido.id} pedido={pedido} accion={accion(pedido)} />
+      {pedidos.map((pedido, indice) => (
+        <FilaPedido key={pedido.id} pedido={pedido} accion={accion(pedido)} indice={indice} />
       ))}
     </ul>
   );

@@ -4,12 +4,10 @@
   .account .page-head p{color:var(--color-text-muted);margin:var(--space-1) 0 0}
   .form-card .card-head{display:flex;flex-direction:column;gap:var(--space-1)}
   .form-card .card-head p{color:var(--color-text-muted);font-size:var(--text-sm);margin:0}
-  .ro-list{display:grid;grid-template-columns:140px minmax(0,1fr);gap:var(--space-3) var(--space-4);margin:0;padding:var(--space-4);background:var(--color-surface-alt);border-radius:var(--radius-md)}
+  .ro-list{display:grid;grid-template-columns:140px minmax(0,1fr);gap:var(--space-3) var(--space-4);margin:0;padding:var(--space-4);border-radius:var(--radius-md);background:var(--surface-section)}
   .ro-list dt{color:var(--color-text-muted);font-size:var(--text-sm);font-weight:600}
   .ro-list dd{margin:0;min-width:0;overflow-wrap:anywhere;display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center}
   .ro-list dd small{flex-basis:100%;color:var(--color-text-muted);font-size:var(--text-xs)}
-  .badge-rol{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:700;white-space:nowrap;color:var(--color-accent);background:var(--color-accent-soft)}
-  .badge-rol::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
   .danger-zone{border-left:6px solid var(--color-danger)}
   .danger-zone .row{display:flex;flex-wrap:wrap;gap:var(--space-4);align-items:center;justify-content:space-between}
   .danger-zone .row > div{flex:1 1 320px;display:flex;flex-direction:column;gap:var(--space-1)}

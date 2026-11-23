@@ -21,4 +21,16 @@ describe('favicon de la app (C-25b1)', () => {
     expect(main).toMatch(/import\s+\w+\s+from\s+'@design-system\/assets\/favicon\.svg'/);
     expect(main).toMatch(/aplicarFavicon\(/);
   });
+
+  it('el asset del ícono no lleva marcas de provisorio («PROVISIONAL» ni «TBD»), spec frontend-foundation', () => {
+    const svg = readFileSync(resolve(RAIZ, '../design-system/assets/favicon.svg'), 'utf8');
+
+    expect(svg).not.toMatch(/PROVISIONAL|TBD/i);
+  });
+});
+
+describe('index.html sin marcas de provisorio (revision-visual 5.1)', () => {
+  it('ningún comentario ni texto de index.html dice «provisional» ni «TBD»', () => {
+    expect(html).not.toMatch(/provisional|TBD/i);
+  });
 });

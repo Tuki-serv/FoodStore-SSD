@@ -8,3 +8,5 @@ export { aCentavos, formatearCentavos, sumarImportes } from './importe';
 export { esEmailValido } from './formato-email';
 export { atraparTab, FOCUSABLES } from './trampa-foco/atrapar-tab';
 export { errorDeCelular, errorDeNombrePersona } from './validacion-persona';
+export { usePrimerMontaje } from './primer-montaje/use-primer-montaje';
+export { claseEntradaEscalonada, estiloEscalonado, TOPE_ESCALONADO } from './primer-montaje/entrada-escalonada';

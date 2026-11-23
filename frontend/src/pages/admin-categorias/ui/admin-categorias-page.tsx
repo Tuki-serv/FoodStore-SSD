@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { categoriaQueries, type CategoriaNodo } from '@/entities/categoria';
 import { aApiError } from '@/shared/api';
-import { AvisoDesactualizado, claseBoton, EsqueletoFilas, EstadoError, EstadoVacio, Icon } from '@/shared/ui';
+import { AvisoDesactualizado, claseBoton, EncabezadoPagina, EsqueletoFilas, EstadoError, EstadoVacio, Icon } from '@/shared/ui';
 import { ArbolEditable } from './arbol-editable';
 import { DialogoBajaCategoria } from './dialogo-baja-categoria';
 import { FormularioCategoria } from './formulario-categoria';
@@ -51,19 +51,20 @@ export function AdminCategoriasPage() {
   };
 
   const reintentar = (): void => void consulta.refetch();
-  const contenedor = 'mx-auto flex w-full max-w-[1040px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
 
   if (modo.tipo !== 'lista') {
     return (
-      <div className={contenedor}>
-        <h1 className="sr-only">Categorías</h1>
-        <FormularioCategoria
-          key={modo.tipo === 'edicion' ? modo.categoria.id : `alta-${modo.padreId ?? 'raiz'}`}
-          arbol={arbol ?? []}
-          {...(modo.tipo === 'edicion' ? { categoria: modo.categoria } : modo.padreId === undefined ? {} : { padreId: modo.padreId })}
-          onCancelar={cerrarFormulario}
-          onTerminar={terminarFormulario}
-        />
+      <div className="flex flex-1 flex-col">
+        <EncabezadoPagina eyebrow="Administración" titulo="Categorías" />
+        <div className="page-body flex flex-col gap-5">
+          <FormularioCategoria
+            key={modo.tipo === 'edicion' ? modo.categoria.id : `alta-${modo.padreId ?? 'raiz'}`}
+            arbol={arbol ?? []}
+            {...(modo.tipo === 'edicion' ? { categoria: modo.categoria } : modo.padreId === undefined ? {} : { padreId: modo.padreId })}
+            onCancelar={cerrarFormulario}
+            onTerminar={terminarFormulario}
+          />
+        </div>
       </div>
     );
   }
@@ -71,27 +72,36 @@ export function AdminCategoriasPage() {
   const nueva = (): void => abrirFormulario({ tipo: 'alta' }, 'nueva');
   const hayCategorias = arbol !== undefined && arbol.length > 0;
 
+  const boton = hayCategorias ? (
+    <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="nueva" onClick={nueva}>
+      <Icon name="mas" />
+      Nueva categoría
+    </button>
+  ) : undefined;
+
   return (
-    <div className={contenedor}>
-      <div className="page-head-row">
-        <header className="page-head">
-          <h1 ref={tituloRef} tabIndex={-1} className="text-2xl">
-            Categorías
-          </h1>
-          <p>Organizá el catálogo en categorías y subcategorías. Los cambios se ven enseguida en el catálogo.</p>
-        </header>
-        {hayCategorias ? (
-          <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="nueva" onClick={nueva}>
-            <Icon name="mas" />
-            Nueva categoría
-          </button>
-        ) : null}
-      </div>
-      {hayCategorias ? (
-        <p className="admin-summary" role="status">
-          <strong>{contarCategorias(arbol)} categorías</strong> · {arbol.length} {arbol.length === 1 ? 'principal' : 'principales'}
-        </p>
-      ) : null}
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        eyebrow="Administración"
+        titulo="Categorías"
+        tituloRef={tituloRef}
+        subtitulo="Organizá el catálogo en categorías y subcategorías. Los cambios se ven enseguida en el catálogo."
+        acciones={boton}
+        {...(hayCategorias
+          ? {
+              filtrosActivos: {
+                conteo: (
+                  <>
+                    {contarCategorias(arbol)} categorías<small>{` · ${arbol.length} ${arbol.length === 1 ? 'principal' : 'principales'}`}</small>
+                  </>
+                ),
+                filtros: [],
+              },
+            }
+          : {})}
+      />
+      <div className="page-body flex flex-col gap-5">
       {consulta.isError && arbol !== undefined ? <AvisoDesactualizado texto="No pudimos actualizar las categorías" onReintentar={reintentar} /> : null}
       {arbol === undefined ? (
         consulta.isError ? (
@@ -118,6 +128,7 @@ export function AdminCategoriasPage() {
       {baja !== null && arbol !== undefined ? (
         <DialogoBajaCategoria categoria={baja} arbol={arbol} onCerrar={() => setBaja(null)} onEliminada={terminarBaja} />
       ) : null}
+      </div>
     </div>
   );
 }

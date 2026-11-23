@@ -5,10 +5,9 @@ import { esApiError } from '@/shared/api';
 import type { UsuarioSesion } from '@/shared/auth';
 import { nombreDeRol } from '@/shared/config';
 import { useUiStore } from '@/shared/model';
-import { Campo, claseBoton, Icon } from '@/shared/ui';
+import { Campo, claseBoton, EncabezadoPagina, Icon } from '@/shared/ui';
 import { aDatosPerfil, erroresDePerfil, validarCampo, valoresIniciales, type CampoPerfil, type ErroresServidorPerfil } from '../model';
 
-const CONTENEDOR = 'mx-auto flex w-full max-w-[1040px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
 
 /** Base compartida de los dos botones de la tarjeta «Sesiones» (design system: `.btn-danger-outline` / `.btn-neutral`). */
 const BASE_BOTON_SESIONES =
@@ -88,12 +87,10 @@ function PerfilDe({ usuario }: { usuario: UsuarioSesion }) {
   const pendiente = actualizar.isPending;
 
   return (
-    <div className={CONTENEDOR}>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina eyebrow="Tu cuenta" titulo="Mi cuenta" subtitulo="Revisá y actualizá tus datos personales." />
+      <div className="page-body">
       <div className="account">
-        <header className="page-head">
-          <h1 className="text-2xl">Mi cuenta</h1>
-          <p>Revisá y actualizá tus datos personales.</p>
-        </header>
         <form
           ref={formularioRef}
           className="form-card"
@@ -166,7 +163,7 @@ function PerfilDe({ usuario }: { usuario: UsuarioSesion }) {
             <dt>{usuario.roles.length > 1 ? 'Roles' : 'Rol'}</dt>
             <dd>
               {usuario.roles.map((rol) => (
-                <span key={rol} className="badge-rol">
+                <span key={rol} className="rol-txt">
                   {nombreDeRol(rol)}
                 </span>
               ))}
@@ -203,6 +200,7 @@ function PerfilDe({ usuario }: { usuario: UsuarioSesion }) {
             </div>
           </div>
         </section>
+      </div>
       </div>
     </div>
   );

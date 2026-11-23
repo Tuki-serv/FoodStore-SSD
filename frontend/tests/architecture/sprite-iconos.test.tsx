@@ -28,12 +28,12 @@ describe('sprite de design-system/components.html (Revision 3)', () => {
   });
 });
 
-describe('favicon provisional', () => {
+describe('favicon de Revision 4', () => {
   const favicon = readFileSync(new URL('../../../design-system/assets/favicon.svg', import.meta.url), 'utf8');
 
-  it('es un SVG derivado del logo y está marcado como provisional', () => {
+  it('es un SVG derivado del logo, sin marca provisoria', () => {
     expect(favicon).toContain('<svg');
-    expect(favicon).toMatch(/PROVISIONAL/);
+    expect(favicon).not.toMatch(/PROVISIONAL/);
     expect(favicon).toContain('#B8400F');
   });
 });

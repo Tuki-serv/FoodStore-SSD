@@ -1,4 +1,5 @@
 import type { IngredienteProducto } from '@/entities/producto';
+import { Icon } from '@/shared/ui';
 
 export interface SelectorPersonalizacionProps {
   /** Ingredientes que se pueden quitar, en el orden del servidor. */
@@ -23,7 +24,8 @@ export function SelectorPersonalizacion({ ingredientes, excluidos, onAlternar }:
               <span className="lbl">
                 Sin {ingrediente.nombre}
                 {ingrediente.es_alergeno ? (
-                  <span className="badge b-pendiente" aria-hidden="true">
+                  <span className="al" aria-hidden="true">
+                    <Icon name="alergeno" />
                     Alérgeno
                   </span>
                 ) : null}

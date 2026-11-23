@@ -8,19 +8,20 @@
   .ptools .tool-row{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
 
   /* Lista de productos */
-  .plist{list-style:none;margin:0;padding:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+  .plist{list-style:none;margin:0;padding:0;border-radius:var(--radius-lg);overflow:clip;background:var(--surface-raised);border:1px solid var(--color-border);box-shadow:var(--shadow-sm)}
   .plist > li + li{border-top:1px solid var(--color-border)}
   .prow{display:grid;grid-template-columns:minmax(0,2.2fr) 96px 220px 168px 200px;gap:var(--space-4);align-items:center;padding:var(--space-3) var(--space-5);min-height:76px}
   .prow-stock{grid-template-columns:minmax(0,2.4fr) 110px 240px 180px}
-  .prow.phead{background:var(--color-surface-alt);min-height:0;padding-top:var(--space-2);padding-bottom:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted)}
+  .plist > .phead{position:sticky;top:var(--band-h,0px);z-index:1}
+  .prow.phead{min-height:0;padding-top:var(--space-2);padding-bottom:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);background:var(--surface-section)}
   .pname{display:flex;flex-direction:column;gap:2px;min-width:0}
   .pname strong{font-size:var(--text-base)}
   .pname small{color:var(--color-text-muted);font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pprice{font-weight:800;font-family:var(--font-display);font-variant-numeric:tabular-nums}
+  .pprice{font-weight:800;font-family:var(--font-display);font-variant-numeric:var(--numeric-tabular)}
   .prow.is-off .pname strong,.prow.is-off .pprice{color:var(--color-text-muted)}
   .pstock{display:flex;flex-direction:column;gap:4px;min-width:0}
   .stock-edit{display:flex;gap:var(--space-2);align-items:center}
-  .input.input-sm{min-height:40px;width:84px;text-align:right;font-variant-numeric:tabular-nums;padding:0 var(--space-2)}
+  .input.input-sm{min-height:40px;width:84px;text-align:right;font-variant-numeric:var(--numeric-tabular);padding:0 var(--space-2)}
   .stock-edit .btn .ico{width:16px;height:16px}
   .pmark:empty{display:none}
   .pmark{min-height:0}
@@ -43,14 +44,14 @@
   .catpick[data-invalid]{border-color:var(--color-danger)}
   .catpick li{padding-left:calc(var(--nivel,0) * 24px)}
   .mini-check{display:flex;align-items:center;gap:var(--space-2);min-height:40px;padding:0 var(--space-2);border-radius:var(--radius-sm);cursor:pointer;font-weight:600;font-size:var(--text-sm)}
-  .mini-check:hover{background:var(--color-surface-alt)}
+  @media (hover:hover) and (pointer:fine){.mini-check:hover{background:var(--color-surface-alt)}}
   .mini-check input{appearance:none;-webkit-appearance:none;flex:none;width:20px;height:20px;margin:0;border:2px solid var(--color-text-muted);border-radius:5px;background:var(--color-surface);display:grid;place-items:center;cursor:pointer}
   .mini-check input:checked{background:var(--color-primary);border-color:var(--color-primary)}
   .mini-check input:checked::after{content:"";width:5px;height:10px;border:solid #fff;border-width:0 3px 3px 0;transform:translateY(-1px) rotate(45deg)}
   .mini-check input:focus-visible{outline:none;box-shadow:var(--focus-ring)}
   .input-money .input{padding-left:30px}
   .pilist{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}
-  .pirow{display:grid;grid-template-columns:minmax(0,2fr) 104px minmax(0,1.3fr) auto 44px;gap:var(--space-3);align-items:start;padding:var(--space-3);background:var(--color-surface-alt);border-radius:var(--radius-md);border:1px solid var(--color-border)}
+  .pirow{display:grid;grid-template-columns:minmax(0,2fr) 104px minmax(0,1.3fr) auto 44px;gap:var(--space-3);align-items:start;padding:var(--space-3);border-radius:var(--radius-md);background:var(--surface-section)}
   .pirow.has-err{border-color:var(--color-danger)}
   .pirow .field label{font-size:var(--text-xs)}
   .pirow .input{min-height:40px}

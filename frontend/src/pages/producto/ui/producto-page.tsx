@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { productoQueries } from '@/entities/producto';
+import { categoriaPrincipal, productoQueries, type Producto } from '@/entities/producto';
 import { esApiError } from '@/shared/api';
 import { RUTAS } from '@/shared/config';
-import { Icon } from '@/shared/ui';
+import { EncabezadoPagina, Icon } from '@/shared/ui';
 import { DetalleProducto } from './detalle-producto';
 import { ErrorProducto, EsqueletoProducto, ProductoNoDisponible } from './estados-producto';
 
@@ -16,6 +16,35 @@ function busquedaDeVuelta(state: unknown): string {
   return typeof volverA === 'string' && volverA.startsWith('?') ? volverA : '';
 }
 
+/** Ruta «Catálogo / categoría principal / producto»: «Catálogo» vuelve a la búsqueda de origen y lleva la flecha. */
+function RutaProducto({ producto, volverA }: { producto: Producto | undefined; volverA: string }) {
+  const principal = producto === undefined ? null : categoriaPrincipal(producto);
+  return (
+    <>
+      <Link to={`${RUTAS.catalogo}${volverA}`}>
+        <Icon name="volver" className="h-[16px] w-[16px]" />
+        Catálogo
+      </Link>
+      {principal === null ? null : (
+        <>
+          <span className="sep" aria-hidden="true">
+            /
+          </span>
+          <Link to={`${RUTAS.catalogo}?categoria=${principal.id}`}>{principal.nombre}</Link>
+        </>
+      )}
+      {producto === undefined ? null : (
+        <>
+          <span className="sep" aria-hidden="true">
+            /
+          </span>
+          <span aria-current="page">{producto.nombre}</span>
+        </>
+      )}
+    </>
+  );
+}
+
 /** Detalle público de un producto (US-008): `/catalogo/:productoId`. */
 export function ProductoPage() {
   const { productoId = '' } = useParams();
@@ -26,17 +55,14 @@ export function ProductoPage() {
   const sinProducto = !idValido || (consulta.isError && esApiError(consulta.error) && consulta.error.status === 404);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6">
-      {sinProducto ? null : (
-        <Link className="back-link" to={`${RUTAS.catalogo}${busquedaDeVuelta(state)}`}>
-          <Icon name="volver" className="h-[18px] w-[18px]" />
-          Volver al catálogo
-        </Link>
-      )}
-      {sinProducto ? <ProductoNoDisponible /> : null}
-      {!sinProducto && consulta.data === undefined && !consulta.isError ? <EsqueletoProducto /> : null}
-      {!sinProducto && consulta.data === undefined && consulta.isError ? <ErrorProducto error={consulta.error} onReintentar={() => void consulta.refetch()} /> : null}
-      {consulta.data === undefined || sinProducto ? null : <DetalleProducto key={consulta.data.id} producto={consulta.data} />}
+    <div className="flex flex-1 flex-col">
+      {sinProducto ? null : <EncabezadoPagina ruta={<RutaProducto producto={consulta.data} volverA={busquedaDeVuelta(state)} />} />}
+      <div className="page-body flex flex-col gap-5">
+        {sinProducto ? <ProductoNoDisponible /> : null}
+        {!sinProducto && consulta.data === undefined && !consulta.isError ? <EsqueletoProducto /> : null}
+        {!sinProducto && consulta.data === undefined && consulta.isError ? <ErrorProducto error={consulta.error} onReintentar={() => void consulta.refetch()} /> : null}
+        {consulta.data === undefined || sinProducto ? null : <DetalleProducto key={consulta.data.id} producto={consulta.data} />}
+      </div>
     </div>
   );
 }

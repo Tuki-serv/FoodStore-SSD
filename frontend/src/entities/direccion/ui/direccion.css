@@ -1,7 +1,7 @@
 /* Tarjeta y opciones de dirección: reglas aprobadas en los mockups de C-15 (design-system Revision 2). Solo tokens. */
 @layer components {
   .addr-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-3)}
-  .addr{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:var(--space-4) var(--space-5);display:grid;grid-template-columns:auto 1fr auto;gap:var(--space-4);align-items:center}
+  .addr{border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:grid;grid-template-columns:auto 1fr auto;gap:var(--space-4);align-items:center;background:var(--surface-raised);border:1px solid var(--color-border);box-shadow:var(--shadow-sm)}
   .addr.is-principal{border-color:var(--color-accent);box-shadow:inset 4px 0 0 var(--color-accent),var(--shadow-sm)}
   .addr-ico{width:44px;height:44px;border-radius:50%;background:var(--color-surface-alt);color:var(--color-text-muted);display:grid;place-items:center}
   .addr.is-principal .addr-ico{background:var(--color-accent-soft);color:var(--color-accent)}
@@ -12,9 +12,8 @@
   .addr-line{overflow-wrap:anywhere}
   .addr-sub{color:var(--color-text-muted);font-size:var(--text-sm);overflow-wrap:anywhere}
   .addr-actions{display:flex;flex-wrap:wrap;gap:var(--space-2);justify-content:flex-end}
-  .badge{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:700;white-space:nowrap}
-  .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
-  .b-principal{color:var(--color-accent);background:var(--color-accent-soft)}
+  .marca-principal{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:var(--weight-medium);color:var(--color-text);white-space:nowrap}
+  .marca-principal::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--color-accent)}
   @media (max-width:719.98px){
     .addr{grid-template-columns:auto 1fr;padding:var(--space-4)}
     .addr-actions{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--color-border);padding-top:var(--space-3)}
@@ -25,7 +24,7 @@
   .sel{border:0;margin:0;padding:0;display:grid;gap:var(--space-2);min-width:0}
   .sel legend{font-weight:700;margin-bottom:var(--space-2);padding:0}
   .opt{display:grid;grid-template-columns:auto 1fr;gap:var(--space-3);align-items:start;padding:var(--space-3) var(--space-4);border:2px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface);cursor:pointer}
-  .opt:hover{border-color:var(--color-text-muted)}
+  @media (hover:hover) and (pointer:fine){.opt:hover{border-color:var(--color-text-muted)}}
   .opt input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--color-primary)}
   .opt input:focus-visible{outline:none;box-shadow:var(--focus-ring)}
   .opt.is-checked{border-color:var(--color-primary);background:var(--color-primary-soft)}

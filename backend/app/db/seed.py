@@ -157,16 +157,15 @@ UNIDADES_DEMO: tuple[tuple[str, str, str], ...] = (  # (nombre, simbolo, tipo)
     ("Unidad", "u", "unidad"), ("Docena", "doc", "unidad"), ("Metro cuadrado", "m²", "superficie"),
 )
 
-_IMG = "https://via.placeholder.com/400x300?text="
-
-# (nombre, descripcion, imagen, nombre de la categoría padre); los padres van antes que sus hijas.
-CATEGORIAS_DEMO: tuple[tuple[str, str, str, str | None], ...] = (
-    ("Hamburguesas", "Nuestras burgers artesanales", _IMG + "Hamburguesas", None),
-    ("Bebidas",      "Frías y calientes",            _IMG + "Bebidas",      None),
-    ("Postres",      "Para cerrar con dulzura",      _IMG + "Postres",      None),
-    ("Veganas",      "100% plant-based",             _IMG + "Veganas",      "Hamburguesas"),
-    ("Sin TACC",     "Libres de gluten",             _IMG + "SinTACC",      "Hamburguesas"),
-    ("Gaseosas",     "Bebidas con gas",              _IMG + "Gaseosas",     "Bebidas"),
+# (nombre, descripcion, nombre de la categoría padre); los padres van antes que sus hijas. Sin imagen: el frontend muestra
+# un respaldo tipográfico y las imágenes reales llegarán con Cloudinary (C-28); nunca hosts externos en el seed.
+CATEGORIAS_DEMO: tuple[tuple[str, str, str | None], ...] = (
+    ("Hamburguesas", "Nuestras burgers artesanales", None),
+    ("Bebidas",      "Frías y calientes",            None),
+    ("Postres",      "Para cerrar con dulzura",      None),
+    ("Veganas",      "100% plant-based",             "Hamburguesas"),
+    ("Sin TACC",     "Libres de gluten",             "Hamburguesas"),
+    ("Gaseosas",     "Bebidas con gas",              "Bebidas"),
 )
 
 INGREDIENTES_DEMO: tuple[tuple[str, str, bool], ...] = (  # (nombre, descripcion, es_alergeno)
@@ -184,42 +183,41 @@ class ProductoDemo(NamedTuple):
     descripcion: str
     precio: str
     stock: int
-    imagen: str | None
     categorias: tuple[tuple[str, bool], ...]  # (nombre de categoría, es_principal)
     ingredientes: tuple[tuple[str, bool], ...]  # (nombre de ingrediente, es_removible)
 
 
 PRODUCTOS_DEMO: tuple[ProductoDemo, ...] = (
     ProductoDemo(
-        "Hamburguesa Clásica", "La de siempre, perfecta de siempre.", "1500.00", 50, "Clasica",
+        "Hamburguesa Clásica", "La de siempre, perfecta de siempre.", "1500.00", 50,
         (("Hamburguesas", True),),
         (("Pan Brioche", False), ("Carne Vacuna 250g", False), ("Queso Cheddar", True), ("Lechuga", True),
          ("Tomate", True), ("Mayonesa", True)),
     ),
     ProductoDemo(
-        "Burger BBQ Bacon", "Ahumada, crocante y con todo.", "1900.00", 30, "BBQ",
+        "Burger BBQ Bacon", "Ahumada, crocante y con todo.", "1900.00", 30,
         (("Hamburguesas", True),),
         (("Pan Brioche", False), ("Carne Vacuna 250g", False), ("Bacon Crocante", True), ("Queso Cheddar", True),
          ("Cebolla Caramelizada", True), ("Salsa BBQ", True)),
     ),
     ProductoDemo(
-        "Burger Vegana", "Plant-based sin culpa.", "1800.00", 25, "Vegana",
+        "Burger Vegana", "Plant-based sin culpa.", "1800.00", 25,
         (("Hamburguesas", True), ("Veganas", False)),
         (("Pan Brioche", False), ("Medallón Vegano", False), ("Queso Vegano", True), ("Lechuga", True),
          ("Tomate", True)),
     ),
     ProductoDemo(
-        "Burger Sin TACC", "Para celíacos, sin sacrificar sabor.", "1700.00", 20, "SinTACC",
+        "Burger Sin TACC", "Para celíacos, sin sacrificar sabor.", "1700.00", 20,
         (("Hamburguesas", True), ("Sin TACC", False)),
         (("Pan Sin TACC", False), ("Carne Vacuna 250g", False), ("Queso Cheddar", True), ("Lechuga", True),
          ("Tomate", True)),
     ),
     ProductoDemo(
-        "Coca-Cola 500ml", "La clásica bien fría.", "800.00", 100, None,
+        "Coca-Cola 500ml", "La clásica bien fría.", "800.00", 100,
         (("Bebidas", True), ("Gaseosas", False)), (),
     ),
     ProductoDemo(
-        "Limonada Natural", "Exprimida al momento.", "700.00", 60, None,
+        "Limonada Natural", "Exprimida al momento.", "700.00", 60,
         (("Bebidas", True),), (),
     ),
 )
@@ -239,10 +237,10 @@ def seed_demo(session: Session) -> None:
     unidad_u = session.exec(select(UnidadMedida).where(UnidadMedida.simbolo == "u")).first()
 
     categorias: dict[str, Categoria] = {}
-    for nombre, descripcion, imagen, padre in CATEGORIAS_DEMO:
+    for nombre, descripcion, padre in CATEGORIAS_DEMO:
         categorias[nombre], _ = _obtener_o_crear(
             session, Categoria, Categoria.nombre, nombre,
-            nombre=nombre, descripcion=descripcion, imagen_url=imagen,
+            nombre=nombre, descripcion=descripcion, imagen_url="",
             parent_id=categorias[padre].id if padre else None,
         )
 
@@ -258,8 +256,6 @@ def seed_demo(session: Session) -> None:
             "nombre": prod.nombre, "descripcion": prod.descripcion,
             "precio_base": Decimal(prod.precio), "stock_cantidad": prod.stock,
         }
-        if prod.imagen:
-            datos["imagenes_url"] = [_IMG + prod.imagen]
         producto, creado = _obtener_o_crear(session, Producto, Producto.nombre, prod.nombre, **datos)
         if not creado:
             continue
