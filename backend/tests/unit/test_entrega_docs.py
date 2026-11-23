@@ -63,9 +63,6 @@ def test_cada_variable_de_compose_esta_declarada_por_nombre(clave: str) -> None:
     assert clave in dotenv_values(ENV_RAIZ)
 
 
-# Tarea 1.2 (C-25b) pendiente: la lectura de los `.env.example` estaba denegada al agente y no se editaron a ciegas.
-# Quitar el xfail al completar el comentario de cada variable de MercadoPago en `backend/.env.example`.
-@pytest.mark.xfail(reason="1.2 pendiente: completar comentarios de MercadoPago en backend/.env.example", strict=True)
 @pytest.mark.parametrize("clave", MP_VARS)
 def test_variables_de_mercadopago_explican_donde_se_obtienen(clave: str) -> None:
     bloque = _bloque_de(_texto(ENV_BACKEND).splitlines(), clave)

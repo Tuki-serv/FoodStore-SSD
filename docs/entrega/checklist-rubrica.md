@@ -38,7 +38,7 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 |----|------|--------|-----------|
 | CE-01 | Link a repositorio GitHub público en la entrega | pendiente (usuario) | El usuario publica el repositorio y registra el enlace aquí |
 | CE-02 | `README.md` con setup funcionando en máquina limpia | pendiente (usuario) | [README.md](../../README.md) reescrito y verificado estáticamente (`backend/tests/unit/test_entrega_docs.py`); falta la prueba en clon limpio (tarea 1.4) |
-| CE-03 | `.env.example` completo, con variables de MercadoPago documentadas | parcial | Tres plantillas validadas por test (`backend/tests/unit/test_env_example.py`, `frontend/src/shared/config/__tests__/env-example.test.ts`); el comentario de dónde sale cada credencial de MercadoPago en `backend/.env.example` queda por completar (tarea 1.2) |
+| CE-03 | `.env.example` completo, con variables de MercadoPago documentadas | cumplido | Tres plantillas validadas por test (`backend/tests/unit/test_env_example.py`, `frontend/src/shared/config/__tests__/env-example.test.ts`); cada variable de MercadoPago de `backend/.env.example` indica de dónde sale en el panel de desarrolladores (`backend/tests/unit/test_entrega_docs.py`, 2026-11-23) |
 | CE-04 | `alembic upgrade head` sin errores | cumplido | `backend/tests/integration/test_migrations.py` aplica las migraciones desde una base vacía |
 | CE-05 | `python -m app.db.seed` carga datos iniciales | cumplido | `backend/app/db/seed.py` y `backend/tests/integration/test_seed.py`; cuentas en el README |
 | CE-06 | `npm install` + `npm run dev` sin errores | parcial | Scripts verificados contra `frontend/package.json`; falta la corrida en máquina limpia (tarea 1.4) |
