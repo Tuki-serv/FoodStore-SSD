@@ -44,6 +44,13 @@ Un test compara las variables `${...}` de `docker-compose.yml` con el `.env.exam
 - Preview: n/a
 - Visual verify: pendiente — todas las pantallas contra sus mockups, capturas en `openspec/changes/c-25b-entrega-docs-video/verify/`.
 
+## Decisiones del usuario (2026-11-21, en chat)
+
+- **OQ-1 / PA-17**: **sin deploy**. El grupo 6 queda fuera de alcance (N/A) y el bonus de +10 por deploy no se reclama; se registra en el checklist y en «Limitaciones conocidas» del README.
+- **OQ-2 / PA-18**: los metadatos siguen en `(TBD)` por ahora (`docs/entrega/metadatos.md`); la tarea 4.4 queda pendiente del usuario.
+- **Orden de trabajo**: el usuario quiere revisar la aplicación antes de la ejecución del recorrido E2E, las capturas y el guion del video. Quedan en espera 2.2, 3.1 y 3.2, y pospuesta 4.2; se redactó `recorrido-e2e.md` (2.1), que no es el guion del video.
+- **Plantillas de entorno**: la lectura de las plantillas estaba denegada por permisos al agente; 1.2 queda parcial (falta el comentario de origen de las variables de MercadoPago en la plantilla del backend).
+
 ## Risks / Trade-offs
 
 - **[R1] Capturas y video quedan desactualizados si se cambia código después** → este change va al final, tras archivar `c-25b1-deuda-heredada`; el checklist registra el commit capturado.
