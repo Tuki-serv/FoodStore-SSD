@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nueva categoría · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-18-c-17a-fe-admin-categorias-ingredientes/mockups/categoria-form.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: error «Ingresá un nombre» tras enviar -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="admin" data-current="categorias">
+<main class="page has-band">
+  <header class="page-band"><div class="band-inner">
+    <nav class="band-crumbs" aria-label="Ruta"><a href="categorias.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Categorías</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Nueva subcategoría</span></nav>
+    <div class="band-top">
+      <div class="band-titles"><div class="band-h"><h1>Nueva subcategoría</h1></div></div>
+      
+    </div>
+    
+    
+  </div></header>
+  <div class="page-body">
+  <form class="form-panel panel" novalidate>
+    <div class="form-sec">
+      <div class="field"><div class="label-row"><label for="n">Nombre</label><span>0/100</span></div><input class="input" id="n" aria-invalid="true" aria-describedby="n-e"><span class="err" id="n-e">Ingresá un nombre.</span></div>
+      <div class="field"><label for="p">Categoría padre (opcional)</label><select class="input" id="p"><option>Sin padre (categoría raíz)</option><option selected>Hamburguesas</option></select><span class="hint">Vacío = categoría principal.</span></div>
+      <div class="field"><label for="d">Descripción (opcional)</label><textarea class="input" id="d"></textarea></div>
+      <div class="field"><label for="u">URL de imagen (opcional)</label><input class="input" id="u" placeholder="https://"><span class="hint">Pegá el enlace de una imagen que represente la categoría.</span></div>
+    </div>
+    <div class="form-actions"><a class="btn btn-ghost" href="categorias.html">Cancelar</a><button class="btn btn-primary" type="submit">Crear categoría</button></div>
+  </form>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>

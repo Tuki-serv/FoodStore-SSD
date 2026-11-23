@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { tokensDeclarados, valoresInvalidos } from './tokens';
+import { tokensDeclarados, tokensReferenciados, valoresInvalidos } from './tokens';
 
 const TOKENS_CSS = new URL('../../../design-system/tokens.css', import.meta.url);
 
@@ -42,5 +42,40 @@ describe('tema real de Tailwind', () => {
 
     expect(declarados.size).toBeGreaterThan(50);
     expect(valoresInvalidos(config.theme?.extend ?? {}, declarados)).toEqual([]);
+  });
+});
+
+describe('tokensReferenciados', () => {
+  it('lista los nombres de variable usados por las hojas del tema, sin duplicados', () => {
+    const tema = { colors: { a: 'var(--color-a)', b: ['var(--color-b)'] }, zIndex: { x: 'var(--z-x)', y: 'var(--z-x)' }, otro: '#fff' };
+
+    expect(tokensReferenciados(tema).sort()).toEqual(['--color-a', '--color-b', '--z-x']);
+  });
+});
+
+describe('tokens de Revision 4 en el tema (revision-visual 3.2)', () => {
+  const REVISION_4 = [
+    '--surface-page',
+    '--surface-section',
+    '--surface-raised',
+    '--surface-overlay',
+    '--ease-in-out',
+    '--ease-drawer',
+    '--press-scale',
+    '--stagger-step',
+    '--z-page-header',
+    '--weight-display',
+  ];
+
+  it.each(REVISION_4)('el tema referencia %s', async (token) => {
+    const { default: config } = await import('../../tailwind.config');
+
+    expect(tokensReferenciados(config.theme?.extend ?? {})).toContain(token);
+  });
+
+  it('cada token de Revision 4 que usa el tema existe en tokens.css', () => {
+    const declarados = tokensDeclarados(readFileSync(TOKENS_CSS, 'utf8'));
+
+    expect(REVISION_4.filter((token) => !declarados.has(token))).toEqual([]);
   });
 });

@@ -5,7 +5,7 @@ import { useSesion } from '@/entities/session';
 import { usuarioQueries, type UsuarioAdmin } from '@/entities/usuario';
 import { aApiError } from '@/shared/api';
 import { NOMBRE_ROL } from '@/shared/config';
-import { AvisoDesactualizado, claseBoton, EsqueletoFilas, EstadoError, EstadoVacio, Icon, Paginacion } from '@/shared/ui';
+import { AvisoDesactualizado, claseBoton, EncabezadoPagina, EsqueletoFilas, EstadoError, EstadoVacio, Icon, Paginacion } from '@/shared/ui';
 import { aParametros, leerEstadoListado, type EstadoListado } from '../model';
 import { DialogoDesactivarUsuario } from './dialogo-desactivar-usuario';
 import { FiltroRol } from './filtro-rol';
@@ -66,49 +66,55 @@ export function AdminUsuariosPage() {
     tituloRef.current?.focus();
   };
   const reintentar = (): void => void consulta.refetch();
-  const contenedor = 'mx-auto flex w-full max-w-[1040px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
 
   if (modo.tipo !== 'lista') {
     const editado = modo.tipo === 'edicion' ? modo.usuario : undefined;
     return (
-      <div className={contenedor}>
-        <h1 className="sr-only">Usuarios</h1>
-        <FormularioUsuario
-          key={editado?.id ?? 'alta'}
-          {...(editado === undefined ? {} : { usuario: editado, esPropio: editado.id === sesion?.id })}
-          onCancelar={cerrarFormulario}
-          onTerminar={terminarFormulario}
-          onYaNoActivo={yaNoActivo}
-        />
+      <div className="flex flex-1 flex-col">
+        <EncabezadoPagina eyebrow="Administración" titulo="Usuarios" />
+        <div className="page-body flex flex-col gap-5">
+          <FormularioUsuario
+            key={editado?.id ?? 'alta'}
+            {...(editado === undefined ? {} : { usuario: editado, esPropio: editado.id === sesion?.id })}
+            onCancelar={cerrarFormulario}
+            onTerminar={terminarFormulario}
+            onYaNoActivo={yaNoActivo}
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={contenedor}>
-      <div className="page-head-row">
-        <header className="page-head">
-          <h1 ref={tituloRef} tabIndex={-1} className="text-2xl">
-            Usuarios
-          </h1>
-          <p>Administrá las cuentas de la tienda: sus datos, sus roles y quién puede ingresar.</p>
-        </header>
-        <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="nuevo" onClick={() => abrirFormulario({ tipo: 'alta' }, 'nuevo')}>
-          <Icon name="mas" />
-          Nuevo usuario
-        </button>
-      </div>
-      <div className="toolbar">
-        <FiltroRol rol={rol} onCambiar={(siguiente) => irA({ rol: siguiente, page: 1 })} />
-        {data === undefined ? null : (
-          <p className="admin-summary" role="status">
-            <strong>
-              {data.total} {data.total === 1 ? 'usuario' : 'usuarios'}
-            </strong>
-            {rol === null ? '' : ` con el rol ${NOMBRE_ROL[rol]}`}
-          </p>
-        )}
-      </div>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        eyebrow="Administración"
+        titulo="Usuarios"
+        tituloRef={tituloRef}
+        subtitulo="Administrá las cuentas de la tienda: sus datos, sus roles y quién puede ingresar."
+        acciones={
+          <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="nuevo" onClick={() => abrirFormulario({ tipo: 'alta' }, 'nuevo')}>
+            <Icon name="mas" />
+            Nuevo usuario
+          </button>
+        }
+        herramientas={<FiltroRol rol={rol} onCambiar={(siguiente) => irA({ rol: siguiente, page: 1 })} />}
+        {...(data === undefined
+          ? {}
+          : {
+              filtrosActivos: {
+                conteo: (
+                  <>
+                    {`${data.total} ${data.total === 1 ? 'usuario' : 'usuarios'}`}
+                    {rol === null ? null : <small>{` con el rol ${NOMBRE_ROL[rol]}`}</small>}
+                  </>
+                ),
+                filtros: rol === null ? [] : [{ id: 'rol', etiqueta: NOMBRE_ROL[rol], onQuitar: () => irA({ rol: null, page: 1 }) }],
+              },
+            })}
+      />
+      <div className="page-body flex flex-col gap-5">
       {consulta.isError && data !== undefined ? <AvisoDesactualizado texto="No pudimos actualizar los usuarios" onReintentar={reintentar} /> : null}
       {data === undefined ? (
         consulta.isError ? (
@@ -135,6 +141,7 @@ export function AdminUsuariosPage() {
         </>
       )}
       {baja === null ? null : <DialogoDesactivarUsuario usuario={baja} onCerrar={() => setBaja(null)} onTerminar={terminarBaja} onYaNoActivo={reintentar} />}
+      </div>
     </div>
   );
 }

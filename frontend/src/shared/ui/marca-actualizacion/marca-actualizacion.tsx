@@ -27,7 +27,7 @@ export function MarcaActualizacion({ actualizadoEn, actualizando, onActualizar }
           {`Actualizado a las ${horaDe(actualizadoEn)}`}
         </span>
       )}
-      <button type="button" className={claseBoton('secundario', { compacto: true })} disabled={actualizando} aria-busy={actualizando} onClick={onActualizar}>
+      <button type="button" className={claseBoton('fantasma', { compacto: true })} disabled={actualizando} aria-busy={actualizando} onClick={onActualizar}>
         {actualizando ? (
           <>
             <span className="spin" aria-hidden="true" />
@@ -36,7 +36,7 @@ export function MarcaActualizacion({ actualizadoEn, actualizando, onActualizar }
         ) : (
           <>
             <Icon name="reintentar" />
-            Actualizar
+            <span className="lbl-m">Actualizar</span>
           </>
         )}
       </button>

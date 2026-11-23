@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-20-c-24-fe-dashboard-metricas/mockups/dashboard.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: últimos 30 días por día; KPI elevados, gráficos sobre superficie de sección -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="admin" data-current="dashboard">
+<main class="page has-band">
+  <header class="page-band is-sticky"><div class="band-inner">
+    
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Administración</span><div class="band-h"><h1>Dashboard</h1></div><div class="band-sub"><p>Cómo viene el negocio: ventas, productos y pedidos del período.</p></div></div>
+      <div class="band-actions"><span class="band-meta hide-m">Actualizado a las <span class="num">12:41</span></span><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-reintentar"/></svg><span class="lbl-m">Actualizar</span></button></div>
+    </div>
+    <div class="band-toolbar"><div class="band-scroll"><div class="seg" role="group" aria-label="Período"><button type="button" aria-pressed="false">Hoy</button><button type="button" aria-pressed="false">Últimos 7 días</button><button type="button" aria-pressed="true">Últimos 30 días</button><button type="button" aria-pressed="false">Este mes</button></div>
+      <span class="vr"></span><span class="xs muted">Agrupar por</span><div class="seg" role="group" aria-label="Agrupar por"><button type="button" aria-pressed="true">Día</button><button type="button" aria-pressed="false">Semana</button><button type="button" aria-pressed="false">Mes</button></div></div></div>
+    <div class="band-active"><span class="band-count" role="status">22/10 – 20/11 <small>· 30 días · fechas en UTC</small></span></div>
+  </div></header>
+  <div class="page-body">
+  <div class="kpis">
+    <div class="kpi panel"><span class="k">Ventas</span><span class="v">101</span><span class="s">pedidos vendidos en el período</span></div>
+    <div class="kpi panel"><span class="k">Ingresos</span><span class="v"><small>$</small>649.500</span><span class="s">facturado en el período</span></div>
+    <div class="kpi panel"><span class="k">Ticket promedio</span><span class="v"><small>$</small>6.431</span><span class="s">por pedido vendido</span></div>
+    <div class="kpi panel live"><span class="k">Pedidos activos</span><span class="v">9</span><span class="s">ahora, sin importar el período · <a class="link" href="gestion-pedidos.html">Ver pedidos</a></span></div>
+  </div>
+  <div class="charts">
+    <section class="chart zone" aria-labelledby="c1"><div class="chart-head"><div><h2 id="c1">Ventas por período</h2><p>Ingresos 22/10 – 20/11 · por día · pico: sáb 31/10, $ 43.750 en 7 pedidos</p></div><button class="link" type="button">Ver como tabla</button></div><svg viewBox="0 0 720 220" width="100%" aria-hidden="true" preserveAspectRatio="none" style="height:auto"><line x1="52" x2="720" y1="194" y2="194" stroke="var(--color-border)"/><text x="44" y="198" text-anchor="end">$ 0</text><line x1="52" x2="720" y1="157.2" y2="157.2" stroke="var(--color-border)"/><text x="44" y="161.2" text-anchor="end">$ 10 mil</text><line x1="52" x2="720" y1="120.39999999999999" y2="120.39999999999999" stroke="var(--color-border)"/><text x="44" y="124.39999999999999" text-anchor="end">$ 20 mil</text><line x1="52" x2="720" y1="83.60000000000001" y2="83.60000000000001" stroke="var(--color-border)"/><text x="44" y="87.60000000000001" text-anchor="end">$ 30 mil</text><line x1="52" x2="720" y1="46.79999999999998" y2="46.79999999999998" stroke="var(--color-border)"/><text x="44" y="50.79999999999998" text-anchor="end">$ 40 mil</text><line x1="52" x2="720" y1="10" y2="10" stroke="var(--color-border)"/><text x="44" y="14" text-anchor="end">$ 50 mil</text><rect x="56.0" y="127.8" width="17.0" height="66.2" rx="3" fill="#E3B9A3"/><text x="67.0" y="212" text-anchor="middle">22/10</text><rect x="78.0" y="113.0" width="17.0" height="81.0" rx="3" fill="#E3B9A3"/><rect x="100.0" y="138.8" width="17.0" height="55.2" rx="3" fill="#E3B9A3"/><rect x="122.0" y="98.3" width="17.0" height="95.7" rx="3" fill="#E3B9A3"/><text x="133.0" y="212" text-anchor="middle">25/10</text><rect x="144.0" y="79.9" width="17.0" height="114.1" rx="3" fill="#E3B9A3"/><rect x="166.0" y="105.7" width="17.0" height="88.3" rx="3" fill="#E3B9A3"/><rect x="188.0" y="120.4" width="17.0" height="73.6" rx="3" fill="#E3B9A3"/><text x="199.0" y="212" text-anchor="middle">28/10</text><rect x="210.0" y="131.4" width="17.0" height="62.6" rx="3" fill="#E3B9A3"/><rect x="232.0" y="109.4" width="17.0" height="84.6" rx="3" fill="#E3B9A3"/><rect x="254.0" y="87.3" width="17.0" height="106.7" rx="3" fill="#E3B9A3"/><text x="265.0" y="212" text-anchor="middle">31/10</text><rect x="276.0" y="32.1" width="17.0" height="161.9" rx="3" fill="var(--color-primary)"/><rect x="298.0" y="54.2" width="17.0" height="139.8" rx="3" fill="#E3B9A3"/><rect x="320.0" y="116.7" width="17.0" height="77.3" rx="3" fill="#E3B9A3"/><text x="331.0" y="212" text-anchor="middle">03/11</text><rect x="342.0" y="124.1" width="17.0" height="69.9" rx="3" fill="#E3B9A3"/><rect x="364.0" y="102.0" width="17.0" height="92.0" rx="3" fill="#E3B9A3"/><rect x="386.0" y="94.6" width="17.0" height="99.4" rx="3" fill="#E3B9A3"/><text x="397.0" y="212" text-anchor="middle">06/11</text><rect x="408.0" y="72.6" width="17.0" height="121.4" rx="3" fill="#E3B9A3"/><rect x="430.0" y="83.6" width="17.0" height="110.4" rx="3" fill="#E3B9A3"/><rect x="452.0" y="113.0" width="17.0" height="81.0" rx="3" fill="#E3B9A3"/><text x="463.0" y="212" text-anchor="middle">09/11</text><rect x="474.0" y="127.8" width="17.0" height="66.2" rx="3" fill="#E3B9A3"/><rect x="496.0" y="105.7" width="17.0" height="88.3" rx="3" fill="#E3B9A3"/><rect x="518.0" y="91.0" width="17.0" height="103.0" rx="3" fill="#E3B9A3"/><text x="529.0" y="212" text-anchor="middle">12/11</text><rect x="540.0" y="65.2" width="17.0" height="128.8" rx="3" fill="#E3B9A3"/><rect x="562.0" y="43.1" width="17.0" height="150.9" rx="3" fill="#E3B9A3"/><rect x="584.0" y="98.3" width="17.0" height="95.7" rx="3" fill="#E3B9A3"/><text x="595.0" y="212" text-anchor="middle">15/11</text><rect x="606.0" y="109.4" width="17.0" height="84.6" rx="3" fill="#E3B9A3"/><rect x="628.0" y="120.4" width="17.0" height="73.6" rx="3" fill="#E3B9A3"/><rect x="650.0" y="94.6" width="17.0" height="99.4" rx="3" fill="#E3B9A3"/><text x="661.0" y="212" text-anchor="middle">18/11</text><rect x="672.0" y="79.9" width="17.0" height="114.1" rx="3" fill="#E3B9A3"/><rect x="694.0" y="113.0" width="17.0" height="81.0" rx="3" fill="#E3B9A3"/></svg></section>
+    <section class="chart zone" aria-labelledby="c2"><div class="chart-head"><div><h2 id="c2">Productos más vendidos</h2><p>Top 5 por cantidad</p></div><button class="link" type="button">Ver como tabla</button></div>
+      <ol class="hbars"><li><span>Empanada de carne</span><span class="n">136</span><span class="bar"><i style="width:100%"></i></span><small>$ 244.800</small></li><li><span>Pizza muzzarella</span><span class="n">63</span><span class="bar"><i style="width:46%"></i></span><small>$ 535.500</small></li><li><span>Milanesa napolitana con papas</span><span class="n">51</span><span class="bar"><i style="width:38%"></i></span><small>$ 499.800</small></li><li><span>Hamburguesa completa</span><span class="n">44</span><span class="bar"><i style="width:32%"></i></span><small>$ 347.600</small></li><li><span>Papas fritas con cheddar</span><span class="n">33</span><span class="bar"><i style="width:24%"></i></span><small>$ 151.800</small></li></ol></section>
+    <section class="chart zone" aria-labelledby="c3"><div class="chart-head"><div><h2 id="c3">Pedidos por estado</h2><p>Creados en el período</p></div><button class="link" type="button">Ver como tabla</button></div>
+      <div class="states-grid"><div><b>6</b><span style="--c:var(--state-pendiente-fg)">Pendiente</span></div><div><b>4</b><span style="--c:var(--state-confirmado-fg)">Confirmado</span></div><div><b>5</b><span style="--c:var(--state-en-prep-fg)">En preparación</span></div><div><b>3</b><span style="--c:var(--state-en-camino-fg)">En camino</span></div><div><b>89</b><span style="--c:var(--state-entregado-fg)">Entregado</span></div><div><b>8</b><span style="--c:var(--state-cancelado-fg)">Cancelado</span></div></div></section>
+    <section class="chart zone" aria-labelledby="c4"><div class="chart-head"><div><h2 id="c4">Ingresos por forma de pago</h2><p>Participación sobre <span class="num">$ 649.500</span></p></div><button class="link" type="button">Ver como tabla</button></div>
+      <div class="split-bar" aria-hidden="true"><i style="width:47%;background:var(--color-primary)"></i><i style="width:42%;background:#E3B9A3"></i><i style="width:11%;background:var(--color-border-strong)"></i></div>
+      <ul class="legend"><li style="--c:var(--color-primary)"><span>Tarjeta (Mercado Pago)</span><span class="n">$ 305.250</span><small>47 %</small></li><li style="--c:#E3B9A3"><span>Efectivo</span><span class="n">$ 272.800</span><small>42 %</small></li><li style="--c:var(--color-border-strong)"><span>Transferencia bancaria</span><span class="n">$ 71.450</span><small>11 %</small></li></ul></section>
+  </div>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>

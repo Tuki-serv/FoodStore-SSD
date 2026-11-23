@@ -4,9 +4,6 @@
   .iunit,.iuse{font-size:var(--text-sm)}
   .iuse{color:var(--color-text-muted)}
   .iuse strong{color:var(--color-text)}
-  .b-alergeno{color:var(--color-warning);background:var(--color-warning-bg)}
-  .b-alergeno::before{display:none}
-  .b-alergeno .ico{width:14px;height:14px;stroke-width:2.2}
   .ilist .crow-actions{flex-wrap:nowrap}
   @media (min-width:1024px){.imeta{display:contents}}
   @media (max-width:1023.98px){

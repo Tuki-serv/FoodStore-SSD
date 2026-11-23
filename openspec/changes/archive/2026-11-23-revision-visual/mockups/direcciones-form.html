@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nueva dirección · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-17-c-15-fe-direcciones/mockups/direcciones-form.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: errores tras «Guardar» -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="direcciones">
+<main class="page has-band">
+  <header class="page-band"><div class="band-inner">
+    <nav class="band-crumbs" aria-label="Ruta"><a href="direcciones-lista.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Direcciones</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Nueva dirección</span></nav>
+    <div class="band-top">
+      <div class="band-titles"><div class="band-h"><h1>Nueva dirección</h1></div></div>
+      
+    </div>
+    
+    
+  </div></header>
+  <div class="page-body">
+  <form class="form-panel panel" novalidate>
+    <div class="fgrid">
+      <div class="field full"><label for="al">Alias (opcional)</label><input class="input" id="al" placeholder="Casa, Trabajo…"><span class="hint">Te ayuda a reconocerla al pedir. Máximo 50 caracteres.</span></div>
+      <div class="field full"><label for="ca">Calle y número</label><input class="input" id="ca" aria-invalid="true"><span class="err">Ingresá la calle y el número.</span></div>
+      <div class="field "><label for="pi">Piso, depto. (opcional)</label><input class="input" id="pi" value=""></div>
+      <div class="field"><label for="ci">Ciudad</label><input class="input" id="ci" aria-invalid="true"><span class="err">Ingresá la ciudad.</span></div>
+      <div class="field "><label for="pr">Provincia (opcional)</label><input class="input" id="pr" value=""></div>
+      <div class="field"><label for="cp">Código postal (opcional)</label><input class="input num" id="cp"><span class="hint">Máximo 10 caracteres.</span></div>
+    </div>
+    <div class="form-actions"><a class="btn btn-ghost" href="direcciones-lista.html">Cancelar</a><button class="btn btn-primary" type="submit">Guardar dirección</button></div>
+  </form>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>

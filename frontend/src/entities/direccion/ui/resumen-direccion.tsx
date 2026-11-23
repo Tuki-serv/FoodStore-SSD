@@ -26,7 +26,7 @@ export function ResumenDireccion({ direccion, conMarca = true }: ResumenDireccio
     <span className="addr-body">
       <span className="addr-title">
         {alias === undefined || alias === '' ? <strong className="muted">Sin alias</strong> : <strong>{alias}</strong>}
-        {conMarca && direccion.es_principal ? <span className="badge b-principal">Principal</span> : null}
+        {conMarca && direccion.es_principal ? <span className="marca-principal">Principal</span> : null}
       </span>
       <span className="addr-line">{lineaDireccion(direccion)}</span>
       <span className="addr-sub">{subLineaDireccion(direccion)}</span>

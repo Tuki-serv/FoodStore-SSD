@@ -24,3 +24,12 @@ export function valoresInvalidos(tema: unknown, declarados: ReadonlySet<string>)
     return nombre === undefined || !declarados.has(nombre);
   });
 }
+
+/** Nombres de variable (`--x`) referenciados por las hojas del tema con `var(--x)`, sin duplicados. */
+export function tokensReferenciados(tema: unknown): string[] {
+  const nombres = hojas(tema, []).flatMap((hoja) => {
+    const nombre = USO_VAR.exec(hoja)?.[1];
+    return nombre === undefined ? [] : [nombre];
+  });
+  return [...new Set(nombres)];
+}

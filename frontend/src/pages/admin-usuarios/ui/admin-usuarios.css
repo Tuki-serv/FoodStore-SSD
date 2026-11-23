@@ -1,19 +1,14 @@
 /* Página Usuarios (administración): listado, filtro por rol, formulario y diálogo aprobados en los mockups de C-23 (design-system Revision 2). Solo tokens. */
 @layer components {
   .urow{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1.9fr) minmax(0,1.1fr) 200px;gap:var(--space-4);align-items:center;padding:var(--space-3) var(--space-5);min-height:64px}
-  .uhead{background:var(--color-surface-alt);min-height:0;padding-top:var(--space-2);padding-bottom:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted)}
+  .uhead{min-height:0;padding-top:var(--space-2);padding-bottom:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);background:var(--surface-section)}
   .ulist .iname strong{overflow-wrap:anywhere}
   .ulist .iname small{white-space:normal;overflow-wrap:anywhere}
   .ulist .crow-actions{flex-wrap:nowrap}
   .uroles{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--space-1)}
   .ucel{font-size:var(--text-sm);color:var(--color-text-muted)}
 
-  /* Etiquetas de rol: el texto lleva el significado, el color solo refuerza */
-  .b-rol::before{display:none}
-  .b-rol{background:var(--color-surface-alt);color:var(--color-text);border:1px solid var(--color-border)}
-  .b-rol-admin{background:var(--color-info-bg);color:var(--color-info);border-color:transparent}
-  .b-vos{background:var(--color-accent-soft);color:var(--color-accent)}
-  .b-vos::before{display:none}
+  /* Roles como texto (ver .rol-txt en lista-admin.css) */
 
   /* Filtro por rol: 5 opciones; en mobile se reparte en filas */
   .seg-wrap{flex-wrap:wrap}
@@ -29,7 +24,7 @@
   .roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
   .check.is-checked{border-color:var(--color-primary);background:var(--color-primary-soft)}
   .check.is-disabled{cursor:not-allowed;border-style:dashed;background:var(--color-surface-alt)}
-  .check.is-disabled:hover{border-color:var(--color-border)}
+  @media (hover:hover) and (pointer:fine){.check.is-disabled:hover{border-color:var(--color-border)}}
   .check.is-disabled input{cursor:not-allowed;opacity:.6}
   .check.is-disabled > span{color:var(--color-text-muted)}
   .check .why{display:flex;flex-direction:row;gap:var(--space-1);align-items:flex-start;margin-top:var(--space-1);font-weight:600;font-size:var(--text-sm);color:var(--color-text)}

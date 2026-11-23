@@ -360,6 +360,14 @@
       "sessions": 1,
       "memories": 6,
       "prompts": 0
+    },
+    {
+      "id": "a2044e89",
+      "created_by": "jacop",
+      "created_at": "2026-11-23T22:29:23.265166Z",
+      "sessions": 1,
+      "memories": 13,
+      "prompts": 0
     }
   ]
 }

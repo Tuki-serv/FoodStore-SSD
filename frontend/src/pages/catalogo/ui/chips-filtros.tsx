@@ -1,5 +1,5 @@
 import { formatearPrecio } from '@/entities/producto';
-import { Icon } from '@/shared/ui';
+import { Icon, type FiltroActivo } from '@/shared/ui';
 import { contarFiltros, type FiltrosUrl } from '../model';
 
 export type FiltroQuitable = 'categoria' | 'q' | 'precio' | 'stock';
@@ -19,6 +19,22 @@ const pesos = (valor: number): string => formatearPrecio(String(valor));
 export function textoPrecio(min: number | undefined, max: number | undefined): string {
   if (min !== undefined && max !== undefined) return `${pesos(min)} – ${pesos(max)}`;
   return min !== undefined ? `Desde ${pesos(min)}` : `Hasta ${pesos(max ?? 0)}`;
+}
+
+/** Un filtro quitable por cada filtro aplicado, para el encabezado de página (mismos textos que los chips). */
+export function filtrosQuitables(filtros: FiltrosUrl, nombreCategoria: string | undefined, onQuitar: (filtro: FiltroQuitable) => void): FiltroActivo[] {
+  const lista: FiltroActivo[] = [];
+  if (filtros.categoria !== undefined) {
+    const categoria = nombreCategoria ?? 'Categoría elegida';
+    lista.push({ id: 'categoria', etiqueta: categoria, onQuitar: () => onQuitar('categoria') });
+  }
+  if (filtros.q !== undefined) lista.push({ id: 'q', etiqueta: filtros.q, texto: `«${filtros.q}»`, onQuitar: () => onQuitar('q') });
+  if (filtros.min !== undefined || filtros.max !== undefined) {
+    const precio = textoPrecio(filtros.min, filtros.max);
+    lista.push({ id: 'precio', etiqueta: precio, onQuitar: () => onQuitar('precio') });
+  }
+  if (filtros.stock) lista.push({ id: 'stock', etiqueta: 'Solo con stock', onQuitar: () => onQuitar('stock') });
+  return lista;
 }
 
 function Chip({ texto, etiqueta, onQuitar }: { texto: string; etiqueta: string; onQuitar: () => void }) {

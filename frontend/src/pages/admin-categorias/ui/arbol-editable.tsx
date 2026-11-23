@@ -26,8 +26,8 @@ function Fila({ nodo, nuevoId, onAgregarSubcategoria, onEditar, onEliminar }: Fi
         <div className="crow-body">
           <div className="crow-title">
             <strong>{nodo.nombre}</strong>
-            {cantidad > 0 ? <span className="badge b-neutral">{textoSubcategorias(cantidad)}</span> : null}
-            {esNueva ? <span className="badge b-principal">Nueva</span> : null}
+            {cantidad > 0 ? <span className="meta-txt">{textoSubcategorias(cantidad)}</span> : null}
+            {esNueva ? <span className="meta-txt">Nueva</span> : null}
           </div>
           {nodo.descripcion === null || nodo.descripcion === '' ? null : <span className="crow-desc">{nodo.descripcion}</span>}
         </div>

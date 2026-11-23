@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usuarios · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-20-c-23-fe-admin-usuarios-roles/mockups/usuarios.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: listado; roles como texto; sin «Desactivar» en la sesión propia -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="admin" data-current="usuarios">
+<main class="page has-band">
+  <header class="page-band is-sticky"><div class="band-inner">
+    
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Administración</span><div class="band-h"><h1>Usuarios</h1></div><div class="band-sub"><p>Administrá las cuentas de la tienda: sus datos, sus roles y quién puede ingresar.</p></div></div>
+      <div class="band-actions"><a class="btn btn-primary" href="usuario-form.html"><svg class="ico" aria-hidden="true"><use href="#i-mas"/></svg><span class="lbl-m">Nuevo usuario</span></a></div>
+    </div>
+    <div class="band-toolbar"><span class="band-sep xs muted desktop-only">Rol</span><div class="band-scroll"><div class="seg" role="group" aria-label="Filtrar por rol"><button type="button" aria-pressed="true">Todos</button><button type="button" aria-pressed="false">Administrador</button><button type="button" aria-pressed="false">Gestor de stock</button><button type="button" aria-pressed="false">Gestor de pedidos</button><button type="button" aria-pressed="false">Cliente</button></div></div></div>
+    <div class="band-active"><span class="band-count" role="status">8 usuarios <small>· 7 activos</small></span></div>
+  </div></header>
+  <div class="page-body">
+  <div class="panel table-panel"><table class="resp"><thead><tr><th>Usuario</th><th>Roles</th><th>Celular</th><th><span class="sr">Acciones</span></th></tr></thead><tbody><tr><td class="wide"><div class="who me"><span class="avatar" aria-hidden="true">AG</span><div style="min-width:0"><strong>Ana Gómez</strong> <span class="xs muted">(vos)</span><small style="overflow:hidden;text-overflow:ellipsis">ana.gomez@foodstore.com</small></div></div></td>
+  <td data-l="Roles">Administrador, Cliente</td><td class="num muted" data-l="Celular">+54 9 11 5555-0101</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button></td></tr><tr><td class="wide"><div class="who"><span class="avatar" aria-hidden="true">CG</span><div style="min-width:0"><strong>Carla Gómez</strong><small style="overflow:hidden;text-overflow:ellipsis">carla@example.com</small></div></div></td>
+  <td data-l="Roles">Gestor de stock, Gestor de pedidos</td><td class="num muted" data-l="Celular">—</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button">Desactivar</button></td></tr><tr><td class="wide"><div class="who"><span class="avatar" aria-hidden="true">DF</span><div style="min-width:0"><strong>Diego Fernández</strong><small style="overflow:hidden;text-overflow:ellipsis">diego.fernandez@example.com</small></div></div></td>
+  <td data-l="Roles">Gestor de stock</td><td class="num muted" data-l="Celular">+54 9 351 555-0142</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button">Desactivar</button></td></tr><tr><td class="wide"><div class="who"><span class="avatar" aria-hidden="true">LM</span><div style="min-width:0"><strong>Lucía Martínez</strong><small style="overflow:hidden;text-overflow:ellipsis">lucia.martinez@example.com</small></div></div></td>
+  <td data-l="Roles">Cliente</td><td class="num muted" data-l="Celular">+54 9 261 555-0177</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button">Desactivar</button></td></tr><tr><td class="wide"><div class="who"><span class="avatar" aria-hidden="true">MP</span><div style="min-width:0"><strong>Marcos Peralta</strong><small style="overflow:hidden;text-overflow:ellipsis">marcos.peralta@example.com</small></div></div></td>
+  <td data-l="Roles">Administrador, Gestor de pedidos</td><td class="num muted" data-l="Celular">—</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button">Desactivar</button></td></tr><tr><td class="wide"><div class="who"><span class="avatar" aria-hidden="true">SB</span><div style="min-width:0"><strong>Sofía Benítez</strong><small style="overflow:hidden;text-overflow:ellipsis">sofia.benitez@example.com</small></div></div></td>
+  <td data-l="Roles">Gestor de pedidos, Cliente</td><td class="num muted" data-l="Celular">+54 9 11 5555-0188</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button">Desactivar</button></td></tr><tr><td class="wide"><div class="who"><span class="avatar" aria-hidden="true">TR</span><div style="min-width:0"><strong>Tomás Ruiz</strong><small style="overflow:hidden;text-overflow:ellipsis">tomas.ruiz@example.com</small></div></div></td>
+  <td data-l="Roles">Cliente</td><td class="num muted" data-l="Celular">—</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button">Desactivar</button></td></tr><tr><td class="wide"><div class="who"><span class="avatar" aria-hidden="true">VN</span><div style="min-width:0"><strong>Valentina Núñez de la Fuente</strong><small style="overflow:hidden;text-overflow:ellipsis">valentina.nunez.delafuente@example.com</small></div></div></td>
+  <td data-l="Roles">Cliente</td><td class="num muted" data-l="Celular">+54 9 341 555-0120</td>
+  <td class="act"><button class="btn btn-ghost btn-sm" type="button"><svg class="ico" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button><button class="btn btn-ghost btn-sm btn-link-danger" type="button">Desactivar</button></td></tr></tbody></table></div>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>

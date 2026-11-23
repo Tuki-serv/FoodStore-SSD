@@ -41,12 +41,12 @@ export function ListaIngredientes({ ingredientes, unidades, nuevoId, onEditar, o
                 <div className="iname-top">
                   <strong>{ingrediente.nombre}</strong>
                   {ingrediente.es_alergeno ? (
-                    <span className="badge b-alergeno">
+                    <span className="al">
                       <Icon name="alergeno" />
                       Alérgeno
                     </span>
                   ) : null}
-                  {esNuevo ? <span className="badge b-principal">Nuevo</span> : null}
+                  {esNuevo ? <span className="meta-txt">Nuevo</span> : null}
                 </div>
                 {ingrediente.descripcion === null || ingrediente.descripcion === '' ? null : <small>{ingrediente.descripcion}</small>}
               </div>

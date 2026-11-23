@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shell sin sesión · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-15-c-13a-fe-foundation-scaffold/mockups/shell-anon.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: ?nav=expanded | collapsed | drawer -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="anon" data-current="catalogo">
+<main class="page has-band">
+  <header class="page-band is-sticky"><div class="band-inner">
+    
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Tienda</span><div class="band-h"><h1>Catálogo</h1></div><div class="band-sub"><p>Elegí lo que tengas ganas y sumalo al carrito.</p></div></div>
+      
+    </div>
+    <div class="band-toolbar"><form class="search" role="search"><label class="sr" for="q">Buscar productos</label><svg class="ico" aria-hidden="true"><use href="#i-buscar"/></svg><input class="input" id="q" type="search" placeholder="Buscar productos" value=""></form>
+        <button class="chip filter-btn" type="button"><svg class="ico" aria-hidden="true"><use href="#i-filtros"/></svg>Filtros</button>
+        <span class="vr desktop-only"></span>
+        <div class="chips desktop-only" role="group" aria-label="Categorías"><button class="chip" type="button" aria-pressed="true">Todas</button><button class="chip" type="button" aria-pressed="false">Bebidas</button><button class="chip" type="button" aria-pressed="false">Hamburguesas</button><button class="chip" type="button" aria-pressed="false">Postres</button></div>
+        <span class="spacer desktop-only"></span>
+        <div class="hstack desktop-only"><div class="popover-wrap"><button class="chip" type="button" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-filtros"/></svg>Precio</button></div><button class="switch" type="button" role="switch" aria-checked="false"><i></i>Solo con stock</button></div>
+      </div>
+      <div class="band-scroll mobile-only hide-stuck-m" role="group" aria-label="Categorías"><button class="chip" type="button" aria-pressed="true">Todas</button><button class="chip" type="button" aria-pressed="false">Bebidas</button><button class="chip" type="button" aria-pressed="false">Hamburguesas</button><button class="chip" type="button" aria-pressed="false">Postres</button></div>
+      <div hidden></div>
+    <div class="band-active"><span class="band-count" role="status">20 productos</span></div>
+  </div></header>
+  <div class="page-body">
+  <ul class="prod-grid stagger" id="grilla"></ul>
+  <nav class="pager" aria-label="Paginación del catálogo"><button class="btn btn-secondary btn-sm" type="button" disabled>Anterior</button><span class="num">Página 1 de 2</span><button class="btn btn-secondary btn-sm" type="button">Siguiente</button></nav>
+  
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+M.grilla('grilla', [P.clasica,P.bbq,P.vegana,P.sintacc,P.doble,P.coca,P.limonada,P.sprite,P.agua,P.flan,P.brownie,P.volcan,P.noquis,P.empanada,P.clasica,P.bbq,P.coca,P.flan,P.vegana,P.limonada].slice(0,16));
+})();
+</script>
+</body>
+</html>

@@ -1,13 +1,15 @@
-export type VarianteBoton = 'primario' | 'secundario' | 'fantasma' | 'fantasmaPeligro' | 'peligro' | 'peligroContorno';
+export type VarianteBoton = 'primario' | 'secundario' | 'neutro' | 'fantasma' | 'fantasmaPeligro' | 'peligro' | 'peligroContorno';
 
 const BASE =
   'inline-flex items-center justify-center gap-2 rounded-md border-2 font-bold no-underline cursor-pointer ' +
-  'transition-[background-color,transform] duration-fast ease-out active:scale-[.97] focus-visible:outline-none focus-visible:shadow-focus ' +
+  'transition-[background-color,transform] duration-fast ease-out active:scale-press focus-visible:outline-none focus-visible:shadow-focus ' +
   'disabled:cursor-not-allowed disabled:border-border disabled:bg-surface-alt disabled:text-text-muted disabled:active:scale-100';
 
 const VARIANTES: Record<VarianteBoton, string> = {
   primario: 'border-transparent bg-primary text-white hover:bg-primary-hover',
   secundario: 'border-primary bg-surface text-primary-hover hover:bg-primary-soft',
+  /** Acción secundaria sin énfasis de marca (por ejemplo, «Próxima acción» en la fila de un listado). */
+  neutro: 'border-border bg-surface text-text shadow-sm hover:border-text-muted',
   fantasma: 'border-transparent bg-transparent text-text hover:bg-surface-alt',
   /** Acción destructiva discreta (por ejemplo, «Eliminar» en la fila de un listado). */
   fantasmaPeligro: 'border-transparent bg-transparent text-danger hover:bg-danger-bg',

@@ -1,5 +1,5 @@
 import { nombreCompleto, type UsuarioAdmin } from '@/entities/usuario';
-import { esRol, nombreDeRol, type Rol } from '@/shared/config';
+import { nombreDeRol } from '@/shared/config';
 import { claseBoton, Icon } from '@/shared/ui';
 
 export interface ListaUsuariosProps {
@@ -11,17 +11,6 @@ export interface ListaUsuariosProps {
   onEditar: (usuario: UsuarioAdmin) => void;
   onDesactivar: (usuario: UsuarioAdmin) => void;
 }
-
-/** Clases por rol (literales: Tailwind no ve nombres armados con plantillas). El texto lleva el significado; el color solo refuerza. */
-const CLASE_ROL: Readonly<Record<Rol, string>> = {
-  ADMIN: 'badge b-rol b-rol-admin',
-  STOCK: 'badge b-rol',
-  PEDIDOS: 'badge b-rol',
-  CLIENT: 'badge b-rol',
-};
-const CLASE_ROL_DESCONOCIDO = 'badge b-rol';
-
-const claseDeRol = (codigo: string): string => (esRol(codigo) ? CLASE_ROL[codigo] : CLASE_ROL_DESCONOCIDO);
 
 /** Listado de usuarios: nombre y email, roles como etiquetas, celular y acciones por fila (tabla en desktop, tarjetas en mobile). */
 export function ListaUsuarios({ usuarios, sesionId, resaltadoId, onEditar, onDesactivar }: ListaUsuariosProps) {
@@ -43,13 +32,13 @@ export function ListaUsuarios({ usuarios, sesionId, resaltadoId, onEditar, onDes
               <div className="iname">
                 <div className="iname-top">
                   <strong>{nombre}</strong>
-                  {esPropio ? <span className="badge b-vos">Vos</span> : null}
+                  {esPropio ? <span className="meta-txt">Vos</span> : null}
                 </div>
                 <small>{usuario.email}</small>
               </div>
               <ul className="uroles" aria-label={`Roles de ${nombre}`}>
                 {usuario.roles.map((rol) => (
-                  <li key={rol.codigo} className={claseDeRol(rol.codigo)}>
+                  <li key={rol.codigo} className="rol-txt">
                     {nombreDeRol(rol.codigo)}
                   </li>
                 ))}

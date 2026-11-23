@@ -1,15 +1,33 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { pedidoQueries } from '@/entities/pedido';
+import { etiquetaEstado, pedidoQueries } from '@/entities/pedido';
 import { CambioEstadoPedido, type SolicitudCambio } from '@/features/cambiar-estado-pedido';
 import { aApiError } from '@/shared/api';
 import { INTERVALO_ACTUALIZACION_MS } from '@/shared/config';
-import { AvisoActualizacionFallida, claseBoton, EstadoError, EstadoVacio, MarcaActualizacion, Paginacion } from '@/shared/ui';
+import { AvisoActualizacionFallida, claseBoton, EncabezadoPagina, EstadoError, EstadoVacio, MarcaActualizacion, Paginacion, type FiltroActivo } from '@/shared/ui';
 import { aParametros, leerFiltrosPedidos, TAMANO_PAGINA, type FiltrosUrl } from '../model';
 import { AccionFila } from './accion-fila';
 import { FiltrosPedidos } from './filtros-pedidos';
 import { EsqueletoPedidos, TablaPedidos } from './tabla-pedidos';
+
+const aFecha = (iso: string): string => iso.split('-').reverse().join('/');
+
+/** Complemento de la línea de conteo: el período pedido (con la aclaración del día UTC del servidor) o, con solo estado, «con estos filtros». */
+function describirFiltros({ estado, desde, hasta }: FiltrosUrl): string {
+  const periodo =
+    desde !== '' && hasta !== ''
+      ? desde === hasta
+        ? `del ${aFecha(desde)}`
+        : `del ${aFecha(desde)} al ${aFecha(hasta)}`
+      : desde !== ''
+        ? `desde ${aFecha(desde)}`
+        : hasta !== ''
+          ? `hasta ${aFecha(hasta)}`
+          : '';
+  if (periodo !== '') return `${periodo} · día del servidor, UTC`;
+  return estado === null ? '' : 'con estos filtros';
+}
 
 const SIN_FILTROS: FiltrosUrl = { estado: null, desde: '', hasta: '', page: 1 };
 
@@ -48,24 +66,34 @@ export function GestionPedidosPage() {
   const reintentar = (): void => void consulta.refetch();
   const limpiar = (): void => irA(SIN_FILTROS);
 
+  const filtrosActivos: FiltroActivo[] = [
+    ...(filtros.estado === null ? [] : [{ id: 'estado', etiqueta: etiquetaEstado(filtros.estado), onQuitar: () => irA({ ...filtros, estado: null, page: 1 }) }]),
+    ...(filtros.desde === '' ? [] : [{ id: 'desde', etiqueta: `Desde ${aFecha(filtros.desde)}`, onQuitar: () => irA({ ...filtros, desde: '', page: 1 }) }]),
+    ...(filtros.hasta === '' ? [] : [{ id: 'hasta', etiqueta: `Hasta ${aFecha(filtros.hasta)}`, onQuitar: () => irA({ ...filtros, hasta: '', page: 1 }) }]),
+  ];
+
+  const notaDeConteo = describirFiltros(filtros);
+
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6">
-      <header className="page-head">
-        <h1 ref={tituloRef} tabIndex={-1} className="text-2xl">
-          Gestión de pedidos
-        </h1>
-        <p>Confirmá los pagos en efectivo o transferencia y llevá cada pedido hasta la entrega.</p>
-      </header>
-      <FiltrosPedidos filtros={filtros} onCambiar={(cambios) => irA({ ...filtros, ...cambios, page: 1 })} onLimpiar={limpiar} />
-      {data === undefined ? null : (
-        <div className="gp-bar">
-          <p className="admin-summary" role="status">
-            <strong>{`${data.total} ${data.total === 1 ? 'pedido' : 'pedidos'}`}</strong>
-            {hayFiltros ? ' con estos filtros' : ''}
-          </p>
-          <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching} onActualizar={reintentar} />
-        </div>
-      )}
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        eyebrow="Operación"
+        titulo="Gestión de pedidos"
+        tituloRef={tituloRef}
+        subtitulo="Confirmá los pagos en efectivo o transferencia y llevá cada pedido hasta la entrega."
+        acciones={data === undefined ? undefined : <MarcaActualizacion actualizadoEn={consulta.dataUpdatedAt} actualizando={consulta.isFetching} onActualizar={reintentar} />}
+        herramientas={<FiltrosPedidos filtros={filtros} onCambiar={(cambios) => irA({ ...filtros, ...cambios, page: 1 })} />}
+        {...(data === undefined
+          ? {}
+          : { filtrosActivos: { conteo: (
+                <>
+                  {`${data.total} ${data.total === 1 ? 'pedido' : 'pedidos'}`}
+                  {notaDeConteo === '' ? null : <small>{` ${notaDeConteo}`}</small>}
+                </>
+              ), filtros: filtrosActivos, onLimpiar: limpiar } })}
+      />
+      <div className="page-body flex flex-col gap-5">
       {consulta.isError && data !== undefined ? <AvisoActualizacionFallida actualizadoEn={consulta.dataUpdatedAt} onReintentar={reintentar} /> : null}
       {data === undefined ? (
         consulta.isError ? (
@@ -102,6 +130,7 @@ export function GestionPedidosPage() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

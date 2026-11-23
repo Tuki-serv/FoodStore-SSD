@@ -108,7 +108,8 @@ describe('detalle: personalización', () => {
     await titulo('Hamburguesa Clásica');
 
     expect(screen.getByRole('checkbox', { name: 'Sin Queso' })).toBeInTheDocument();
-    expect(screen.getByText('Contiene alérgenos: Queso')).toBeInTheDocument();
+    expect(screen.getByText('Contiene alérgenos')).toBeInTheDocument();
+    expect(within(screen.getByRole('note')).getByText('Queso')).toBeInTheDocument();
   });
 
   it('sin sesión, con una casilla marcada, «Agregar» lleva a /ingresar y el carrito queda vacío', async () => {

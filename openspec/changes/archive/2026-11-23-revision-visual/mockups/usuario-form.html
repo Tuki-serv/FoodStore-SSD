@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuevo usuario · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-20-c-23-fe-admin-usuarios-roles/mockups/usuario-form.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: alta con roles -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="admin" data-current="usuarios">
+<main class="page has-band">
+  <header class="page-band"><div class="band-inner">
+    <nav class="band-crumbs" aria-label="Ruta"><a href="usuarios.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Usuarios</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Nuevo usuario</span></nav>
+    <div class="band-top">
+      <div class="band-titles"><div class="band-h"><h1>Nuevo usuario</h1></div></div>
+      
+    </div>
+    
+    
+  </div></header>
+  <div class="page-body">
+  <form class="form-panel panel" novalidate>
+    <section class="form-sec"><h2>Datos</h2><div class="fgrid"><div class="field "><label for="n">Nombre</label><input class="input" id="n" value=""></div><div class="field "><label for="a">Apellido</label><input class="input" id="a" value=""></div><div class="field full"><label for="e">Email</label><input class="input" id="e" value=""></div><div class="field "><label for="c">Celular (opcional)</label><input class="input" id="c" value=""></div>
+      <div class="field"><label for="pw">Contraseña inicial</label><input class="input" id="pw" type="password"><span class="hint">Mínimo 8 caracteres. Se la tenés que pasar vos al usuario.</span></div></div></section>
+    <section class="form-sec"><h2>Roles</h2><p>Elegí al menos uno.</p>
+      <div class="role-list">
+        <label class="role-opt"><input type="checkbox"><span><strong>Administrador</strong><small>Usuarios, catálogo, pedidos y métricas.</small></span></label>
+        <label class="role-opt"><input type="checkbox"><span><strong>Gestor de stock</strong><small>Productos y stock.</small></span></label>
+        <label class="role-opt is-checked"><input type="checkbox" checked><span><strong>Gestor de pedidos</strong><small>Gestión y avance de los pedidos.</small></span></label>
+        <label class="role-opt"><input type="checkbox"><span><strong>Cliente</strong><small>Compra en la tienda.</small></span></label></div></section>
+    <div class="form-actions"><a class="btn btn-ghost" href="usuarios.html">Cancelar</a><button class="btn btn-primary" type="submit">Crear usuario</button></div>
+  </form>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+
+</body>
+</html>

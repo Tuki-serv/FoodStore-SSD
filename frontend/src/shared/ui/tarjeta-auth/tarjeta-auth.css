@@ -1,6 +1,6 @@
 /* Pantallas de acceso (ingreso y registro) y aviso de éxito: reglas aprobadas en los mockups de C-14 (design-system Revision 2). Solo tokens. */
 @layer components {
-  .auth-card{width:100%;max-width:440px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-5)}
+  .auth-card{width:100%;max-width:440px;border-radius:var(--radius-lg);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-5);background:var(--surface-raised);border:1px solid var(--color-border);box-shadow:var(--shadow-sm)}
   .auth-card.is-wide{max-width:560px}
   .auth-head{display:flex;flex-direction:column;gap:var(--space-2)}
   .auth-head p{color:var(--color-text-muted);margin:0}

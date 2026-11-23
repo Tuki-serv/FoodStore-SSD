@@ -75,9 +75,9 @@ export function FilaProducto({ producto, acciones, esNuevo, onEditar, onEliminar
       <div className="pname">
         <div className="iname-top">
           <strong>{producto.nombre}</strong>
-          {esNuevo ? <span className="badge b-principal">Nuevo</span> : null}
+          {esNuevo ? <span className="meta-txt">Nuevo</span> : null}
           {cantidadAlergenos === 0 ? null : (
-            <span className="badge b-alergeno">
+            <span className="al">
               <Icon name="alergeno" />
               {cantidadAlergenos} {cantidadAlergenos === 1 ? 'alérgeno' : 'alérgenos'}
             </span>

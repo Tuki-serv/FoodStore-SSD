@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 /**
  * El tema solo referencia variables de `design-system/tokens.css` (única fuente visual).
@@ -8,6 +9,8 @@ import type { Config } from 'tailwindcss';
 const token = (nombre: string): string => `var(--${nombre})`;
 
 const config: Config = {
+  // `hover:` solo con puntero capaz de hover (`@media (hover: hover)`): sin estados pegados en táctil.
+  future: { hoverOnlyWhenSupported: true },
   content: ['index.html', 'src/**/*.{ts,tsx}'],
   theme: {
     extend: {
@@ -19,6 +22,11 @@ const config: Config = {
         border: token('color-border'),
         text: { DEFAULT: token('color-text'), muted: token('color-text-muted') },
         overlay: token('color-overlay'),
+        // Superficies por rol (Revision 4, D2): página, zona agrupada, objeto accionable y capa superior.
+        'surface-page': token('surface-page'),
+        'surface-section': token('surface-section'),
+        'surface-raised': token('surface-raised'),
+        'surface-overlay': token('surface-overlay'),
         success: { DEFAULT: token('color-success'), bg: token('color-success-bg') },
         warning: { DEFAULT: token('color-warning'), bg: token('color-warning-bg') },
         danger: { DEFAULT: token('color-danger'), bg: token('color-danger-bg') },
@@ -79,17 +87,34 @@ const config: Config = {
         base: token('motion-base'),
         slow: token('motion-slow'),
       },
+      transitionDelay: {
+        stagger: token('stagger-step'),
+      },
       transitionTimingFunction: {
         out: token('ease-out'),
+        'in-out': token('ease-in-out'),
+        drawer: token('ease-drawer'),
+      },
+      scale: {
+        press: token('press-scale'),
+      },
+      fontWeight: {
+        display: token('weight-display'),
       },
       zIndex: {
+        'page-header': token('z-page-header'),
         topbar: token('z-topbar'),
         scrim: token('z-scrim'),
         drawer: token('z-drawer'),
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Numerales tabulares desde el token (Tailwind solo trae `tabular-nums` con valor literal).
+    plugin(({ addUtilities }) => {
+      addUtilities({ '.num-tabular': { 'font-variant-numeric': token('numeric-tabular') } });
+    }),
+  ],
 };
 
 export default config;

@@ -4,12 +4,12 @@ import { useSearchParams } from 'react-router-dom';
 import { buscarCategoria, categoriaQueries, raices } from '@/entities/categoria';
 import { productoQueries } from '@/entities/producto';
 import { useMediaQuery } from '@/shared/lib';
-import { Paginacion } from '@/shared/ui';
+import { EncabezadoPagina, Paginacion } from '@/shared/ui';
 import { aParametrosApi, contarFiltros, filtrosAUrl, filtrosDesdeUrl, hayCategoriaEnUrl, useBusqueda, type FiltrosUrl } from '../model';
 import { BarraBusqueda } from './barra-busqueda';
 import { BarraCategorias } from './barra-categorias';
 import { BotonFiltros } from './boton-filtros';
-import { ChipsFiltros, type FiltroQuitable } from './chips-filtros';
+import { ChipsFiltros, filtrosQuitables, type FiltroQuitable } from './chips-filtros';
 import { CatalogoVacio, ErrorCatalogo, SinResultados } from './estados-catalogo';
 import { EsqueletoProductos, GrillaProductos } from './grilla-productos';
 import { FiltroStock } from './filtro-stock';
@@ -81,54 +81,60 @@ export function CatalogoPage() {
     onAplicarPrecio: (min: number | undefined, max: number | undefined) => actualizar({ min, max }),
     onCambiarStock: (activo: boolean) => actualizar({ stock: activo }),
   };
-  const chips = (conLimpiar: boolean) => (
-    <ChipsFiltros filtros={filtros} nombreCategoria={nombreCategoria} onQuitar={quitar} {...(conLimpiar ? { onLimpiar: limpiar } : {})} />
-  );
+  const chips = <ChipsFiltros filtros={filtros} nombreCategoria={nombreCategoria} onQuitar={quitar} />;
   const sinResultados = data !== undefined && data.total === 0 && cantidadFiltros > 0;
 
+  const conteo = data === undefined ? '' : (
+    <>
+      {textoTotal(data.total)}
+      {nombreCategoria === undefined ? null : <small> en {nombreCategoria}</small>}
+    </>
+  );
+  // Sin resultados los chips los muestra el propio estado vacío (con su «Limpiar filtros»), no el encabezado.
+  const filtrosActivos = data === undefined || data.total === 0 ? [] : filtrosQuitables(filtros, nombreCategoria, quitar);
+  const herramientas = (
+    <>
+      <BarraBusqueda texto={busqueda.texto} onCambiar={busqueda.setTexto} onBorrar={busqueda.borrar} />
+      <BarraCategorias variante={esDesktop ? 'escritorio' : 'mobile'} arbol={arbolConsulta} categoriaActual={filtros.categoria ?? null} raizActual={raizActual} onElegirCategoria={contenido.onElegirCategoria}>
+        {esDesktop ? (
+          <div className="desk-tools">
+            <PopoverPrecio min={filtros.min} max={filtros.max} onAplicar={contenido.onAplicarPrecio} />
+            <FiltroStock compacto activo={filtros.stock} onCambiar={contenido.onCambiarStock} />
+          </div>
+        ) : (
+          <BotonFiltros aplicados={cantidadFiltros} onAbrir={() => setHojaAbierta(true)} />
+        )}
+      </BarraCategorias>
+    </>
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6">
-      <header className="page-head">
-        <h1 className="text-2xl">Catálogo</h1>
-        <p>Elegí lo que tengas ganas y sumalo al carrito.</p>
-      </header>
-      <div className="cat-main">
-        <BarraBusqueda texto={busqueda.texto} onCambiar={busqueda.setTexto} onBorrar={busqueda.borrar} />
-        <BarraCategorias variante={esDesktop ? 'escritorio' : 'mobile'} arbol={arbolConsulta} categoriaActual={filtros.categoria ?? null} raizActual={raizActual} onElegirCategoria={contenido.onElegirCategoria}>
-          {esDesktop ? (
-            <div className="desk-tools">
-              <PopoverPrecio min={filtros.min} max={filtros.max} onAplicar={contenido.onAplicarPrecio} />
-              <FiltroStock compacto activo={filtros.stock} onCambiar={contenido.onCambiarStock} />
-            </div>
-          ) : (
-            <BotonFiltros aplicados={cantidadFiltros} onAbrir={() => setHojaAbierta(true)} />
-          )}
-        </BarraCategorias>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        eyebrow="Tienda"
+        titulo="Catálogo"
+        subtitulo="Elegí lo que tengas ganas y sumalo al carrito."
+        herramientas={herramientas}
+        filtrosActivos={{ conteo, filtros: filtrosActivos, onLimpiar: limpiar, conteoRef: resultadosRef }}
+      />
+      <div className="page-body cat-main">
         <h2 className="sr-only">Resultados</h2>
         {data === undefined && !consulta.isError ? <EsqueletoProductos /> : null}
         {data === undefined && consulta.isError ? <ErrorCatalogo error={consulta.error} onReintentar={() => void consulta.refetch()} /> : null}
         {data !== undefined ? (
-          <>
-            <div className="results-head">
-              <p className="results-count" role="status" tabIndex={-1} ref={resultadosRef}>
-                {textoTotal(data.total)}
-                {nombreCategoria === undefined ? null : <small> en {nombreCategoria}</small>}
-              </p>
-              {data.total === 0 ? null : chips(true)}
-            </div>
-            {data.total === 0 ? (
-              sinResultados ? (
-                <SinResultados q={filtros.q} filtros={chips(false)} onLimpiar={limpiar} />
-              ) : (
-                <CatalogoVacio />
-              )
+          data.total === 0 ? (
+            sinResultados ? (
+              <SinResultados q={filtros.q} filtros={chips} onLimpiar={limpiar} />
             ) : (
-              <>
-                <GrillaProductos productos={data.items} actualizando={consulta.isPlaceholderData} />
-                <Paginacion etiqueta="Paginación del catálogo" page={data.page} pages={data.pages} onCambiar={irAPagina} />
-              </>
-            )}
-          </>
+              <CatalogoVacio />
+            )
+          ) : (
+            <>
+              <GrillaProductos productos={data.items} actualizando={consulta.isPlaceholderData} {...(filtros.categoria === undefined ? {} : { categoriaActiva: filtros.categoria })} />
+              <Paginacion etiqueta="Paginación del catálogo" page={data.page} pages={data.pages} onCambiar={irAPagina} />
+            </>
+          )
         ) : null}
       </div>
       {hojaAbierta && !esDesktop ? (

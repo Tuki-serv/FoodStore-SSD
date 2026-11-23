@@ -18,7 +18,7 @@ import { formatearPrecio } from '@/entities/producto';
 import { FormularioTarjeta } from '@/features/pagar-con-tarjeta';
 import type { ApiError } from '@/shared/api';
 import { RUTAS } from '@/shared/config';
-import { claseBoton, EstadoError, Icon } from '@/shared/ui';
+import { claseBoton, EncabezadoPagina, EstadoError, Icon } from '@/shared/ui';
 import { ResumenPago } from './resumen-pago';
 import {
   AvisoErrorPago,
@@ -329,12 +329,23 @@ export function PagoPedidoPage() {
   }
 
   return (
-    <div className={CONTENEDOR}>
-      <div className="done">
-        {cabecera}
-        <div className="done-grid">
-          <div className="done-col">{cuerpo}</div>
-          <ResumenPago pedido={pedido} />
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        eyebrow="Tu compra"
+        ruta={
+          <Link className="back-link" to={RUTAS.misPedidos}>
+            <Icon name="volver" />
+            Volver a mis pedidos
+          </Link>
+        }
+      />
+      <div className="page-body">
+        <div className="done">
+          {cabecera}
+          <div className="done-grid">
+            <div className="done-col">{cuerpo}</div>
+            <ResumenPago pedido={pedido} />
+          </div>
         </div>
       </div>
     </div>

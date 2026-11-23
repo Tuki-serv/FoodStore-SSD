@@ -8,7 +8,7 @@ import { clasificarErrorCreacion, FORMAS_PAGO, totalEstimado, useCrearPedido, ty
 import { esApiError } from '@/shared/api';
 import { RUTAS, rutaPedidoCreado } from '@/shared/config';
 import { useUiStore } from '@/shared/model';
-import { Icon } from '@/shared/ui';
+import { EncabezadoPagina, Icon } from '@/shared/ui';
 import { armarPedido } from '../model';
 import { AvisoErrorPedido } from './aviso-error-pedido';
 import { CampoNotas } from './campo-notas';
@@ -90,15 +90,19 @@ export function FinalizarCompraPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6">
-      <Link className="back-link" to={RUTAS.carrito}>
-        <Icon name="volver" />
-        Volver al carrito
-      </Link>
-      <header className="page-head">
-        <h1 className="text-2xl">Finalizar compra</h1>
-        <p>Elegí cómo lo recibís y cómo pagás.</p>
-      </header>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        eyebrow="Tu compra"
+        titulo="Finalizar compra"
+        subtitulo="Elegí cómo lo recibís y cómo pagás."
+        ruta={
+          <Link className="back-link" to={RUTAS.carrito}>
+            <Icon name="volver" />
+            Volver al carrito
+          </Link>
+        }
+      />
+      <div className="page-body flex flex-col gap-5">
       <form
         className="checkout"
         noValidate
@@ -192,6 +196,7 @@ export function FinalizarCompraPage() {
           {(retiro) => <ResumenPedido lineas={lineas} subtotal={subtotal} retiro={retiro} pendiente={pendiente} />}
         </form.Subscribe>
       </form>
+      </div>
     </div>
   );
 }

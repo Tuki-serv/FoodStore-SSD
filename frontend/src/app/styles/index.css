@@ -8,6 +8,8 @@
 @import "../../shared/ui/selector-cantidad/selector-cantidad.css";
 @import "../../shared/ui/marca-actualizacion/marca-actualizacion.css";
 @import "../../shared/ui/lista-admin/lista-admin.css";
+@import "../../shared/ui/entrada-escalonada/entrada-escalonada.css";
+@import "../../shared/ui/encabezado-pagina/encabezado-pagina.css";
 @import "../../entities/categoria/ui/categoria.css";
 @import "../../entities/direccion/ui/direccion.css";
 @import "../../entities/producto/ui/producto.css";

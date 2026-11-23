@@ -22,13 +22,14 @@ describe('página Detalle de producto', () => {
     montarCatalogo('/catalogo/1');
 
     expect(await titulo('Hamburguesa Clásica')).toBeInTheDocument();
-    expect(screen.getByText('$ 1.500')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Hamburguesas' })).toBeInTheDocument();
+    expect(document.querySelector('.pd-price .price')).toHaveTextContent('$ 1.500');
+    expect(screen.getByText('Hamburguesas', { selector: '.tagline' })).toBeInTheDocument();
     expect(screen.getByText('La de siempre, perfecta de siempre.')).toBeInTheDocument();
 
     const ingredientes = within(screen.getByRole('region', { name: 'Ingredientes' })).getAllByRole('listitem');
     expect(ingredientes.map((item) => item.textContent)).toEqual(['Pan BriocheAlérgeno', 'Lechuga', 'MayonesaAlérgeno']);
-    expect(screen.getByText('Contiene alérgenos: Pan Brioche, Mayonesa')).toBeInTheDocument();
+    expect(screen.getByText('Contiene alérgenos')).toBeInTheDocument();
+    expect(screen.getByText('Pan Brioche, Mayonesa')).toBeInTheDocument();
   });
 
   it('muestra la categoría principal primero y todas las demás', async () => {
@@ -36,8 +37,7 @@ describe('página Detalle de producto', () => {
 
     await titulo('Burger Vegana');
 
-    const categorias = screen.getAllByRole('link').filter((enlace) => ['Hamburguesas', 'Veganas'].includes(enlace.textContent ?? ''));
-    expect(categorias.map((enlace) => enlace.textContent)).toEqual(['Hamburguesas', 'Veganas']);
+    expect(screen.getByText('Hamburguesas · Veganas', { selector: '.tagline' })).toBeInTheDocument();
   });
 
   it('un producto sin ingredientes no muestra la sección ni el resumen de alérgenos', async () => {
@@ -149,11 +149,20 @@ describe('página Detalle: stock y cantidad', () => {
     expect(screen.getByText('3 × Burger Doble Cheddar')).toBeInTheDocument();
   });
 
+  it('un producto sin imágenes muestra el respaldo tipográfico grande con su inicial y «Sin imagen de …»', async () => {
+    montarCatalogo('/catalogo/7', { productos: [productoConStock(5)] });
+    await titulo('Burger Doble Cheddar');
+
+    const respaldo = screen.getByRole('img', { name: 'Sin imagen de Burger Doble Cheddar' });
+    expect(respaldo).toHaveClass('ph', 'lg');
+    expect(respaldo).toHaveTextContent('B');
+  });
+
   it('con stock 0: «Agotado», sin selector de cantidad y con el botón de agregar deshabilitado', async () => {
     montarCatalogo('/catalogo/7', { productos: [productoConStock(0)] });
     await titulo('Burger Doble Cheddar');
 
-    expect(screen.getByText('Agotado', { selector: '.badge' })).toBeInTheDocument();
+    expect(screen.getByText('Agotado', { selector: '.stock' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Cantidad' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Agotado' })).toBeDisabled();
   });
@@ -183,7 +192,7 @@ describe('página Detalle: volver al catálogo', () => {
     await titulo('Bebida 13');
     expect(ubicacion(router)).toBe('/catalogo/13');
 
-    await usuario.click(screen.getByRole('link', { name: 'Volver al catálogo' }));
+    await usuario.click(within(screen.getByRole('navigation', { name: 'Ruta de navegación' })).getByRole('link', { name: 'Catálogo' }));
 
     await waitFor(() => expect(ubicacion(router)).toBe('/catalogo?categoria=2&page=2'));
     expect(await screen.findByText('Página 2 de 2')).toBeInTheDocument();
@@ -193,7 +202,7 @@ describe('página Detalle: volver al catálogo', () => {
     montarCatalogo('/catalogo/1');
     await titulo('Hamburguesa Clásica');
 
-    expect(screen.getByRole('link', { name: 'Volver al catálogo' })).toHaveAttribute('href', '/catalogo');
+    expect(within(screen.getByRole('navigation', { name: 'Ruta de navegación' })).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo');
   });
 });
 

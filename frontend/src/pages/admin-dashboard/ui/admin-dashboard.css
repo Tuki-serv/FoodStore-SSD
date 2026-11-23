@@ -1,7 +1,9 @@
 /* Página Dashboard (administración): período, tarjetas KPI, bloques de gráficos y tablas aprobados en los mockups de C-24 (design-system Revision 2). Solo tokens. */
 @layer components {
+  /* Dentro del encabezado fijo el selector de período no es una caja: la banda ya agrupa */
+  .band-toolbar .periodo{flex:1 1 100%;min-width:0;padding:0;background:transparent}
   /* Selector de período */
-  .periodo{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4)}
+  .periodo{border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:var(--space-4);background:var(--surface-section)}
   .periodo-fila{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--space-4) var(--space-5)}
   .grupo{display:flex;flex-direction:column;gap:var(--space-1);min-width:0}
   .grupo-lbl{font-weight:600;font-size:var(--text-sm)}
@@ -10,7 +12,7 @@
   .periodo .field{flex:0 1 190px}
   .fecha{position:relative}
   .fecha .ico{position:absolute;left:var(--space-3);top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--color-text-muted);pointer-events:none}
-  .fecha .input{padding-left:40px;font-variant-numeric:tabular-nums}
+  .fecha .input{padding-left:40px;font-variant-numeric:var(--numeric-tabular)}
   .utc{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm);color:var(--color-text-muted);align-self:flex-end;min-height:var(--tap-min);margin:0}
   .utc .ico{width:16px;height:16px}
   .err-rango{display:flex;align-items:center;gap:var(--space-2);color:var(--color-danger);font-weight:700;font-size:var(--text-sm);margin:calc(var(--space-2) * -1) 0 0}
@@ -19,14 +21,15 @@
 
   /* Tarjetas KPI */
   .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4)}
-  .kpi{position:relative;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:2px;min-width:0;text-decoration:none;color:inherit}
+  .kpi{position:relative;border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);display:flex;flex-direction:column;gap:2px;min-width:0;text-decoration:none;color:inherit;background:var(--surface-raised);border:1px solid var(--color-border);box-shadow:var(--shadow-sm)}
   .kpi-ico{width:36px;height:36px;border-radius:var(--radius-md);background:var(--color-primary-soft);color:var(--color-primary);display:grid;place-items:center;margin-bottom:var(--space-2)}
   .kpi-ico .ico{width:20px;height:20px}
   .kpi-tit{font-size:var(--text-sm);font-weight:700;color:var(--color-text-muted)}
-  .kpi-val{font-size:var(--text-2xl);font-weight:800;font-family:var(--font-display);line-height:var(--leading-tight);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .kpi-val{font-size:var(--text-2xl);font-weight:800;font-family:var(--font-display);line-height:var(--leading-tight);font-variant-numeric:var(--numeric-tabular);overflow-wrap:anywhere}
   .kpi-nota{font-size:var(--text-xs);color:var(--color-text-muted)}
   .kpi-link{border-color:var(--color-accent);transition:box-shadow var(--motion-fast) var(--ease-out),transform var(--motion-fast) var(--ease-out)}
-  .kpi-link:hover{box-shadow:var(--shadow-md)}
+  @media (hover:hover) and (pointer:fine){.kpi-link:hover{box-shadow:var(--shadow-md)}}
+  .kpi-link:active{transform:scale(var(--press-scale))}
   .kpi-link:focus-visible{outline:none;box-shadow:var(--focus-ring)}
   .kpi-link .kpi-ico{background:var(--color-accent-soft);color:var(--color-accent)}
   .kpi-go{display:inline-flex;align-items:center;gap:6px;margin-top:var(--space-2);font-size:var(--text-sm);font-weight:700;color:var(--color-accent)}
@@ -39,7 +42,7 @@
   /* Bloques de gráficos: grilla 2x2 en desktop, una columna en mobile */
   .grilla{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4);transition:opacity var(--motion-base) var(--ease-out)}
   .grilla.is-stale{opacity:.62}
-  .bloque{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
+  .bloque{border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5) var(--space-5);display:flex;flex-direction:column;gap:var(--space-3);min-width:0;background:var(--surface-section)}
   .bloque-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
   .bloque-head h2{font-size:var(--text-lg)}
   .bloque-sub{font-size:var(--text-sm);color:var(--color-text-muted);margin:2px 0 0}
@@ -52,13 +55,13 @@
   .pagos{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-4) var(--space-5);min-height:200px}
   .dona-box{flex:none;position:relative;width:176px;height:176px}
   .dona-centro{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;font-size:var(--text-sm);color:var(--color-text-muted)}
-  .dona-centro strong{font-family:var(--font-display);font-size:var(--text-lg);font-weight:800;color:var(--color-text);font-variant-numeric:tabular-nums}
+  .dona-centro strong{font-family:var(--font-display);font-size:var(--text-lg);font-weight:800;color:var(--color-text);font-variant-numeric:var(--numeric-tabular)}
   .leyenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-3);flex:1 1 200px;min-width:0}
   .leyenda li{display:flex;align-items:center;gap:var(--space-3)}
   .leyenda .sw{width:14px;height:14px;border-radius:4px;flex:none}
   .leyenda .ln{display:flex;flex-direction:column;min-width:0;flex:1}
-  .leyenda .ln small{color:var(--color-text-muted);font-size:var(--text-sm);font-variant-numeric:tabular-nums}
-  .leyenda .pct{font-weight:800;font-size:var(--text-lg);font-variant-numeric:tabular-nums}
+  .leyenda .ln small{color:var(--color-text-muted);font-size:var(--text-sm);font-variant-numeric:var(--numeric-tabular)}
+  .leyenda .pct{font-weight:800;font-size:var(--text-lg);font-variant-numeric:var(--numeric-tabular)}
 
   /* Tooltip de la serie */
   .bloque .state.empty{max-width:none;margin:0;min-height:200px;justify-content:center}
@@ -71,13 +74,13 @@
   /* Tabla equivalente */
   .dtabla-wrap{max-height:330px;overflow:auto;border:1px solid var(--color-border);border-radius:var(--radius-md)}
   .dtabla-wrap:focus-visible{outline:none;box-shadow:var(--focus-ring)}
-  .dtabla{width:100%;border-collapse:collapse;font-size:var(--text-sm);font-variant-numeric:tabular-nums}
-  .dtabla thead th{position:sticky;top:0;background:var(--color-surface-alt);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);text-align:left;padding:var(--space-2) var(--space-3)}
+  .dtabla{width:100%;border-collapse:collapse;font-size:var(--text-sm);font-variant-numeric:var(--numeric-tabular)}
+  .dtabla thead th{position:sticky;top:0;font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);text-align:left;padding:var(--space-2) var(--space-3);background:var(--surface-section)}
   .dtabla tbody th,.dtabla tbody td{padding:var(--space-2) var(--space-3);border-top:1px solid var(--color-border);text-align:left;font-weight:400}
   .dtabla tbody th{font-weight:600}
   .dtabla .r{text-align:right}
   .tlink{text-decoration:none;color:inherit;display:inline-flex}
-  .tlink:hover .badge{box-shadow:0 0 0 2px var(--color-border)}
+  @media (hover:hover) and (pointer:fine){.tlink:hover .badge{box-shadow:0 0 0 2px var(--color-border)}}
   .tlink:focus-visible{outline:none;box-shadow:var(--focus-ring);border-radius:var(--radius-pill)}
 
   /* Esqueleto y vacíos por bloque */

@@ -112,3 +112,9 @@ export interface ProductoDatos {
 
 /** Cuerpo de `PUT /productos/{id}` (parcial): `categoria_ids` e `ingredientes`, si vienen, reemplazan las asociaciones. */
 export type ProductoCambios = Partial<Pick<ProductoDatos, 'nombre' | 'descripcion' | 'precio_base' | 'categoria_ids' | 'ingredientes'>>;
+
+/** Primer carácter alfanumérico (Unicode) del nombre, en mayúscula y con sus tildes («Ñoquis» → «Ñ»); `null` si no hay ninguno. */
+export function inicialDe(nombre: string): string | null {
+  const coincidencia = /[\p{L}\p{N}]/u.exec(nombre);
+  return coincidencia === null ? null : coincidencia[0].toLocaleUpperCase('es');
+}

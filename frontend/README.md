@@ -92,9 +92,16 @@ tests/architecture/   fronteras FSD y tokens de Tailwind (corren con `npm test`)
 
 ## Tokens y estilos
 
-La fuente visual es `design-system/tokens.css` (Revision 2): se importa tal cual desde `src/app/styles/index.css`, sin copiarlo. El tema de Tailwind (`tailwind.config.ts`) solo referencia esas variables con `var(--…)`; un test (`tests/architecture/tailwind-tokens.test.ts`) falla si aparece un valor literal o una variable inexistente. Para cambiar un color o espaciado, se edita `design-system/tokens.css`.
+La fuente visual es `design-system/tokens.css` (Revision 4): se importa tal cual desde `src/app/styles/index.css`, sin copiarlo. El tema de Tailwind (`tailwind.config.ts`) solo referencia esas variables con `var(--…)`; un test (`tests/architecture/tailwind-tokens.test.ts`) falla si aparece un valor literal o una variable inexistente. Para cambiar un color o espaciado, se edita `design-system/tokens.css`.
 
 El CSS del panel lateral (`src/app/layouts/app-shell/app-shell.css`) es el aprobado en `design-system/components.html`. Las páginas usan utilidades de Tailwind; las piezas con reglas propias de los mockups aprobados (notificaciones, diálogo, campo, tarjeta/selector de dirección y página de direcciones) viven en un `.css` junto a su componente y se importan desde `src/app/styles/index.css`. Esas reglas no definen el tamaño de `svg.ico`: el tamaño lo da la clase del `<Icon>` (verify V-2).
+
+### Lenguaje visual (revision-visual, Revision 4)
+
+- **Fuentes**: autoalojadas (`@font-face` con `font-display: swap` apuntando a archivos locales; sin hosts remotos). Las familias salen de `--font-display` y `--font-sans`; `tests/architecture/styles-compile.test.ts` comprueba que cada archivo existe.
+- **Movimiento**: tokens `--motion-*`/`--ease-*`; `:hover` solo dentro de `@media (hover: hover) and (pointer: fine)`; respuesta al presionar con `--press-scale`; entrada escalonada solo en el primer montaje (`usePrimerMontaje`, `--i` topado en 8). Con `prefers-reduced-motion: reduce` los tokens valen 0 y no hay escala ni transición.
+- **Respaldo de imagen**: `ImagenProducto` sin foto (o si no carga) muestra la inicial del producto sobre un color de marca único, con `role="img"` y «Sin imagen de <nombre>». El seed no trae URLs externas.
+- **Encabezado de página** (`shared/ui/encabezado-pagina`, `EncabezadoPagina`): banda con título, eyebrow, subtítulo, ruta, estado, metadatos, acciones, herramientas y filtros activos (chips quitables, «Limpiar filtros» con dos o más, conteo). Con `fijo` queda pegada arriba (`z-index: var(--z-page-header)`, bajo la barra superior en < 1024 px) y pasa a compacto (`data-stuck="true"`) cuando un `IntersectionObserver` sobre un centinela de alto 0 deja de intersectar. Publica su borde inferior en `--band-h` para que los encabezados de columnas de las listas (`.orow.ohead`, `.plist > .phead`, `.ilist > .ihead/.uhead`, `.th-fijos thead th`) queden fijos debajo. Es fijo en listados y en el detalle de gestión de pedido (con sus acciones); en detalle y formularios va sin fijar. `herramientasColapsables` oculta la barra de herramientas en mobile compacto.
 
 ### Build de producción (C-25b1)
 

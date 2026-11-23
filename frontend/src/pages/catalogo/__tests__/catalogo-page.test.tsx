@@ -36,6 +36,22 @@ describe('página Catálogo: listado', () => {
     expect(within(primera).getByText('$ 1.500')).toBeInTheDocument();
   });
 
+  it('filtrado por «Hamburguesas» (categoria=1), su tarjeta no repite el texto de la categoría; sin filtro sí lo repite', async () => {
+    montarCatalogo('/catalogo?categoria=1');
+
+    const filtrada = (await screen.findAllByRole('article'))[0] as HTMLElement;
+    expect(within(filtrada).getByRole('link', { name: 'Hamburguesa Clásica' })).toBeInTheDocument();
+    expect(within(filtrada).queryByText('Hamburguesas')).not.toBeInTheDocument();
+  });
+
+  it('la tarjeta de un producto con alérgenos muestra «Contiene alérgenos» y la que no los tiene, no', async () => {
+    montarCatalogo('/catalogo');
+
+    const tarjetas = await screen.findAllByRole('article');
+    expect(within(tarjetas[0] as HTMLElement).getByRole('img', { name: 'Contiene alérgenos' })).toBeInTheDocument();
+    expect(within(tarjetas[1] as HTMLElement).queryByRole('img', { name: 'Contiene alérgenos' })).not.toBeInTheDocument();
+  });
+
   it('un ADMIN ve lo mismo que un visitante y el pedido sigue con disponible=true', async () => {
     const { estado } = montarCatalogo('/catalogo', { sesion: { roles: ['ADMIN'] } });
 

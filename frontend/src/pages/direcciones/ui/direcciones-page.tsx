@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { direccionQueries, nombreDireccion, useEliminarDireccion, useMarcarPrincipal, type Direccion } from '@/entities/direccion';
 import { useUiStore } from '@/shared/model';
-import { claseBoton, Icon, Paginacion } from '@/shared/ui';
+import { claseBoton, EncabezadoPagina, Icon, Paginacion } from '@/shared/ui';
 import { CargandoDirecciones, ErrorDirecciones, ListadoDesactualizado, VacioDirecciones } from './estados-direcciones';
 import { FormularioDireccion } from './formulario-direccion';
 import { ListaDirecciones } from './lista-direcciones';
@@ -80,18 +80,19 @@ export function DireccionesPage() {
     }
   }, [data, setParametros]);
 
-  const contenedor = 'mx-auto flex w-full max-w-[1040px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
 
   if (modo.tipo !== 'lista') {
     return (
-      <div className={contenedor}>
-        <h1 className="sr-only">Direcciones</h1>
-        <FormularioDireccion
-          key={modo.tipo === 'edicion' ? modo.direccion.id : 'alta'}
-          {...(modo.tipo === 'edicion' ? { direccion: modo.direccion } : {})}
-          onCancelar={cerrarFormulario}
-          onTerminar={cerrarFormulario}
-        />
+      <div className="flex flex-1 flex-col">
+        <EncabezadoPagina eyebrow="Tu cuenta" titulo="Direcciones" />
+        <div className="page-body flex flex-col gap-5">
+          <FormularioDireccion
+            key={modo.tipo === 'edicion' ? modo.direccion.id : 'alta'}
+            {...(modo.tipo === 'edicion' ? { direccion: modo.direccion } : {})}
+            onCancelar={cerrarFormulario}
+            onTerminar={cerrarFormulario}
+          />
+        </div>
       </div>
     );
   }
@@ -100,21 +101,24 @@ export function DireccionesPage() {
   const sinPrincipal = data !== undefined && data.page === 1 && data.items.length > 0 && !data.items.some((d) => d.es_principal);
 
   return (
-    <div className={contenedor}>
-      <div className="page-head-row">
-        <header className="page-head">
-          <h1 ref={tituloRef} tabIndex={-1} className="text-2xl">
-            Direcciones
-          </h1>
-          <p>Guardá dónde querés recibir tus pedidos. La principal se elige sola al pedir.</p>
-        </header>
-        {data !== undefined && data.total > 0 ? (
-          <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="agregar" onClick={agregar}>
-            <Icon name="mas" />
-            Agregar dirección
-          </button>
-        ) : null}
-      </div>
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        eyebrow="Tu cuenta"
+        titulo="Direcciones"
+        tituloRef={tituloRef}
+        subtitulo="Guardá dónde querés recibir tus pedidos. La principal se elige sola al pedir."
+        acciones={
+          data !== undefined && data.total > 0 ? (
+            <button type="button" className={`${claseBoton('primario')} btn-agregar`} data-foco="agregar" onClick={agregar}>
+              <Icon name="mas" />
+              Agregar dirección
+            </button>
+          ) : undefined
+        }
+        {...(data === undefined || data.total === 0 ? {} : { filtrosActivos: { conteo: `${data.total} ${data.total === 1 ? 'dirección' : 'direcciones'}`, filtros: [] } })}
+      />
+      <div className="page-body flex flex-col gap-5">
       {sinPrincipal ? (
         <div className="notice">
           <Icon name="alerta" />
@@ -145,6 +149,7 @@ export function DireccionesPage() {
           <Paginacion etiqueta="Paginación de direcciones" page={data.page} pages={data.pages} onCambiar={irAPagina} />
         </>
       )}
+      </div>
     </div>
   );
 }

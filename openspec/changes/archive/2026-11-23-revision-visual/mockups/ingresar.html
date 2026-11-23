@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingresar · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-19-c-14-fe-auth-cuenta/mockups/ingresar.html. Re-cableado a design-system Revision 4 (D2-D6). Estados: por defecto; ?estado=error (credenciales) -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="anon" data-current="ingresar">
+<main class="auth">
+  <div class="auth-intro"><img data-logo="favicon.svg" alt="" width="48" height="48"><h1>Ingresar</h1><p>Entrá con tu email para hacer pedidos y seguir su estado.</p></div>
+  <form class="auth-card panel" novalidate aria-label="Ingresar"><div id="err"></div>
+    <div class="field "><label for="e">Email</label><input class="input" id="e" value="lucia.perez@example.com"></div>
+    <div class="field"><label for="p">Contraseña</label><input class="input" id="p" type="password" value="contrasena"></div>
+    <button class="btn btn-primary btn-block" type="submit">Ingresar</button>
+    <p class="alt">¿No tenés cuenta? <a class="link" href="registrarse.html">Registrate</a></p></form>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+if (q.get('estado') === 'error') document.getElementById('err').innerHTML = '<div class="alert" role="alert">' + M.ico('alerta') + '<div><strong>Email o contraseña incorrectos</strong>Revisalos e intentá de nuevo.</div></div>';
+})();
+</script>
+</body>
+</html>

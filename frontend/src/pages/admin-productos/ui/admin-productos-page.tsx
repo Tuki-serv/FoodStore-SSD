@@ -5,7 +5,7 @@ import { categoriaQueries, padresPosibles } from '@/entities/categoria';
 import { productoGestionQueries, type Producto } from '@/entities/producto';
 import { useRolesSesion } from '@/entities/session';
 import { aApiError } from '@/shared/api';
-import { AvisoDesactualizado, claseBoton, EsqueletoFilas, EstadoError, EstadoVacio, Icon, Paginacion } from '@/shared/ui';
+import { AvisoDesactualizado, claseBoton, EncabezadoPagina, EsqueletoFilas, EstadoError, EstadoVacio, Icon, Paginacion } from '@/shared/ui';
 import { accionesProductos, aParametros, disponibleDeFiltro, leerEstadoListado, type EstadoListado } from '../model';
 import { DialogoBajaProducto } from './dialogo-baja-producto';
 import { FiltrosProductos } from './filtros-productos';
@@ -77,7 +77,6 @@ export function AdminProductosPage() {
   };
 
   const reintentar = (): void => void consulta.refetch();
-  const contenedor = 'mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-5 lg:px-5 lg:py-6';
   const filtrado = estado.q !== '' || estado.categoria !== null || estado.disponible !== 'todos';
   const sinNingunoYSinFiltro = data !== undefined && data.total === 0 && !filtrado;
   const nuevo = (): void => abrirFormulario({ tipo: 'alta' }, 'nuevo');
@@ -91,36 +90,41 @@ export function AdminProductosPage() {
 
   if (modo.tipo !== 'lista' && acciones.gestionar) {
     return (
-      <div className={contenedor}>
-        <h1 className="sr-only">Productos y stock</h1>
-        <FormularioProducto key={modo.tipo === 'edicion' ? modo.id : 'alta'} {...(modo.tipo === 'edicion' ? { id: modo.id } : {})} onCancelar={cerrarFormulario} onTerminar={terminarFormulario} />
+      <div className="flex flex-1 flex-col">
+        <EncabezadoPagina eyebrow="Administración" titulo="Productos y stock" />
+        <div className="page-body flex flex-col gap-5">
+          <FormularioProducto key={modo.tipo === 'edicion' ? modo.id : 'alta'} {...(modo.tipo === 'edicion' ? { id: modo.id } : {})} onCancelar={cerrarFormulario} onTerminar={terminarFormulario} />
+        </div>
       </div>
     );
   }
 
+  const categoriasPosibles = padresPosibles(arbol.data ?? []);
+  const nombreCategoria = categoriasPosibles.find((categoria) => categoria.id === estado.categoria)?.nombre ?? 'Categoría elegida';
+  const filtrosActivos = [
+    ...(estado.q === '' ? [] : [{ id: 'q', etiqueta: estado.q, texto: `«${estado.q}»`, onQuitar: () => irA({ ...estado, q: '', page: 1 }) }]),
+    ...(estado.categoria === null ? [] : [{ id: 'categoria', etiqueta: nombreCategoria, onQuitar: () => irA({ ...estado, categoria: null, page: 1 }) }]),
+    ...(estado.disponible === 'todos' ? [] : [{ id: 'disponible', etiqueta: estado.disponible === 'si' ? 'Disponibles' : 'No disponibles', onQuitar: () => irA({ ...estado, disponible: 'todos', page: 1 }) }]),
+  ];
+
   return (
-    <div className={contenedor}>
-      <div className="page-head-row">
-        <header className="page-head">
-          <h1 ref={tituloRef} tabIndex={-1} className="text-2xl">
-            Productos y stock
-          </h1>
-          <p>
-            {acciones.gestionar
-              ? 'Cargá productos con sus categorías e ingredientes y mantené el stock y la disponibilidad al día.'
-              : 'Actualizá el stock y la disponibilidad de cada producto.'}
-          </p>
-        </header>
-        {acciones.gestionar && !sinNingunoYSinFiltro ? botonNuevo : null}
-      </div>
-      <FiltrosProductos estado={estado} categorias={padresPosibles(arbol.data ?? [])} onCambiar={(cambios) => irA({ ...estado, ...cambios, page: 1 })} />
-      {data === undefined ? null : (
-        <p className="admin-summary" role="status">
-          <strong>
-            {data.total} {data.total === 1 ? 'producto' : 'productos'}
-          </strong>
-        </p>
-      )}
+    <div className="flex flex-1 flex-col">
+      <EncabezadoPagina
+        fijo
+        herramientasColapsables
+        eyebrow="Administración"
+        titulo="Productos y stock"
+        tituloRef={tituloRef}
+        subtitulo={
+          acciones.gestionar
+            ? 'Cargá productos con sus categorías e ingredientes y mantené el stock y la disponibilidad al día.'
+            : 'Actualizá el stock y la disponibilidad de cada producto.'
+        }
+        acciones={acciones.gestionar && !sinNingunoYSinFiltro ? botonNuevo : undefined}
+        herramientas={<FiltrosProductos estado={estado} categorias={categoriasPosibles} onCambiar={(cambios) => irA({ ...estado, ...cambios, page: 1 })} />}
+        {...(data === undefined ? {} : { filtrosActivos: { conteo: `${data.total} ${data.total === 1 ? 'producto' : 'productos'}`, filtros: filtrosActivos, onLimpiar: limpiarFiltros } })}
+      />
+      <div className="page-body flex flex-col gap-5">
       {consulta.isError && data !== undefined ? <AvisoDesactualizado texto="No pudimos actualizar los productos" onReintentar={reintentar} /> : null}
       {data === undefined ? (
         consulta.isError ? (
@@ -153,6 +157,7 @@ export function AdminProductosPage() {
         </>
       )}
       {baja === null ? null : <DialogoBajaProducto producto={baja} onCerrar={() => setBaja(null)} onEliminado={terminarBaja} />}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
-/** Nombre visible de la marca. Punto de reemplazo junto con `design-system/brand.js` (TBD: nombre definitivo). */
+/** Nombre visible de la marca. Punto de reemplazo junto con `design-system/brand.js`. */
 export const BRAND_NAME = 'Food Store';
 
-/** Texto alternativo del logo mientras sea provisional (`design-system/assets/logo.svg`). */
-export const LOGO_ALT = `${BRAND_NAME} (logo provisional)`;
+/** Texto alternativo del logo y del isotipo (`design-system/assets/logo.svg` y `favicon.svg`): el nombre de la marca. */
+export const LOGO_ALT = BRAND_NAME;

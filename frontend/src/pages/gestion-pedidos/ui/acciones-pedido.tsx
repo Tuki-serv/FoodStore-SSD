@@ -6,39 +6,40 @@ export interface AccionesPedidoProps {
   onAccion: (accion: AccionPedido, origen: HTMLButtonElement) => void;
 }
 
-/** Tarjeta «Acciones»: solo lo que la FSM permite a `PEDIDOS`/`ADMIN` según el estado y la forma de pago. */
+/** Aviso de un pedido de Mercado Pago pendiente: no se confirma a mano. */
+export function AvisoMercadoPago({ pedido }: { pedido: Pick<PedidoDetalle, 'estado_codigo' | 'forma_pago_codigo'> }) {
+  if (!(pedido.estado_codigo === 'PENDIENTE' && pedido.forma_pago_codigo === 'MERCADOPAGO')) return null;
+  return (
+    <div className="info-box" role="note">
+      <Icon name="tarjeta" />
+      <div>
+        <strong>Se confirma solo cuando Mercado Pago aprueba el pago</strong>
+        No hace falta confirmarlo a mano. Si el cliente no paga, podés cancelarlo.
+      </div>
+    </div>
+  );
+}
+
+/** «Acciones» del encabezado fijo: solo lo que la FSM permite a `PEDIDOS`/`ADMIN` según el estado y la forma de pago. */
 export function AccionesPedido({ pedido, onAccion }: AccionesPedidoProps) {
   const acciones = accionesGestion(pedido.estado_codigo, pedido.forma_pago_codigo);
-  const esperaMercadoPago = pedido.estado_codigo === 'PENDIENTE' && pedido.forma_pago_codigo === 'MERCADOPAGO';
   return (
-    <section className="ocard acciones" aria-labelledby="acciones-titulo">
-      <h2 id="acciones-titulo">Acciones</h2>
+    <section className="band-acts" aria-label="Acciones">
       {acciones.length === 0 ? (
         <p className="acts-none">{pedido.estado_codigo === 'CANCELADO' ? 'El pedido está cancelado: no admite más cambios.' : 'El pedido ya se entregó: no admite más cambios.'}</p>
       ) : (
-        <div className="acts">
-          {esperaMercadoPago ? (
-            <div className="info-box" role="note">
-              <Icon name="tarjeta" />
-              <div>
-                <strong>Se confirma solo cuando Mercado Pago aprueba el pago</strong>
-                No hace falta confirmarlo a mano. Si el cliente no paga, podés cancelarlo.
-              </div>
-            </div>
-          ) : null}
-          {acciones.map((accion) => (
-            <button
-              key={accion.destino}
-              type="button"
-              className={claseBoton(accion.tipo === 'cancelar' ? 'peligroContorno' : 'primario')}
-              data-foco={accion.tipo}
-              onClick={(evento) => onAccion(accion, evento.currentTarget)}
-            >
-              <Icon name={iconoAccion(accion)} />
-              {accion.etiqueta}
-            </button>
-          ))}
-        </div>
+        acciones.map((accion) => (
+          <button
+            key={accion.destino}
+            type="button"
+            className={claseBoton(accion.tipo === 'cancelar' ? 'peligroContorno' : 'primario')}
+            data-foco={accion.tipo}
+            onClick={(evento) => onAccion(accion, evento.currentTarget)}
+          >
+            <Icon name={iconoAccion(accion)} />
+            {accion.etiqueta}
+          </button>
+        ))
       )}
     </section>
   );

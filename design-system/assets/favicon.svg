@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <title>Food Store - PROVISIONAL placeholder favicon (derived from logo.svg)</title>
-  <!-- Provisional (TBD): the mark of assets/logo.svg without the wordmark. Replace together with the logo. -->
-  <rect x="2" y="2" width="60" height="60" rx="15" fill="#B8400F"/>
-  <path d="M16 24h24a8 8 0 0 1 0 16H16z" fill="#FFF8EE"/>
-  <circle cx="40" cy="32" r="4" fill="#B8400F"/>
+  <title>Food Store - isotipo (Revision 4)</title>
+  <!-- Mismo isotipo que assets/logo.svg, sin el logotipo. Se reemplaza junto con el logo. -->
+  <rect width="64" height="64" rx="15" fill="#B8400F"/>
+    <path fill="#FFFFFF" d="M13.5 30.5h37a2.5 2.5 0 0 1 2.5 2.5v0.5a2.5 2.5 0 0 1-2.5 2.5h-0.9A18 18 0 0 1 14.4 36h-0.9A2.5 2.5 0 0 1 11 33.5V33a2.5 2.5 0 0 1 2.5-2.5z"/>
+    <circle cx="26.5" cy="22.5" r="6.5" fill="#FFFFFF"/>
+    <path fill="#FFFFFF" d="M33.5 27c0-7.8 5-13.2 14-13.8 0 8-5.2 13.4-14 13.8z"/>
 </svg>

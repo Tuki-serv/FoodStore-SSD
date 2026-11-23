@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pago del pedido · Mockup revision-visual (Revision 4)</title>
+<!-- Base aprobada: openspec/changes/archive/2026-11-19-c-20b-fe-pago-seguimiento/mockups/pago-pedido.html (reemplaza a C-20a y al provisorio de C-19). Re-cableado a design-system Revision 4 (D2-D6). Estados: por defecto: formulario (Brick); ?estado=pendiente | aprobado | rechazado | demorando | cargando -->
+<link rel="icon" href="../../../../design-system/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../../design-system/tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="pages.css">
+</head>
+<body data-shell="client" data-current="mis-pedidos" data-cart="0">
+<main class="page has-band">
+  <header class="page-band"><div class="band-inner">
+    <nav class="band-crumbs" aria-label="Ruta"><a href="pedido-creado-pago.html"><svg class="ico" aria-hidden="true"><use href="#i-volver"/></svg>Pedido #58</a><span class="sep" aria-hidden="true">/</span><span aria-current="page">Pago</span></nav>
+    <div class="band-top">
+      <div class="band-titles"><span class="eyebrow">Tu compra</span><div class="band-h"><h1 id="h">Pagá tu pedido</h1></div><div class="band-sub"><p><span id="hp">Tu pedido #58 se confirma cuando Mercado Pago apruebe el pago.</span></p></div></div>
+      <div class="band-actions"><span class="band-meta">Total <strong class="num" style="color:var(--color-text)">$ 2.850</strong></span></div>
+    </div>
+    
+    
+  </div></header>
+  <div class="page-body">
+  <div class="two-col">
+    <div id="main-col">
+      <div class="brick" aria-label="Formulario de tarjeta de Mercado Pago">
+        <div class="hstack" style="justify-content:space-between"><strong>Tarjeta de crédito o débito</strong><span class="xs muted">Formulario de Mercado Pago (Brick CardPayment)</span></div>
+        <div class="fake">Número de tarjeta</div>
+        <div class="grid2"><div class="fake">Vencimiento</div><div class="fake">Código de seguridad</div></div>
+        <div class="fake">Nombre del titular</div>
+        <div class="grid2"><div class="fake">Tipo de documento</div><div class="fake">Número de documento</div></div>
+        <div class="fake">Cuotas</div>
+        <button class="btn btn-primary btn-block" type="button">Pagar <span class="num">$ 2.850</span></button>
+      </div>
+      <p class="small muted" style="margin-top:var(--space-3);display:flex;gap:var(--space-2);align-items:center"><svg class="ico" aria-hidden="true"><use href="#i-candado"/></svg>Los datos de la tarjeta van directo a Mercado Pago; la tienda no los ve.</p>
+    </div>
+    <aside class="summary zone" aria-labelledby="pd"><h2 id="pd">Pedido #58</h2>
+      <ul class="lines"><li><span class="q">1 ×</span><span><strong>Hamburguesa Clásica</strong><small>Sin cebolla, sin tomate</small></span><span class="amt">$ 1.500</span></li>
+        <li><span class="q">1 ×</span><span><strong>Papas fritas</strong></span><span class="amt">$ 1.300</span></li></ul>
+      <dl class="totals"><div><dt>Subtotal</dt><dd>$ 2.800</dd></div><div><dt>Costo de envío</dt><dd>$ 50</dd></div><div><dt>Descuento</dt><dd>$ 0</dd></div>
+        <div class="grand"><dt>Total</dt><dd><span class="price"><small>$</small>2.850</span></dd></div></dl></aside>
+  </div>
+  </div>
+</main>
+
+<script src="../../../../design-system/brand.js"></script>
+<script src="sprite.js"></script>
+<script src="mockup.js"></script>
+<script>
+(function () {
+  var M = MOCK, P = M.P, q = M.params;
+var e = q.get('estado'), col = document.getElementById('main-col'), h = document.getElementById('h'), hp = document.getElementById('hp');
+function card(icon, color, bg, t, p, actions) { return '<div class="status-card panel" role="status"><span style="width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:' + color + ';background:' + bg + '">' + icon + '</span><div style="display:grid;gap:var(--space-3)"><div><h2>' + t + '</h2><p>' + p + '</p></div>' + (actions ? '<div class="hstack">' + actions + '</div>' : '') + '</div></div>'; }
+if (e === 'pendiente') { h.textContent = 'Estamos esperando la confirmación de Mercado Pago'; col.innerHTML = '<div class="status-card panel" role="status"><span class="spinner dark" aria-hidden="true"></span><div style="display:grid;gap:var(--space-3)"><div><h2>Verificando el pago…</h2><p>Esta pantalla se actualiza sola cada 5 segundos. No hace falta recargar.</p></div><div class="note info">' + M.ico('info') + '<div><strong>No lo pagues de nuevo</strong><p>Si el pago se aprueba, el pedido se confirma solo.</p></div></div><div class="hstack"><a class="btn btn-secondary btn-sm" href="mi-pedido-detalle.html">Ver mi pedido</a></div></div></div>'; }
+if (e === 'aprobado') { h.textContent = '¡Pago aprobado!'; hp.textContent = 'Tu pedido #58 está confirmado.'; col.innerHTML = card(M.ico('exito'), 'var(--color-success)', 'var(--color-success-bg)', 'Mercado Pago confirmó tu pago', 'N.º de operación <span class="num">1324587690</span>. El local ya empieza a prepararlo.', '<a class="btn btn-primary" href="mi-pedido-detalle.html">Ver mi pedido</a>'); }
+if (e === 'rechazado') { h.textContent = 'El pago fue rechazado'; col.innerHTML = card(M.ico('alerta'), 'var(--color-danger)', 'var(--color-danger-bg)', 'La tarjeta no tiene fondos suficientes', 'No se cobró nada. Podés intentar con otra tarjeta.', '<button class="btn btn-primary" type="button">Intentar de nuevo</button><a class="btn btn-ghost" href="mi-pedido-detalle.html">Ver mi pedido</a>'); }
+if (e === 'demorando') { h.textContent = 'La confirmación está demorando'; col.innerHTML = card(M.ico('reloj'), 'var(--color-warning)', 'var(--color-warning-bg)', 'Mercado Pago todavía no respondió', 'Puede tardar unos minutos más. No lo pagues de nuevo.', '<button class="btn btn-secondary" type="button">' + M.ico('reintentar') + 'Actualizar</button><a class="btn btn-ghost" href="mi-pedido-detalle.html">Ver mi pedido</a>'); }
+if (e === 'cargando') { h.textContent = 'Pagá tu pedido'; col.innerHTML = '<div class="status-card panel" role="status"><span class="spinner dark" aria-hidden="true"></span><div><h2>Verificando el estado de tu pago…</h2><p>Un momento.</p></div></div>'; }
+})();
+</script>
+</body>
+</html>
