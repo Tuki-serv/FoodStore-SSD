@@ -231,3 +231,85 @@ def test_metadatos_muestran_tbd_visible_para_cada_campo(campo: str) -> None:
 )
 def test_recorrido_e2e_cubre_efectivo_tarjeta_cancelacion_y_dashboard(marca: str) -> None:
     assert marca in _texto(ENTREGA / "recorrido-e2e.md")
+
+
+# ── guion del video (task 4.2) ───────────────────────────────────────────────
+
+GUION = ENTREGA / "guion-video.md"
+CUENTAS_VALIDAS = {"cliente", "pedidos", "admin", "ninguna"}
+
+
+def _filas_guion() -> list[list[str]]:
+    """Celdas de cada fila numerada de la tabla de pasos: `| N | mm:ss–mm:ss | cuenta | pantalla | narración | criterio |`."""
+    return [
+        [celda.strip() for celda in linea.strip().strip("|").split("|")]
+        for linea in _texto(GUION).splitlines()
+        if re.match(r"\|\s*\d+\s*\|", linea)
+    ]
+
+
+def _segundos(mmss: str) -> int:
+    minutos, segundos = mmss.split(":")
+    return int(minutos) * 60 + int(segundos)
+
+
+def test_guion_existe_y_el_readme_lo_enlaza() -> None:
+    assert GUION.exists()
+    assert "docs/entrega/guion-video.md" in _texto(README)
+
+
+@pytest.mark.parametrize(
+    "marca",
+    ["ingres", "registr", "catálogo", "carrito", "finalizar compra", "MERCADOPAGO", "APRO", "ngrok", "Mis pedidos",
+     "ENTREGADO", "Dashboard", "/docs", "pytest --cov", "npm test", "Preparación antes de grabar", "Después de grabar", "CE-13"],
+)
+def test_guion_cubre_cada_paso_y_seccion_requeridos(marca: str) -> None:
+    assert marca.lower() in _texto(GUION).lower()
+
+
+def test_guion_recorre_los_estados_hasta_entregado_en_orden() -> None:
+    texto = _texto(GUION)
+    posiciones = [texto.index(estado) for estado in ("CONFIRMADO", "EN_PREP", "EN_CAMINO", "ENTREGADO")]
+
+    assert posiciones == sorted(posiciones)
+
+
+def test_guion_declara_una_duracion_total_entre_5_y_10_minutos() -> None:
+    filas = _filas_guion()
+    rangos = [re.fullmatch(r"(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})", fila[1]) for fila in filas]
+
+    assert len(filas) >= 12
+    assert all(rangos), "cada fila debe tener minuto aproximado mm:ss–mm:ss"
+    tramos = [(_segundos(m.group(1)), _segundos(m.group(2))) for m in rangos if m]
+    assert tramos[0][0] == 0
+    assert all(fin > inicio for inicio, fin in tramos)
+    assert all(tramos[i][1] == tramos[i + 1][0] for i in range(len(tramos) - 1)), "los tramos deben ser contiguos"
+    assert 5 * 60 <= tramos[-1][1] <= 10 * 60
+
+
+def test_guion_cada_paso_tiene_cuenta_pantalla_narracion_y_criterio() -> None:
+    filas = _filas_guion()
+
+    for fila in filas:
+        assert len(fila) == 6, fila
+        assert fila[2].lower() in CUENTAS_VALIDAS, f"cuenta inválida en el paso {fila[0]}: {fila[2]}"
+        assert all(celda for celda in fila), f"celda vacía en el paso {fila[0]}"
+    assert {"cliente", "pedidos", "admin"} <= {fila[2].lower() for fila in filas}
+
+
+def test_guion_nombra_las_cuentas_por_email_y_sin_contrasenas_del_seed() -> None:
+    texto = _texto(GUION)
+    contrasenas = {ADMIN_PASSWORD_DESARROLLO, *(usuario[4] for usuario in USUARIOS_DEMO)}
+
+    for email in ("cliente@foodstore.com", "pedidos@foodstore.com", ADMIN_EMAIL):
+        assert email in texto
+    assert "Credenciales de prueba" in texto
+    for contrasena in contrasenas:
+        assert contrasena not in texto
+
+
+def test_guion_no_promete_lo_que_el_proyecto_no_tiene() -> None:
+    texto = _texto(GUION).lower()
+
+    assert "kds" not in texto.replace("sin kds", "")
+    assert "deploy" not in texto.replace("sin deploy", "")

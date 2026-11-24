@@ -48,7 +48,7 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 | CE-10 | UoW correcto (ningún `service.session.commit()` directo) | cumplido | `backend/tests/unit/test_unit_of_work.py`; ningún `commit(` en `backend/app/modules/` (búsqueda del 2026-11-21) |
 | CE-11 | 4 stores Zustand tipados y con `persist` correcto | cumplido | Los cuatro stores del criterio de Zustand; `cart-store` y `ui-store` usan `persist`, `auth-store` y `payment-store` viven en memoria a propósito (token de acceso y pago en curso no se persisten) |
 | CE-12 | Capturas de al menos 10 pantallas distintas | cumplido | 17 pantallas distintas en 1440x900 y 390x844 (34 archivos) en [capturas/](capturas/), tomadas el 2026-11-23 (tarea 3.1) |
-| CE-13 | Link a video de demostración (5-10 min) en el README | pendiente (usuario) | El usuario graba y publica el video; el enlace se agrega al README (tareas 5.1 y 5.2) |
+| CE-13 | Link a video de demostración (5-10 min) en el README | pendiente (usuario) | El usuario graba y publica el video siguiendo el guion de [guion-video.md](guion-video.md) (9:40 previstos); el enlace se agrega al README (tareas 5.1 y 5.2) |
 | CE-14 | Repositorio público verificado con sesión cerrada | pendiente (usuario) | El usuario lo abre en una ventana privada y lo marca aquí (tarea 5.3) |
 
 ## Pendientes del usuario
