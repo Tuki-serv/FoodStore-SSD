@@ -128,23 +128,34 @@ Cada paso indica desde qué directorio se corre y qué tenés que ver al termina
    | `backend/tests/.env.test.example` | `backend/tests/.env.test` | solo para los tests |
    | `frontend/.env.example` | `frontend/.env` | `VITE_API_URL` |
 
-   `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` de la raíz deben coincidir con los de `DATABASE_URL` de `backend/.env` (puerto host **5433**).
+   En PowerShell, desde la raíz:
+
+   ```powershell
+   Copy-Item .env.example .env
+   Copy-Item backend\.env.example backend\.env
+   Copy-Item backend\tests\.env.test.example backend\tests\.env.test
+   Copy-Item frontend\.env.example frontend\.env
+   ```
+
+   Son **cuatro** archivos y hacen falta todos: sin `frontend/.env` la app queda en blanco. Después reemplazá los `CHANGE_ME_*` de cada uno. `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` de la raíz deben coincidir con los de `DATABASE_URL` de `backend/.env` (puerto host **5433**).
 2. **Base de datos** (desde la raíz): `docker compose up -d db`. Resultado esperado: el contenedor `db` queda `healthy` (`docker compose ps`).
 3. **Backend** (desde `backend/`):
 
    ```bash
+   cd backend                        # desde la raíz del repo
    python -m venv .venv
    .venv\Scripts\activate            # Windows  (Linux/macOS: source .venv/bin/activate)
    pip install -r requirements.txt
    alembic upgrade head              # crea el esquema; termina sin errores
-   python -m app.db.seed             # catálogos, usuarios de prueba y datos de demostración
+   python -m app.db.seed             # catálogos, usuarios y ventas de demostración (--sin-ventas las omite)
    uvicorn app.main:app --reload     # API en http://localhost:8000
    ```
 
-   Resultado esperado: `GET http://localhost:8000/health` responde `{"status":"ok"}` y Swagger queda en http://localhost:8000/docs.
+   Resultado esperado: `GET http://localhost:8000/health` responde `{"status":"ok"}` y Swagger queda en http://localhost:8000/docs. El seed imprime al final las cuentas para ingresar (también están en [Credenciales de prueba](#credenciales-de-prueba-solo-desarrollo)).
 4. **Frontend** (desde `frontend/`, en otra terminal):
 
    ```bash
+   cd frontend                       # desde la raíz del repo
    npm install
    npm run dev                       # http://localhost:5173
    ```
@@ -177,6 +188,8 @@ El seed crea estas cuentas, una por rol. Son **credenciales de desarrollo**: no 
 | `cliente@foodstore.com` | `cliente123` | CLIENT | compra, pago y seguimiento |
 | `pedidos@foodstore.com` | `pedidos123` | PEDIDOS | avanzar y cancelar pedidos |
 | `stock@foodstore.com` | `stock123` | STOCK | productos, ingredientes y stock |
+
+El seed también crea 16 clientes de ejemplo (`nombre.apellido@demo.foodstore.com`, contraseña `cliente123`, rol CLIENT, con dirección) y ≈300 pedidos de demostración de los últimos 12 meses (con pedidos activos de hoy y ayer) para que el dashboard, «Mis pedidos» y la gestión de pedidos tengan datos; `python -m app.db.seed --sin-ventas` omite los pedidos. Las ventas se siembran una sola vez y sus fechas son relativas a esa primera corrida: para fechas frescas, reseteá la base como se indica abajo.
 
 Para volver al estado inicial: desde `backend/`, `python -m app.db.reset` (borra **todas** las tablas), `alembic upgrade head` y `python -m app.db.seed`.
 
@@ -238,6 +251,8 @@ Sitio estático servido por nginx; desde la raíz: `docker compose --profile pro
 **`alembic upgrade head` no conecta (`connection refused` o `password authentication failed`).** Revisá que `db` esté `healthy` (`docker compose ps`) y que usuario, contraseña, base y puerto de `DATABASE_URL` coincidan con el `.env` de la raíz. Si cambiaste la contraseña después de crear el volumen, PostgreSQL conserva la anterior: borrá el volumen (`docker compose down -v`, se pierden los datos) y volvé a levantar.
 
 **El backend no arranca y nombra una variable faltante.** La configuración se valida al iniciar: falta esa variable en `backend/.env`. Copiá de nuevo la plantilla `backend/.env.example` y completá los `CHANGE_ME_*`.
+
+**La página de http://localhost:5173 queda en blanco.** Falta `frontend/.env` (la consola del navegador dice «Falta la variable VITE_API_URL»). Copialo de `frontend/.env.example` y reiniciá `npm run dev`: Vite lee el `.env` solo al arrancar.
 
 **El frontend carga pero no muestra productos o la sesión se pierde al recargar.** Revisá que el backend esté corriendo, que `VITE_API_URL` apunte a él y que `CORS_ORIGINS` incluya exactamente `http://localhost:5173` (sin barra final). Para la cookie de refresh en local, `REFRESH_COOKIE_SECURE=false`.
 

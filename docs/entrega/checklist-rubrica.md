@@ -22,7 +22,7 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 | Frontend — Funcionalidades cliente | 15 | parcial | Catálogo con debounce, filtros y paginación, carrito persistente, checkout con `CardPayment` y seguimiento con polling (`frontend/src/pages/`); falta la ejecución registrada del recorrido y las capturas (pendiente de la revisión del usuario) |
 | Frontend — Panel Admin | 15 | parcial | Dashboard con KPIs y recharts, CRUD de categorías, productos e ingredientes, gestión de pedidos con FSM y usuarios (`frontend/src/pages/admin-*`, `gestion-pedidos`); falta la verificación visual y las capturas (pendiente) |
 | UI/UX y diseño | 10 | parcial | Design system Revision 3 (`design-system/`), mockups aprobados por change en `openspec/changes/archive/*/mockups/`, skeletons, toasts, modales de confirmación y estados vacíos; falta el verify visual pantalla por pantalla (tarea 3.2, pendiente) |
-| Calidad de código | 10 | parcial | Convenciones, funciones acotadas, docstrings y READMEs por parte; README raíz como guía única; falta la prueba del README en máquina limpia por el usuario (CE-02) |
+| Calidad de código | 10 | parcial | Convenciones, funciones acotadas, docstrings y READMEs por parte; README raíz como guía única, probado en clon limpio (CE-02, 2026-11-23) |
 
 ## Bonus y penalización
 
@@ -37,12 +37,12 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 | ID | Ítem | Estado | Evidencia |
 |----|------|--------|-----------|
 | CE-01 | Link a repositorio GitHub público en la entrega | pendiente (usuario) | El usuario publica el repositorio y registra el enlace aquí |
-| CE-02 | `README.md` con setup funcionando en máquina limpia | pendiente (usuario) | [README.md](../../README.md) reescrito y verificado estáticamente (`backend/tests/unit/test_entrega_docs.py`); falta la prueba en clon limpio (tarea 1.4) |
+| CE-02 | `README.md` con setup funcionando en máquina limpia | cumplido | [README.md](../../README.md) verificado estáticamente (`backend/tests/unit/test_entrega_docs.py`) y prueba en clon limpio de `dev` por el usuario (2026-11-23): stack levantado siguiendo el README, catálogo, compra en efectivo hasta `ENTREGADO`, dashboard y Swagger ok; los `.env` de raíz y backend se reutilizaron del proyecto original y `frontend/.env` se creó de su plantilla (las plantillas se validan por test, CE-03); fricciones corregidas en el README (`cd` en los bloques, copia de los cuatro `.env`, página en blanco sin `frontend/.env`) |
 | CE-03 | `.env.example` completo, con variables de MercadoPago documentadas | cumplido | Tres plantillas validadas por test (`backend/tests/unit/test_env_example.py`, `frontend/src/shared/config/__tests__/env-example.test.ts`); cada variable de MercadoPago de `backend/.env.example` indica de dónde sale en el panel de desarrolladores (`backend/tests/unit/test_entrega_docs.py`, 2026-11-23) |
 | CE-04 | `alembic upgrade head` sin errores | cumplido | `backend/tests/integration/test_migrations.py` aplica las migraciones desde una base vacía |
 | CE-05 | `python -m app.db.seed` carga datos iniciales | cumplido | `backend/app/db/seed.py` y `backend/tests/integration/test_seed.py`; cuentas en el README |
-| CE-06 | `npm install` + `npm run dev` sin errores | parcial | Scripts verificados contra `frontend/package.json`; falta la corrida en máquina limpia (tarea 1.4) |
-| CE-07 | `pip install -r requirements.txt` + `uvicorn app.main:app` sin errores | parcial | `backend/tests/integration/test_app_startup.py`; falta la corrida en máquina limpia (tarea 1.4) |
+| CE-06 | `npm install` + `npm run dev` sin errores | cumplido | Scripts verificados contra `frontend/package.json`; `npm install` + `npm run dev` sin errores en el clon limpio (2026-11-23, tarea 1.4) |
+| CE-07 | `pip install -r requirements.txt` + `uvicorn app.main:app` sin errores | cumplido | `backend/tests/integration/test_app_startup.py`; `pip install` + `uvicorn` sin errores en el clon limpio (2026-11-23, tarea 1.4) |
 | CE-08 | Swagger UI (`/docs`) con todos los endpoints documentados | cumplido | `backend/tests/integration/test_openapi_documentacion.py` (C-25b1) |
 | CE-09 | Pago de prueba con tarjeta sandbox de MercadoPago end-to-end | pendiente (usuario) | Lo ejecuta el usuario con ngrok y el webhook configurado (tarea 2.3); anotar el resultado en [recorrido-e2e.md](recorrido-e2e.md) |
 | CE-10 | UoW correcto (ningún `service.session.commit()` directo) | cumplido | `backend/tests/unit/test_unit_of_work.py`; ningún `commit(` en `backend/app/modules/` (búsqueda del 2026-11-21) |
@@ -53,7 +53,6 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 
 ## Pendientes del usuario
 
-- Prueba en máquina o carpeta limpia siguiendo solo el README (CE-02, CE-06, CE-07; evita la penalización de −30 %).
 - Pago con tarjeta sandbox (CE-09).
 - Grabar y publicar el video; repositorio público (CE-01, CE-13, CE-14).
 
