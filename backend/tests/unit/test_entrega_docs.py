@@ -199,7 +199,7 @@ def test_checklist_filas_ce_tienen_estado_y_evidencia() -> None:
         assert celdas[3], fila
 
 
-@pytest.mark.parametrize("clave", ["CE-01", "CE-09", "CE-12", "CE-13", "CE-14"])
+@pytest.mark.parametrize("clave", ["CE-01", "CE-09", "CE-13", "CE-14"])
 def test_checklist_no_declara_cumplido_lo_que_depende_del_usuario_o_de_la_espera(clave: str) -> None:
     assert "pendiente" in _filas_ce()[clave].lower()
 

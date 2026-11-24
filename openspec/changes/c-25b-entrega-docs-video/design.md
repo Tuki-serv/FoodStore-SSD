@@ -42,7 +42,7 @@ Un test compara las variables `${...}` de `docker-compose.yml` con el `.env.exam
 - Mockups: los aprobados de cada change archivado (16 carpetas `openspec/changes/archive/*/mockups/`), referencia del verify visual (OQ-8).
 - Approval: n/a (sin mockups nuevos)
 - Preview: n/a
-- Visual verify: pendiente — todas las pantallas contra sus mockups, capturas en `openspec/changes/c-25b-entrega-docs-video/verify/`.
+- Visual verify: differences (2026-11-23, verify/informe-visual.md) — 0 blocker, 1 major, 12 minor; contra design system Revision 4 (la vigente; esta sección decía 3).
 
 ## Decisiones del usuario (2026-11-21, en chat)
 

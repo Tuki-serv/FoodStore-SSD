@@ -4,7 +4,7 @@ Estado al 2026-11-21 (rama `dev`, con `c-25b1-deuda-heredada` archivado). Fuente
 
 Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay evidencia pero falta algo) y **pendiente** (depende del usuario o de la revisión final). La puntuación la asigna el docente: aquí solo se declara si el criterio está cubierto, no cuántos puntos vale el resultado.
 
-> Evidencia que todavía no existe (capturas, ejecución del recorrido E2E, video) figura como pendiente: se completa cuando el usuario revise la aplicación y se ejecute el recorrido (tareas 2.2, 3.1, 3.2 y 5.x de `openspec/changes/c-25b-entrega-docs-video/`).
+> Capturas y recorrido E2E (tramos A y C) ya ejecutados el 2026-11-23; la evidencia que todavía no existe (tramo de tarjeta, video, verify visual) figura como pendiente (tareas 2.3, 3.2 y 5.x de `openspec/changes/c-25b-entrega-docs-video/`).
 
 ## Criterios de la rúbrica (200 puntos)
 
@@ -47,7 +47,7 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 | CE-09 | Pago de prueba con tarjeta sandbox de MercadoPago end-to-end | pendiente (usuario) | Lo ejecuta el usuario con ngrok y el webhook configurado (tarea 2.3); anotar el resultado en [recorrido-e2e.md](recorrido-e2e.md) |
 | CE-10 | UoW correcto (ningún `service.session.commit()` directo) | cumplido | `backend/tests/unit/test_unit_of_work.py`; ningún `commit(` en `backend/app/modules/` (búsqueda del 2026-11-21) |
 | CE-11 | 4 stores Zustand tipados y con `persist` correcto | cumplido | Los cuatro stores del criterio de Zustand; `cart-store` y `ui-store` usan `persist`, `auth-store` y `payment-store` viven en memoria a propósito (token de acceso y pago en curso no se persisten) |
-| CE-12 | Capturas de al menos 10 pantallas distintas | pendiente | Se generan en `docs/entrega/capturas/` tras la revisión del usuario (tarea 3.1) |
+| CE-12 | Capturas de al menos 10 pantallas distintas | cumplido | 17 pantallas distintas en 1440x900 y 390x844 (34 archivos) en [capturas/](capturas/), tomadas el 2026-11-23 (tarea 3.1) |
 | CE-13 | Link a video de demostración (5-10 min) en el README | pendiente (usuario) | El usuario graba y publica el video; el enlace se agrega al README (tareas 5.1 y 5.2) |
 | CE-14 | Repositorio público verificado con sesión cerrada | pendiente (usuario) | El usuario lo abre en una ventana privada y lo marca aquí (tarea 5.3) |
 
@@ -55,7 +55,6 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 
 - Prueba en máquina o carpeta limpia siguiendo solo el README (CE-02, CE-06, CE-07; evita la penalización de −30 %).
 - Pago con tarjeta sandbox (CE-09).
-- Revisar la aplicación; luego se ejecuta el recorrido E2E y se capturan las pantallas (CE-12).
 - Grabar y publicar el video; repositorio público (CE-01, CE-13, CE-14).
 - Informar materia, carrera, equipo y docente: ver [metadatos.md](metadatos.md) (PA-18).
 

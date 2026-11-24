@@ -292,6 +292,7 @@ Decisiones y deuda aceptadas para la entrega; ninguna impide el flujo compra →
 |-----------|-----------|
 | [docs/entrega/checklist-rubrica.md](docs/entrega/checklist-rubrica.md) | 13 criterios de la rúbrica, bonus y CE-01..CE-14, con estado y evidencia |
 | [docs/entrega/recorrido-e2e.md](docs/entrega/recorrido-e2e.md) | recorrido compra → pago → entrega, paso a paso y con la cuenta a usar |
+| [docs/entrega/capturas/](docs/entrega/capturas/) | 17 pantallas distintas en 1440x900 y 390x844 (`NN-<pantalla>-<viewport>.png`) |
 | [docs/entrega/metadatos.md](docs/entrega/metadatos.md) | materia, carrera, equipo y docente: `(TBD)` hasta que el equipo los confirme |
 
 ### Dominio y diseño
