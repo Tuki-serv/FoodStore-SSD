@@ -2,6 +2,8 @@
 Seed principal. Ejecutar: python -m app.db.seed
 Catálogos (roles, estados, formas de pago) → admin → datos de demostración. Idempotente: se puede correr N veces.
 """
+import argparse
+from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any, NamedTuple, TypeVar
 
@@ -11,7 +13,10 @@ from sqlmodel import Session, SQLModel, select
 from app.core.database import engine as app_engine
 from app.core.security import hash_password
 from app.db.migrations import SchemaNotReadyError, ensure_schema_ready
+from app.core.timestamps import utc_now
 from app.db.models import import_all_models
+from app.db.ventas_demo import ElencoVentas, sembrar_ventas
+from app.modules.direcciones.models import DireccionEntrega
 from app.modules.usuarios.models import Usuario, Rol
 from app.modules.categorias.models import Categoria
 from app.modules.ingredientes.models import Ingrediente
@@ -117,19 +122,24 @@ def _obtener_o_crear(
 
 
 def _crear_usuario_si_falta(
-    session: Session, email: str, nombre: str, apellido: str, celular: str, password: str, rol_codigo: str
-) -> None:
-    """Crea el usuario con su rol si no existe ningún usuario con ese email (activo o dado de baja)."""
+    session: Session, email: str, nombre: str, apellido: str, celular: str, password_hash: str, rol_codigo: str
+) -> Usuario | None:
+    """Crea el usuario con su rol si no existe ningún usuario con ese email (activo o dado de baja).
+
+    Devuelve el usuario creado, o `None` si ya existía. Recibe el hash ya calculado: bcrypt (cost >= 12) es lento y
+    quien llama lo calcula una sola vez cuando varios usuarios comparten contraseña.
+    """
     usuario, creado = _obtener_o_crear(
         session, Usuario, Usuario.email, email,
-        nombre=nombre, apellido=apellido, email=email, celular=celular, password_hash=hash_password(password),
+        nombre=nombre, apellido=apellido, email=email, celular=celular, password_hash=password_hash,
     )
     if not creado:
         print(f"  [OK] Usuario {email} ya existe, se omite.")
-        return
+        return None
     usuario.roles.append(session.get(Rol, rol_codigo))
     session.flush()
     print(f"  [OK] Usuario creado ({email})")
+    return usuario
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -139,7 +149,8 @@ def _crear_usuario_si_falta(
 
 def seed_admin(session: Session) -> None:
     """Crea el admin inicial si no existe; nunca modifica uno existente (no se pisa la contraseña de nadie)."""
-    _crear_usuario_si_falta(session, ADMIN_EMAIL, "Super", "Admin", "2611234567", ADMIN_PASSWORD_DESARROLLO, "ADMIN")
+    _crear_usuario_si_falta(
+        session, ADMIN_EMAIL, "Super", "Admin", "2611234567", hash_password(ADMIN_PASSWORD_DESARROLLO), "ADMIN")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -150,6 +161,41 @@ USUARIOS_DEMO: tuple[tuple[str, str, str, str, str, str], ...] = (  # (email, no
     ("cliente@foodstore.com", "Cliente", "Prueba",  "2610000000", "cliente123", "CLIENT"),
     ("pedidos@foodstore.com", "Gestor",  "Pedidos", "2610000002", "pedidos123", "PEDIDOS"),
     ("stock@foodstore.com",   "Gestor",  "Stock",   "2610000003", "stock123",   "STOCK"),
+)
+
+PASSWORD_CLIENTES_DEMO = "cliente123"
+CLIENTE_BASE_EMAIL = "cliente@foodstore.com"
+
+
+class ClienteEjemplo(NamedTuple):
+    email: str
+    nombre: str
+    apellido: str
+    celular: str
+    direccion: str  # línea 1 de la dirección principal
+    ciudad: str
+    codigo_postal: str
+
+
+# 16 clientes de ejemplo (rol CLIENT, contraseña compartida de desarrollo) con una dirección principal en Mendoza. Van
+# aparte de USUARIOS_DEMO (una cuenta por rol): son el elenco de las ventas de demostración.
+CLIENTES_DEMO: tuple[ClienteEjemplo, ...] = (
+    ClienteEjemplo("sofia.fernandez@demo.foodstore.com", "Sofía", "Fernández", "2615100001", "Av. San Martín 1250", "Ciudad de Mendoza", "5500"),
+    ClienteEjemplo("mateo.gomez@demo.foodstore.com", "Mateo", "Gómez", "2615100002", "Calle Rivadavia 480", "Ciudad de Mendoza", "5500"),
+    ClienteEjemplo("valentina.diaz@demo.foodstore.com", "Valentina", "Díaz", "2615100003", "Belgrano 322", "Godoy Cruz", "5501"),
+    ClienteEjemplo("santiago.lopez@demo.foodstore.com", "Santiago", "López", "2615100004", "Av. San Martín 3400", "Godoy Cruz", "5501"),
+    ClienteEjemplo("camila.rodriguez@demo.foodstore.com", "Camila", "Rodríguez", "2615100005", "Mitre 915", "Guaymallén", "5521"),
+    ClienteEjemplo("lucas.martinez@demo.foodstore.com", "Lucas", "Martínez", "2615100006", "Bandera de los Andes 2100", "Guaymallén", "5521"),
+    ClienteEjemplo("martina.perez@demo.foodstore.com", "Martina", "Pérez", "2615100007", "Av. Libertador 760", "Las Heras", "5539"),
+    ClienteEjemplo("joaquin.sanchez@demo.foodstore.com", "Joaquín", "Sánchez", "2615100008", "San Miguel 245", "Las Heras", "5539"),
+    ClienteEjemplo("lucia.romero@demo.foodstore.com", "Lucía", "Romero", "2615100009", "Ozamis 1130", "Maipú", "5515"),
+    ClienteEjemplo("tomas.alvarez@demo.foodstore.com", "Tomás", "Álvarez", "2615100010", "Pescara 540", "Maipú", "5515"),
+    ClienteEjemplo("julieta.torres@demo.foodstore.com", "Julieta", "Torres", "2615100011", "Ruta 15 Km 4", "Luján de Cuyo", "5507"),
+    ClienteEjemplo("benjamin.ruiz@demo.foodstore.com", "Benjamín", "Ruiz", "2615100012", "Perito Moreno 870", "Luján de Cuyo", "5507"),
+    ClienteEjemplo("emilia.suarez@demo.foodstore.com", "Emilia", "Suárez", "2615100013", "Lavalle 655", "Ciudad de Mendoza", "5500"),
+    ClienteEjemplo("facundo.benitez@demo.foodstore.com", "Facundo", "Benítez", "2615100014", "Remedios de Escalada 1480", "Godoy Cruz", "5501"),
+    ClienteEjemplo("renata.acosta@demo.foodstore.com", "Renata", "Acosta", "2615100015", "Tirasso 390", "Guaymallén", "5521"),
+    ClienteEjemplo("bruno.medina@demo.foodstore.com", "Bruno", "Medina", "2615100016", "Sarmiento 1020", "Las Heras", "5539"),
 )
 
 UNIDADES_DEMO: tuple[tuple[str, str, str], ...] = (  # (nombre, simbolo, tipo)
@@ -166,6 +212,8 @@ CATEGORIAS_DEMO: tuple[tuple[str, str, str | None], ...] = (
     ("Veganas",      "100% plant-based",             "Hamburguesas"),
     ("Sin TACC",     "Libres de gluten",             "Hamburguesas"),
     ("Gaseosas",     "Bebidas con gas",              "Bebidas"),
+    ("Pizzas",          "Al molde y a la piedra",     None),
+    ("Acompañamientos", "Para compartir o sumar",     None),
 )
 
 INGREDIENTES_DEMO: tuple[tuple[str, str, bool], ...] = (  # (nombre, descripcion, es_alergeno)
@@ -175,6 +223,12 @@ INGREDIENTES_DEMO: tuple[tuple[str, str, bool], ...] = (  # (nombre, descripcion
     ("Lechuga", "Lechuga fresca", False), ("Tomate", "Tomate perita en rodajas", False),
     ("Cebolla Caramelizada", "Cebolla dulce", False), ("Bacon Crocante", "Panceta ahumada", False),
     ("Salsa BBQ", "Salsa ahumada casera", False), ("Mayonesa", "Mayo artesanal", True),
+    ("Masa de Pizza", "Masa de trigo de fermentación lenta", True), ("Muzzarella", "Queso muzzarella en horma", True),
+    ("Salsa de Tomate", "Salsa de tomate natural", False), ("Orégano", "Orégano seco", False),
+    ("Ajo", "Ajo fresco", False), ("Cebolla", "Cebolla de verdeo y blanca", False),
+    ("Pollo Rebozado", "Pechuga de pollo rebozada", True), ("Papas", "Papas cortadas en bastones", False),
+    ("Huevo", "Huevo de campo", True), ("Dulce de Leche", "Dulce de leche repostero", True),
+    ("Chocolate", "Chocolate semiamargo", True), ("Queso Crema", "Queso crema untable", True),
 )
 
 
@@ -220,7 +274,108 @@ PRODUCTOS_DEMO: tuple[ProductoDemo, ...] = (
         "Limonada Natural", "Exprimida al momento.", "700.00", 60,
         (("Bebidas", True),), (),
     ),
+
+    # Hamburguesas (nuevas)
+    ProductoDemo(
+        "Doble Cheddar", "Doble queso, doble sabor.", "2300.00", 35,
+        (("Hamburguesas", True),),
+        (("Pan Brioche", False), ("Carne Vacuna 250g", False), ("Queso Cheddar", True),
+         ("Cebolla Caramelizada", True), ("Mayonesa", True)),
+    ),
+    ProductoDemo(
+        "Burger Crispy Chicken", "Pollo crocante con vegetales frescos.", "1850.00", 28,
+        (("Hamburguesas", True),),
+        (("Pan Brioche", False), ("Pollo Rebozado", False), ("Lechuga", True), ("Tomate", True), ("Mayonesa", True)),
+    ),
+    # Pizzas
+    ProductoDemo(
+        "Pizza Muzzarella", "Clásica, con mucha muzzarella.", "2400.00", 40,
+        (("Pizzas", True),),
+        (("Masa de Pizza", False), ("Salsa de Tomate", False), ("Muzzarella", False), ("Orégano", True)),
+    ),
+    ProductoDemo(
+        "Pizza Napolitana", "Con rodajas de tomate y ajo.", "2700.00", 30,
+        (("Pizzas", True),),
+        (("Masa de Pizza", False), ("Salsa de Tomate", False), ("Muzzarella", False), ("Tomate", True),
+         ("Ajo", True), ("Orégano", True)),
+    ),
+    ProductoDemo(
+        "Pizza Fugazzeta", "Cebolla y muzzarella, sin salsa.", "2600.00", 25,
+        (("Pizzas", True),),
+        (("Masa de Pizza", False), ("Muzzarella", False), ("Cebolla", True), ("Orégano", True)),
+    ),
+    # Acompañamientos
+    ProductoDemo(
+        "Papas Fritas", "Crocantes y recién hechas.", "900.00", 80,
+        (("Acompañamientos", True),), (("Papas", False),),
+    ),
+    ProductoDemo(
+        "Papas Cheddar y Bacon", "Con cheddar fundido y bacon crocante.", "1500.00", 45,
+        (("Acompañamientos", True),),
+        (("Papas", False), ("Queso Cheddar", True), ("Bacon Crocante", True)),
+    ),
+    ProductoDemo(
+        "Aros de Cebolla", "Rebozados y dorados.", "1000.00", 50,
+        (("Acompañamientos", True),), (("Cebolla", False),),
+    ),
+    ProductoDemo(
+        "Nuggets x6", "Seis nuggets de pollo con salsa.", "1300.00", 60,
+        (("Acompañamientos", True),), (("Pollo Rebozado", False),),
+    ),
+    # Postres
+    ProductoDemo(
+        "Brownie con Helado", "Tibio, con una bocha de crema americana.", "1400.00", 30,
+        (("Postres", True),), (("Chocolate", False), ("Huevo", False)),
+    ),
+    ProductoDemo(
+        "Flan con Dulce de Leche", "Casero, con dulce de leche y crema.", "1100.00", 0,
+        (("Postres", True),), (("Huevo", False), ("Dulce de Leche", False)),
+    ),
+    ProductoDemo(
+        "Cheesecake de Frutos Rojos", "Cremoso, con salsa de frutos rojos.", "1600.00", 4,
+        (("Postres", True),), (("Queso Crema", False), ("Huevo", False)),
+    ),
+    # Bebidas (nuevas)
+    ProductoDemo(
+        "Sprite 500ml", "Lima-limón bien fría.", "800.00", 90,
+        (("Bebidas", True), ("Gaseosas", False)), (),
+    ),
+    ProductoDemo(
+        "Agua Mineral 500ml", "Sin gas.", "600.00", 100,
+        (("Bebidas", True),), (),
+    ),
+    ProductoDemo(
+        "Café con Leche", "Café de filtro con leche espumada.", "1000.00", 70,
+        (("Bebidas", True),), (),
+    ),
 )
+
+
+def _crear_direccion_principal(session: Session, usuario: Usuario, linea1: str, ciudad: str, codigo_postal: str) -> None:
+    session.add(DireccionEntrega(
+        usuario_id=usuario.id, alias="Casa", linea1=linea1, ciudad=ciudad, provincia="Mendoza",
+        codigo_postal=codigo_postal, es_principal=True))
+    session.flush()
+
+
+def _seed_clientes_de_ejemplo(session: Session) -> None:
+    """Crea los clientes de ejemplo que falten, cada uno con su dirección principal (solo junto con el usuario).
+
+    El hash de la contraseña compartida se calcula una vez y solo si hay algún cliente por crear.
+    """
+    existentes = set(session.exec(
+        select(Usuario.email).where(Usuario.email.in_([c.email for c in CLIENTES_DEMO]))).all())
+    faltantes = [c for c in CLIENTES_DEMO if c.email not in existentes]
+    for email in existentes:
+        print(f"  [OK] Usuario {email} ya existe, se omite.")
+    if not faltantes:
+        return
+    password_hash = hash_password(PASSWORD_CLIENTES_DEMO)
+    for cliente in faltantes:
+        usuario = _crear_usuario_si_falta(
+            session, cliente.email, cliente.nombre, cliente.apellido, cliente.celular, password_hash, "CLIENT")
+        if usuario is not None:
+            _crear_direccion_principal(session, usuario, cliente.direccion, cliente.ciudad, cliente.codigo_postal)
 
 
 def seed_demo(session: Session) -> None:
@@ -230,7 +385,10 @@ def seed_demo(session: Session) -> None:
     entidad dueña: nunca se agregan a entidades preexistentes.
     """
     for email, nombre, apellido, celular, password, rol in USUARIOS_DEMO:
-        _crear_usuario_si_falta(session, email, nombre, apellido, celular, password, rol)
+        usuario = _crear_usuario_si_falta(session, email, nombre, apellido, celular, hash_password(password), rol)
+        if usuario is not None and email == CLIENTE_BASE_EMAIL:
+            _crear_direccion_principal(session, usuario, "Av. San Martín 100", "Ciudad de Mendoza", "5500")
+    _seed_clientes_de_ejemplo(session)
 
     for nombre, simbolo, tipo in UNIDADES_DEMO:
         _obtener_o_crear(session, UnidadMedida, UnidadMedida.simbolo, simbolo, nombre=nombre, simbolo=simbolo, tipo=tipo)
@@ -269,8 +427,20 @@ def seed_demo(session: Session) -> None:
         session.flush()
 
 
-def seed(engine: Engine | None = None) -> None:
-    """Siembra los datos iniciales. Exige el esquema migrado (`alembic upgrade head`); nunca crea tablas."""
+ELENCO_VENTAS = ElencoVentas(
+    emails_clientes=tuple(c.email for c in CLIENTES_DEMO),
+    email_destacado=CLIENTE_BASE_EMAIL,
+    email_pedidos="pedidos@foodstore.com",
+    email_admin=ADMIN_EMAIL,
+    nombres_productos=tuple(p.nombre for p in PRODUCTOS_DEMO),
+)
+
+
+def seed(engine: Engine | None = None, *, con_ventas: bool = True) -> None:
+    """Siembra los datos iniciales. Exige el esquema migrado (`alembic upgrade head`); nunca crea tablas.
+
+    `con_ventas=False` omite el historial de ventas de demostración (se puede sembrar en una corrida posterior).
+    """
     engine = engine or app_engine
     import_all_models()
     with engine.connect() as conn:
@@ -282,11 +452,19 @@ def seed(engine: Engine | None = None) -> None:
         seed_catalogos(session)
         seed_admin(session)
         seed_demo(session)
+        ventas = sembrar_ventas(session, utc_now(), ELENCO_VENTAS) if con_ventas else None
 
     print("--- SEED FINALIZADO [OK] ---")
     print("   • 4 roles + usuarios de prueba")
     print("   • 6 estados de pedido + 3 formas de pago")
-    print("   • 6 categorías + 12 ingredientes + 7 unidades de medida + 6 productos")
+    print("   • 8 categorías + 24 ingredientes + 7 unidades de medida + 21 productos")
+    print("   • 16 clientes de ejemplo (@demo.foodstore.com, contraseña cliente123) con dirección")
+    if ventas is None:
+        print("   • Ventas de demostración omitidas (--sin-ventas)")
+    elif ventas == 0:
+        print("   • Ventas de demostración: ya existían, no se agregó ninguna")
+    else:
+        print(f"   • {ventas} pedidos de demostración de los últimos 12 meses")
     print("\n--- CUENTAS DE PRUEBA ---")
     print(f"   - Admin:     {ADMIN_EMAIL}   / {ADMIN_PASSWORD_DESARROLLO}")
     print("   - Pedidos: pedidos@foodstore.com / pedidos123")
@@ -295,9 +473,18 @@ def seed(engine: Engine | None = None) -> None:
     print("-------------------------")
 
 
+def parsear_argumentos(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Siembra los datos iniciales y de demostración de Food Store.")
+    parser.add_argument(
+        "--sin-ventas", action="store_true", help="omite el historial de ventas de demostración (catálogo y clientes sí)"
+    )
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
+    argumentos = parsear_argumentos()
     try:
-        seed()
+        seed(con_ventas=not argumentos.sin_ventas)
     except SchemaNotReadyError as exc:
         print(f"[ERROR] {exc}")
         raise SystemExit(1)

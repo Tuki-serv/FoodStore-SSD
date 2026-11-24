@@ -201,6 +201,7 @@ Arrays jerárquicos con el **dominio primero**, definidos con `queryOptions` en 
 - **Comportamiento**: período por defecto = últimos 30 días por día (atajos Hoy / 7 días / 30 días / Este mes y fechas personalizadas; fechas UTC, `desde`/`hasta` inclusivos, máximo 366 días validado igual que en el backend). Cinco consultas independientes (`GET /estadisticas/resumen|ventas|productos-top|pedidos-por-estado|ingresos`): cada bloque tiene su propio esqueleto, vacío y error con «Reintentar». «Actualizar» vuelve a pedir los cinco; sin polling (`staleTime` de 60 s). Cada gráfico es decorativo (`aria-hidden`) y tiene su alternativa «Ver como tabla».
 - **Clave de caché**: `['estadisticas', reporte, parámetros]` es **privada** (se descarta al cerrar sesión). Los importes llegan como texto decimal y se formatean con `formatearPrecio` de `entities/producto`; estados y formas de pago reutilizan `entities/pedido`.
 - **Tests**: `src/test/msw/estadisticas.ts` (estado en memoria y registro de pedidos) y `montarDashboard` en `src/test/render-dashboard.ts` (stub de `ResizeObserver` para recharts en jsdom).
+- **Datos de ejemplo**: `python -m app.db.seed` (desde `backend/`) siembra ≈300 pedidos de los últimos 12 meses, con ventas en cada día de los últimos 30; ya no hace falta crear pedidos a mano para ver el dashboard. Las fechas son relativas a la primera corrida del seed y se ven en UTC (ver el README raíz para regenerarlas).
 
 ## Productos y stock (C-17b)
 

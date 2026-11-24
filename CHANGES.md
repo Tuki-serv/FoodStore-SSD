@@ -711,6 +711,14 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 - **Governance**: MEDIO/BAJO (visual; el cambio del seed, BAJO)
 - **Leer antes**: `openspec/changes/archive/2026-11-23-revision-visual/proposal.md`, `design.md` (D1–D8, `## UI Mockups`, OQ-1..OQ-3), `design-system/README.md` (Revision 4)
 
+### [C-25b+] `seed-demo-ampliado` (ajuste extra post-roadmap)
+- **Estado**: `[ ]` propuesto (2026-11-23; `openspec/changes/seed-demo-ampliado/`). Ajuste extra **fuera de los changes planificados**; no cuenta en los totales ni renumera nada. Esperando revisión de artefactos y respuesta a OQ-1..OQ-5 de `design.md`.
+- **Scope**: agrandar `python -m app.db.seed` para tener métricas y listados poblados en capturas y video: catálogo de 21 productos / 8 categorías / 24 ingredientes (nuevas «Pizzas» y «Acompañamientos»; un producto en stock bajo y uno sin stock); 16 clientes de ejemplo `@demo.foodstore.com` con dirección principal (fuera de `USUARIOS_DEMO`); ≈300 pedidos en los últimos 12 meses UTC relativos a la corrida, con ventas hoy, cada día de los últimos 30 y cada mes del último año (todos los atajos y agrupaciones del dashboard con datos), mezcla de estados (8–12 activos hoy/ayer) y formas de pago, historial válido según la FSM, snapshots y envío $50, pagos `MERCADOPAGO` aprobados sembrados sin llamar a la pasarela, stock coherente. Ventas sembradas una sola vez (fechas fijas hasta recrear la base) y opción `--sin-ventas`. Generación determinística. Sin migración, sin cambios de API ni de frontend.
+- **Dependencias**: `C-24`, `C-25b0` (seed vigente); conviene cerrarlo antes de las capturas del dashboard y del video de `C-25b`
+- **Governance**: MEDIO (datos de desarrollo)
+- **UI**: no (no UI)
+- **Leer antes**: `openspec/changes/seed-demo-ampliado/design.md` (D1–D11, OQ-1..OQ-5), specs `openspec/specs/backend-db-seed/spec.md` y `openspec/specs/sales-metrics/spec.md`, `knowledge-base/05_reglas_de_negocio.md` (FSM, stock, envío)
+
 ### [C-25b] `entrega-docs-video`
 - **Estado**: `[ ]` apply parcial (2026-11-21). Hecho: README raíz como guía única con «Limitaciones conocidas» (1.3), tests de documentación (1.1), `docs/entrega/recorrido-e2e.md` (2.1), `checklist-rubrica.md` (4.1), `metadatos.md` con `(TBD)` (4.3) y comentarios de MercadoPago en la plantilla del backend (1.2, 2026-11-23; CE-03 cumplido). Sin deploy por decisión del usuario (PA-17 = no; grupo 6 N/A, bonus +10 sin reclamar). Pendiente: desbloqueadas por el cierre de C-25b0 `revision-visual` (2.2, 3.1, 3.2 y el guion 4.2: se hacen sobre design system Revision 4), tareas del usuario (1.4, 2.3, 4.4, 5.x) y la integración final (7.1: diferidos X1–X4 y KB 13).
 - **Scope**:
@@ -795,7 +803,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
 | 1 — Features | 19 | C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24, C-25a, C-25b1, C-25b | Frontend completo (PA-01 resuelta); changes `[UI-MOCKUP]` (14): C-13a, C-14, C-15, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21..C-24 |
 | 2 — Extras | 3 | C-26..C-28 | Opcional/bloqueado por la parte COCINA/KDS de PA-07 y por PA-19; al final |
 
-**Total: 34 changes** (28 originales; C-13, C-16, C-17 y C-20 partidos en dos; C-25 partido en tres: C-25a, C-25b1, C-25b). **Cerrados: 30** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21, C-22, C-23, C-24, C-25a, C-25b1). **Pendientes obligatorios: 1** (C-25b, de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado), `endurecimiento-pagos-webhook` (cerrado), `revision-visual` (C-25b0, cerrado).
+**Total: 34 changes** (28 originales; C-13, C-16, C-17 y C-20 partidos en dos; C-25 partido en tres: C-25a, C-25b1, C-25b). **Cerrados: 30** (C-01, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13a, C-13b, C-14, C-15, C-16a, C-16b, C-17a, C-17b, C-18, C-19, C-20a, C-20b, C-21, C-22, C-23, C-24, C-25a, C-25b1). **Pendientes obligatorios: 1** (C-25b, de Fase 1; la Fase 0 está completa) y 3 opcionales de Fase 2. Ajustes extra fuera del plan (no cuentan): `fe-catalogo-filtros-arriba` (cerrado), `endurecimiento-pagos-webhook` (cerrado), `revision-visual` (C-25b0, cerrado), `seed-demo-ampliado` (C-25b+, propuesto).
 
 Governance CRITICO: C-02, C-04, C-05, C-08, C-12, C-14, C-20a, C-20b, C-23, C-25b1. ALTO: C-03, C-06, C-07, C-09, C-10, C-13b, C-27.
 
