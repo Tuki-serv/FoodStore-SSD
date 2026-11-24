@@ -1,14 +1,14 @@
 # Metadatos de la entrega
 
-Datos de portada que no se pueden inferir del repositorio (PA-18). Hasta que el equipo los confirme figuran como `(TBD)`: no se inventan.
+Datos de portada que no se pueden inferir del repositorio (PA-18). Los confirmó el equipo el 2026-11-23.
 
 | Campo | Valor |
 |-------|-------|
-| Materia | (TBD) |
-| Carrera | (TBD) |
-| Equipo | (TBD) |
-| Docente | (TBD) |
+| Materia | Metodología de Sistemas |
+| Carrera | Tecnicatura Universitaria en Programación |
+| Equipo | Lucas Gonzalo Hernandez |
+| Docente | Alberto Cortez y Juan Cruz Robledo |
 | Modalidad | Trabajo Práctico Integrador (TPI), documento `integrador.docx` v5.0 |
 | Proyecto | Food Store |
 
-Estado: **PA-18 pendiente del usuario** (tarea 4.4 de `c-25b-entrega-docs-video`). Al informarlos, reemplazar los `(TBD)` y marcar PA-18 como resuelta en `knowledge-base/10_preguntas_abiertas.md`.
+Estado: **PA-18 resuelta** (2026-11-23, tarea 4.4 de `c-25b-entrega-docs-video`).

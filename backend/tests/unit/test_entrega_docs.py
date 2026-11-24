@@ -204,12 +204,29 @@ def test_checklist_no_declara_cumplido_lo_que_depende_del_usuario_o_de_la_espera
     assert "pendiente" in _filas_ce()[clave].lower()
 
 
-@pytest.mark.parametrize("campo", ["Materia", "Carrera", "Equipo", "Docente"])
-def test_metadatos_muestran_tbd_visible_para_cada_campo(campo: str) -> None:
+METADATOS_CONFIRMADOS = {  # PA-18 resuelta por el usuario (2026-11-23)
+    "Materia": "Metodología de Sistemas",
+    "Carrera": "Tecnicatura Universitaria en Programación",
+    "Equipo": "Lucas Gonzalo Hernandez",
+    "Docente": "Alberto Cortez",
+}
+
+
+@pytest.mark.parametrize("campo", METADATOS_CONFIRMADOS)
+def test_metadatos_tienen_el_valor_confirmado_de_cada_campo(campo: str) -> None:
+    fila = next(l for l in _texto(ENTREGA / "metadatos.md").splitlines() if re.match(rf"\|\s*{campo}\s*\|", l))
+
+    assert METADATOS_CONFIRMADOS[campo] in fila
+    assert "TBD" not in fila
+
+
+def test_metadatos_incluyen_a_ambos_docentes_y_marcan_pa_18_resuelta() -> None:
     texto = _texto(ENTREGA / "metadatos.md")
 
-    assert re.search(rf"{campo}[^\n]*\(TBD\)", texto)
-    assert "PA-18" in texto
+    assert "Juan Cruz Robledo" in texto
+    assert "PA-18" in texto and "resuelta" in texto.lower()
+    lineas_readme = [l for l in _texto(README).splitlines() if "docs/entrega/metadatos.md" in l]
+    assert lineas_readme and all("TBD" not in l for l in lineas_readme)
 
 
 @pytest.mark.parametrize(

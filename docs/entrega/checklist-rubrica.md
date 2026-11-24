@@ -56,7 +56,6 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 - Prueba en máquina o carpeta limpia siguiendo solo el README (CE-02, CE-06, CE-07; evita la penalización de −30 %).
 - Pago con tarjeta sandbox (CE-09).
 - Grabar y publicar el video; repositorio público (CE-01, CE-13, CE-14).
-- Informar materia, carrera, equipo y docente: ver [metadatos.md](metadatos.md) (PA-18).
 
 ## Limitaciones conocidas
 

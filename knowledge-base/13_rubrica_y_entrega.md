@@ -1,6 +1,6 @@
 # Rúbrica de Corrección y Entrega
 
-Extra de contexto académico: define cómo se evalúa el proyecto. Fuente principal `[INT]` §12-13; `[DESC]` §14-15 la describe en prosa con otra numeración de CE. Metadatos de la portada de `[INT]`: **Materia** y **Carrera** vacíos (PA-18); Modalidad = Trabajo Práctico Integrador (TPI); versión del documento 5.0 (ERD v5 + Arquitectura SDD + Diagramas + Feature-First).
+Extra de contexto académico: define cómo se evalúa el proyecto. Fuente principal `[INT]` §12-13; `[DESC]` §14-15 la describe en prosa con otra numeración de CE. Metadatos de la portada de `[INT]`: **Materia** y **Carrera** vacíos en el documento; completados en `docs/entrega/metadatos.md` (PA-18 resuelta, 2026-11-23); Modalidad = Trabajo Práctico Integrador (TPI); versión del documento 5.0 (ERD v5 + Arquitectura SDD + Diagramas + Feature-First).
 
 ## Rúbrica v5.0 (200 puntos)
 

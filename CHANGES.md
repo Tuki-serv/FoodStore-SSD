@@ -728,7 +728,7 @@ GATE 8 (opcional, al final y solo si sobra tiempo): parte COCINA/KDS de PA-07 y 
   - **Punto de partida (C-23)**: la pantalla «Usuarios» queda lista para capturas y video (listado con filtro por rol, alta multi-rol, edición propia con la casilla «Administrador» bloqueada, diálogo de desactivación). Deuda a documentar en la entrega: la contraseña inicial del alta ADMIN la elige el administrador y no hay cambio de contraseña (DT-28); recuperación sin `ADMIN` con `python -m app.db.seed`; ver «Usuarios y roles (C-23)» en `frontend/README.md`.
 - **Dependencias**: `C-01 a C-24, C-25a, C-25b1`; **C-25b0** (`revision-visual`) archivado antes de las capturas, el recorrido con capturas, el verify visual y el guion del video (tareas 2.2, 3.1, 3.2 y 4.2, que se hacen sobre Revision 4)
 - **Governance**: BAJO (documentación y evidencia; tareas del usuario marcadas)
-- **Decisión pendiente**: PA-17, PA-18 (PA-16 resuelta por C-25a)
+- **Decisiones**: PA-17 = no (sin deploy, 2026-11-21), PA-18 resuelta (metadatos confirmados, 2026-11-23); PA-16 resuelta por C-25a
 - **Leer antes**:
   - `knowledge-base/13_rubrica_y_entrega.md`
   - `knowledge-base/06_funcionalidades.md` Épica 8
