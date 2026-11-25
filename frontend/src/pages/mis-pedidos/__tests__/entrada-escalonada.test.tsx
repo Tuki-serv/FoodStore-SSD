@@ -21,7 +21,7 @@ describe('Mis pedidos · entrada escalonada (spec frontend-visual-language)', ()
     const { usuario } = montarMisPedidos('/mis-pedidos', { pedidos });
     await screen.findByRole('link', { name: '#10' });
 
-    await usuario.selectOptions(screen.getByRole('combobox', { name: 'Estado' }), 'Entregado');
+    await usuario.click(screen.getByRole('button', { name: 'Entregado' }));
 
     await screen.findByRole('link', { name: '#9' });
     expect(screen.queryByRole('link', { name: '#10' })).not.toBeInTheDocument();

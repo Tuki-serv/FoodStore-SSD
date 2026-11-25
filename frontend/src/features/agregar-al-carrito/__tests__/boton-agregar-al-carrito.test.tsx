@@ -66,13 +66,39 @@ describe('BotonAgregarAlCarrito con sesión', () => {
     expect(screen.queryByText('Agregado al carrito')).not.toBeInTheDocument();
   });
 
-  it('el texto visible es «Agregar» en la tarjeta y «Agregar al carrito» en el detalle', () => {
+  it('en la tarjeta es un botón redondo con ícono «+»: texto «Agregar» solo para desktop y nombre accesible con el producto', () => {
     iniciarSesionDePrueba();
-    const tarjeta = renderConToasts(<BotonAgregarAlCarrito producto={clasica} />);
-    expect(screen.getByRole('button', { name: 'Agregar Hamburguesa Clásica al carrito' })).toHaveTextContent(/^Agregar$/);
-    tarjeta.unmount();
+    renderConToasts(<BotonAgregarAlCarrito producto={clasica} />);
 
-    renderConToasts(<BotonAgregarAlCarrito producto={clasica} variante="detalle" />);
-    expect(screen.getByRole('button', { name: 'Agregar Hamburguesa Clásica al carrito' })).toHaveTextContent('Agregar al carrito');
+    const boton = screen.getByRole('button', { name: 'Agregar Hamburguesa Clásica al carrito' });
+
+    expect(boton).toHaveClass('add-round');
+    expect(boton.querySelector('svg')).not.toBeNull();
+    expect(boton).toHaveTextContent(/^Agregar$/);
+    expect(boton.querySelector('.add-txt')).toHaveTextContent('Agregar');
+  });
+
+  it('en el detalle el texto es «Agregar al carrito · $ N» con el total de las unidades elegidas', () => {
+    iniciarSesionDePrueba();
+    const uno = renderConToasts(<BotonAgregarAlCarrito producto={clasica} variante="detalle" />);
+    expect(screen.getByRole('button', { name: 'Agregar Hamburguesa Clásica al carrito' })).toHaveTextContent('Agregar al carrito · $ 1.500');
+    uno.unmount();
+
+    renderConToasts(<BotonAgregarAlCarrito producto={clasica} variante="detalle" cantidad={3} />);
+    const boton = screen.getByRole('button', { name: 'Agregar Hamburguesa Clásica al carrito' });
+    expect(boton).toHaveTextContent('Agregar al carrito · $ 4.500');
+    expect(boton).not.toHaveClass('add-round');
+  });
+
+  it('sin stock el detalle y la tarjeta muestran «Agotado» deshabilitado, sin precio', () => {
+    iniciarSesionDePrueba();
+    const agotado = productoDto({ id: 9, nombre: 'Brownie', stock_cantidad: 0 });
+    const detalle = renderConToasts(<BotonAgregarAlCarrito producto={agotado} variante="detalle" />);
+    expect(screen.getByRole('button', { name: 'Agotado' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Agotado' })).not.toHaveTextContent('$');
+    detalle.unmount();
+
+    renderConToasts(<BotonAgregarAlCarrito producto={agotado} />);
+    expect(screen.getByRole('button', { name: 'Agotado' })).toBeDisabled();
   });
 });

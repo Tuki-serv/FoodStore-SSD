@@ -40,7 +40,10 @@
     .prod .body{padding:var(--space-3);gap:var(--space-1)}
     .prod h3{font-size:var(--text-base)}
     .prod .desc{display:none}
-    .prod .foot{flex-direction:column;align-items:stretch;gap:var(--space-2)}
+    .prod .foot{gap:var(--space-2)}
+    /* Botón «+» redondo del mockup de catálogo mobile; el nombre accesible lo da aria-label */
+    .prod .add-round{width:var(--tap-min);min-width:var(--tap-min);height:var(--tap-min);min-height:var(--tap-min);padding:0;border-radius:50%;flex:none}
+    .prod .add-round .add-txt{display:none}
     .price{font-size:var(--text-base)}
     .ph-initial{font-size:2.5rem}
     .ph.lg .ph-initial{font-size:5rem}
