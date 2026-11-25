@@ -10,13 +10,13 @@ Cuentas: se nombran por email y sus contraseñas están en la sección «Credenc
 
 ## Preparación antes de grabar
 
-- [ ] Base y stack arriba, siguiendo el README: `docker compose up -d db` (raíz); desde `backend/` `alembic upgrade head`, `python -m app.db.seed` y `uvicorn app.main:app`; desde `frontend/` `npm run dev`. Verificar `http://localhost:5173` (catálogo con productos) y `http://localhost:8000/docs`.
-- [ ] Para mostrar el pago con tarjeta (paso 7): credenciales de **prueba** de MercadoPago en `backend/.env`, `ngrok http 8000` corriendo y el webhook `<URL de ngrok>/api/v1/pagos/webhook` cargado en el panel de MercadoPago con el evento «Order (Mercado Pago)» (la URL de ngrok cambia en cada reinicio; ver README, «MercadoPago sandbox»). Probar un pago antes de grabar. Si no hay ngrok, usar la variante con `EFECTIVO` indicada en los pasos 6 a 9.
-- [ ] Tener a mano una tarjeta de prueba aprobada (titular `APRO`) del panel de MercadoPago.
-- [ ] Cuentas listas: las tres de arriba, cada una en una ventana o perfil distinto del navegador para no cerrar sesión durante la grabación. Una dirección de entrega ya creada para el cliente (`/direcciones`).
-- [ ] Navegador limpio: zoom al 100 % (o 110 % para que se lea), ventana en 1440x900, sin extensiones visibles, sin marcadores, cerrar las demás pestañas y las notificaciones.
-- [ ] Terminal lista con dos pestañas, `backend/` y `frontend/`, con el venv activado y la fuente grande. Correr una vez `pytest --cov --cov-report=term` para saber cuánto tarda y recortar la espera en la edición.
-- [ ] Probar el audio y practicar el guion completo con cronómetro; si pasa de 10:00, acortar los pasos 6, 12 y 14.
+- [x] Base y stack arriba, siguiendo el README: `docker compose up -d db` (raíz); desde `backend/` `alembic upgrade head`, `python -m app.db.seed` y `uvicorn app.main:app`; desde `frontend/` `npm run dev`. Verificar `http://localhost:5173` (catálogo con productos) y `http://localhost:8000/docs`.
+- [x] Para mostrar el pago con tarjeta (paso 7): credenciales de **prueba** de MercadoPago en `backend/.env`, `ngrok http 8000` corriendo y el webhook `<URL de ngrok>/api/v1/pagos/webhook` cargado en el panel de MercadoPago con el evento «Order (Mercado Pago)» (la URL de ngrok cambia en cada reinicio; ver README, «MercadoPago sandbox»). Probar un pago antes de grabar. Si no hay ngrok, usar la variante con `EFECTIVO` indicada en los pasos 6 a 9.
+- [x] Tener a mano una tarjeta de prueba aprobada (titular `APRO`) del panel de MercadoPago.
+- [x] Cuentas listas: las tres de arriba, cada una en una ventana o perfil distinto del navegador para no cerrar sesión durante la grabación. Una dirección de entrega ya creada para el cliente (`/direcciones`).
+- [x] Navegador limpio: zoom al 100 % (o 110 % para que se lea), ventana en 1440x900, sin extensiones visibles, sin marcadores, cerrar las demás pestañas y las notificaciones.
+- [x] Terminal lista con dos pestañas, `backend/` y `frontend/`, con el venv activado y la fuente grande. Correr una vez `pytest --cov --cov-report=term` para saber cuánto tarda y recortar la espera en la edición.
+- [x] Probar el audio y practicar el guion completo con cronómetro; si pasa de 10:00, acortar los pasos 6, 12 y 14.
 
 ## Guion por pasos
 

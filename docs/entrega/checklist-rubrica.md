@@ -1,10 +1,10 @@
 # Checklist de la rúbrica y de entrega
 
-Estado al 2026-11-21 (rama `dev`, con `c-25b1-deuda-heredada` archivado). Fuente de los criterios: [knowledge-base/13_rubrica_y_entrega.md](../../knowledge-base/13_rubrica_y_entrega.md).
+Estado al 2026-11-25 (rama `dev`, con `c-25b1-deuda-heredada` archivado). Fuente de los criterios: [knowledge-base/13_rubrica_y_entrega.md](../../knowledge-base/13_rubrica_y_entrega.md).
 
 Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay evidencia pero falta algo) y **pendiente** (depende del usuario o de la revisión final). La puntuación la asigna el docente: aquí solo se declara si el criterio está cubierto, no cuántos puntos vale el resultado.
 
-> Capturas y recorrido E2E (tramos A y C) ya ejecutados el 2026-11-23; la evidencia que todavía no existe (tramo de tarjeta, video, verify visual) figura como pendiente (tareas 2.3, 3.2 y 5.x de `openspec/changes/c-25b-entrega-docs-video/`).
+> Toda la evidencia está generada: capturas y recorrido E2E (tramos A y C) el 2026-11-23, pago con tarjeta sandbox (tramo B) y repositorio público el 2026-11-24, y video el 2026-11-25.
 
 ## Criterios de la rúbrica (200 puntos)
 
@@ -19,10 +19,10 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 | Frontend — Estructura y TypeScript | 10 | cumplido | Feature-Sliced Design y `strict: true` sin `any`; `frontend/tests/architecture/fsd-boundaries.test.ts`, `npm run typecheck`, `npm run lint` |
 | Frontend — Zustand | 10 | cumplido | 4 stores tipados: `frontend/src/shared/auth/auth-store.ts`, `frontend/src/entities/cart/model/cart-store.ts`, `frontend/src/shared/model/ui-store.ts`, `frontend/src/entities/payment/model/payment-store.ts`; `frontend/src/entities/cart/__tests__/cart-store.test.ts` |
 | Frontend — TanStack Query | 15 | cumplido | `useQuery`/`useMutation` con claves jerárquicas e invalidación tras mutaciones, interceptor de refresh en 401; `frontend/src/shared/api/` y su sección en `frontend/README.md` |
-| Frontend — Funcionalidades cliente | 15 | parcial | Catálogo con debounce, filtros y paginación, carrito persistente, checkout con `CardPayment` y seguimiento con polling (`frontend/src/pages/`); falta la ejecución registrada del recorrido y las capturas (pendiente de la revisión del usuario) |
-| Frontend — Panel Admin | 15 | parcial | Dashboard con KPIs y recharts, CRUD de categorías, productos e ingredientes, gestión de pedidos con FSM y usuarios (`frontend/src/pages/admin-*`, `gestion-pedidos`); falta la verificación visual y las capturas (pendiente) |
-| UI/UX y diseño | 10 | parcial | Design system Revision 3 (`design-system/`), mockups aprobados por change en `openspec/changes/archive/*/mockups/`, skeletons, toasts, modales de confirmación y estados vacíos; falta el verify visual pantalla por pantalla (tarea 3.2, pendiente) |
-| Calidad de código | 10 | parcial | Convenciones, funciones acotadas, docstrings y READMEs por parte; README raíz como guía única, probado en clon limpio (CE-02, 2026-11-23) |
+| Frontend — Funcionalidades cliente | 15 | cumplido | Catálogo con debounce, filtros y paginación, carrito persistente, checkout con `CardPayment` y seguimiento con polling (`frontend/src/pages/`); recorrido E2E registrado en [recorrido-e2e.md](recorrido-e2e.md) (tramos A, B y C, 2026-11-23/24), capturas en [capturas/](capturas/) y video (CE-13) |
+| Frontend — Panel Admin | 15 | cumplido | Dashboard con KPIs y recharts, CRUD de categorías, productos e ingredientes, gestión de pedidos con FSM y usuarios (`frontend/src/pages/admin-*`, `gestion-pedidos`); capturas en [capturas/](capturas/) y verify visual en `openspec/changes/archive/2026-11-25-c-25b-entrega-docs-video/verify/informe-visual.md` (2026-11-23) |
+| UI/UX y diseño | 10 | cumplido | Design system aprobado (`design-system/`), mockups aprobados por change en `openspec/changes/archive/*/mockups/`, skeletons, toasts, modales de confirmación y estados vacíos; verify visual de 17 pantallas en dos viewports (tarea 3.2, 2026-11-23): 0 blocker, el major y los menores elegidos corregidos (tareas 8.1–8.4) |
+| Calidad de código | 10 | cumplido | Convenciones, funciones acotadas, docstrings y READMEs por parte; README raíz como guía única con árboles de carpetas, probado en clon limpio (CE-02, 2026-11-23) |
 
 ## Bonus y penalización
 
@@ -30,7 +30,7 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 |------|--------|-----------|
 | Bonus +10 — tests con pytest y cobertura mayor a 60 % | cumplido | Suite de integración y unit en `backend/tests/`; `pytest --cov` falla bajo 60 % (`backend/.coveragerc`, `fail_under = 60`); cubre pedidos, pagos y auth (`test_pedidos*.py`, `test_pago*.py`, `test_auth*.py`) |
 | Bonus +10 — deploy funcional con URL accesible | pendiente | Decisión del usuario (2026-11-21, PA-17): **no se hace deploy**; el bonus de +10 queda sin reclamar |
-| Penalización −30 % si el proyecto no corre siguiendo el README | pendiente | README raíz reescrito como guía única; la prueba en máquina limpia (tarea 1.4) la hace el usuario |
+| Penalización −30 % si el proyecto no corre siguiendo el README | cumplido (evitada) | Prueba en clon limpio siguiendo solo el README hecha por el usuario el 2026-11-23 (tarea 1.4, CE-02) |
 
 ## Checklist de entrega (CE-01..CE-14)
 
@@ -48,12 +48,12 @@ Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay e
 | CE-10 | UoW correcto (ningún `service.session.commit()` directo) | cumplido | `backend/tests/unit/test_unit_of_work.py`; ningún `commit(` en `backend/app/modules/` (búsqueda del 2026-11-21) |
 | CE-11 | 4 stores Zustand tipados y con `persist` correcto | cumplido | Los cuatro stores del criterio de Zustand; `cart-store` y `ui-store` usan `persist`, `auth-store` y `payment-store` viven en memoria a propósito (token de acceso y pago en curso no se persisten) |
 | CE-12 | Capturas de al menos 10 pantallas distintas | cumplido | 17 pantallas distintas en 1440x900 y 390x844 (34 archivos) en [capturas/](capturas/), tomadas el 2026-11-23 (tarea 3.1) |
-| CE-13 | Link a video de demostración (5-10 min) en el README | pendiente (usuario) | El usuario graba y publica el video siguiendo el guion de [guion-video.md](guion-video.md) (9:40 previstos); el enlace se agrega al README (tareas 5.1 y 5.2) |
+| CE-13 | Link a video de demostración (5-10 min) en el README | cumplido (2026-11-25) | Video publicado en YouTube y enlazado en el README: https://www.youtube.com/watch?v=ty1VeeI9Aig (abre sin iniciar sesión). Dura 14:38, por encima de los 10 minutos de la consigna; el usuario decidió dejarlo así. Sigue el guion de [guion-video.md](guion-video.md) (tareas 5.1 y 5.2) |
 | CE-14 | Repositorio público verificado con sesión cerrada | cumplido (2026-11-24) | El usuario lo abrió en una ventana privada; además la página responde 200 sin sesión y la API de GitHub informa `visibility: public` (tarea 5.3) |
 
 ## Pendientes del usuario
 
-- Grabar y publicar el video (CE-13).
+Ninguno: el video se publicó el 2026-11-25 (CE-13).
 
 ## Limitaciones conocidas
 

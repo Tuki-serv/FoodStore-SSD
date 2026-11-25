@@ -199,9 +199,22 @@ def test_checklist_filas_ce_tienen_estado_y_evidencia() -> None:
         assert celdas[3], fila
 
 
-@pytest.mark.parametrize("clave", ["CE-13"])
-def test_checklist_no_declara_cumplido_lo_que_depende_del_usuario_o_de_la_espera(clave: str) -> None:
-    assert "pendiente" in _filas_ce()[clave].lower()
+VIDEO_URL = "https://www.youtube.com/watch?v=ty1VeeI9Aig"  # publicado por el usuario (2026-11-25, tarea 5.1)
+
+
+def test_readme_enlaza_el_video_publicado_con_su_duracion() -> None:
+    lineas = [l for l in _texto(README).splitlines() if "Video de demostración" in l]
+
+    assert len(lineas) == 1
+    assert VIDEO_URL in lineas[0] and "14:38" in lineas[0]
+    assert "TBD" not in lineas[0]
+
+
+def test_checklist_declara_cumplido_el_video_con_su_enlace_y_su_duracion() -> None:
+    fila = _filas_ce()["CE-13"].lower()
+
+    assert "cumplido (2026-11-25)" in fila and "pendiente" not in fila
+    assert VIDEO_URL.lower() in fila and "14:38" in fila
 
 
 # Verificados por el usuario el 2026-11-24 (tareas 2.3 y 5.3): se declaran cumplidos con la fecha de la verificación.

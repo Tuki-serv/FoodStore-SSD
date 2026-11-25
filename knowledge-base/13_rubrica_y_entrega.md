@@ -51,20 +51,17 @@ Escala: 181-200 Excelente (90-100%); 141-180 Bueno (70-89%); 101-140 Regular (50
 
 FastAPI, SQLModel, Pydantic v2, Alembic, TanStack Query v5, TanStack Form, Zustand, Tailwind CSS, recharts, slowapi, MercadoPago Developers AR, SDK Python y SDK React de MercadoPago (URLs oficiales en el apéndice del documento).
 
-## Estado frente a la rúbrica (backend actual)
+## Estado frente a la rúbrica (al cierre de C-25b, 2026-11-25)
 
-> **Regla de la KB (DD-16/DD-17):** la spec (integrador v5.0) es el objetivo; el código actual es el estado actual con deuda técnica. Tabla consolidada: [09](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada).
+> **Regla de la KB (DD-16/DD-17):** la spec (integrador v5.0) es el objetivo. El detalle por criterio, con su evidencia (tests, capturas, recorrido E2E, video), vive en [docs/entrega/checklist-rubrica.md](../docs/entrega/checklist-rubrica.md); esta tabla es el resumen. Deuda que sigue abierta: tabla consolidada en [09](09_decisiones_y_supuestos.md#deuda-técnica--divergencias-código-vs-spec-tabla-consolidada) y «Limitaciones conocidas» del README.
 
-La rúbrica evalúa contra la spec v5.0; cada celda "Estado observado" es el código actual y su distancia al objetivo es deuda técnica (ver DT-xx).
-
-| Área | Estado observado en el código actual |
-|------|-----------------------------|
-| Estructura backend | Capas + módulos por dominio; core separado; Alembic con migración 001 (`alembic upgrade head`, CE-04 cubierto por test; DT-09 resuelta en C-06) |
-| Modelo de datos | Completo y con extras (UnidadMedida); sin `direccion_snapshot` |
-| UoW/Repo | UoW genérico y por módulo; `BaseRepository`; service de categorías/pagos usan sesión directa en algunos puntos (`PaymentService` usa `self._session.get`) |
-| Servicio | FSM por rol; RN de historial/terminal/motivo cubiertas; EN_CAMINO ausente (DT-03) |
-| REST | `/api/v1`, schemas separados; paginación mixta; sin 402 definido |
-| MercadoPago | SDK + webhook + tabla Pago; idempotency_key generado pero no usado para dedupe; Checkout Pro (DT-01, DT-05, DT-06, DT-20) |
-| Frontend | No incluido (DT-24) |
-| Tests | Suite de integración y unit del rate limiter (potencial bonus) |
-| Deploy | No evidenciado |
+| Área | Estado |
+|------|--------|
+| Backend (estructura, modelo, UoW/Repository, servicio, REST) | Cumplido: capas `router → service → unit of work → repository → models` verificadas por test, Alembic, seed, FSM del pedido con historial append-only, `/api/v1` con Swagger completo |
+| MercadoPago | Cumplido: Checkout API con `CardPayment`, `idempotency_key`, webhook con firma verificada e idempotente; pago sandbox end-to-end verificado (CE-09, 2026-11-24) |
+| Frontend (estructura, Zustand, TanStack Query, cliente, admin) | Cumplido: FSD con TypeScript estricto, 4 stores, TanStack Query con refresh en 401, recorrido de compra a entrega y panel admin con dashboard |
+| UI/UX | Cumplido: design system Revision 4 aprobado, mockups por change, verify visual de 17 pantallas (0 blocker) |
+| Calidad y entrega | Cumplido: README como guía única probada en clon limpio, checklist CE-01..CE-14 completo, capturas, repo público y video (CE-13, 14:38, por encima de los 10 min de la consigna por decisión del usuario) |
+| Bonus tests (+10) | Cumplido: `pytest --cov` con piso del 60 % |
+| Bonus deploy (+10) | Sin reclamar: sin deploy por decisión del usuario (PA-17) |
+| Diferidos (X1–X4 de C-25b1) | Documentados como limitaciones en el README: idempotencia de creación de pedidos (X1), envío de $50 también en retiro (X2, PA-13), filtros en UTC sin multi-estado ni búsqueda (X3), escala por defecto de Tailwind (X4) |

@@ -28,7 +28,7 @@ la spec antes de archivarse.
 ## Repositorio y equipo
 
 - **Repositorio**: https://github.com/Tuki-serv/FoodStore-SSD
-- **Video de demostración** (5 a 10 minutos): `(TBD)`, se enlazará aquí cuando se publique.
+- **Video de demostración** (14:38): https://www.youtube.com/watch?v=ty1VeeI9Aig
 - **Materia, carrera, equipo y docente**: en [docs/entrega/metadatos.md](docs/entrega/metadatos.md).
 
 ## Funcionalidades
@@ -312,7 +312,7 @@ El roadmap completo está en [CHANGES.md](CHANGES.md).
 |------|---------|--------|
 | Fase 0 — backend | seguridad, migraciones, seed, FSM de pedidos, stock y pagos | completa |
 | Fase 1 — frontend | shell, sesión, catálogo, carrito, checkout, pago con MercadoPago, seguimiento de pedidos y panel de administración con dashboard, más la deuda heredada saldada en `c-25b1` | completa |
-| Entrega (C-25b) | documentación y evidencia en [docs/entrega/](docs/entrega/) | quedan a cargo del equipo la prueba en máquina limpia, el pago con tarjeta sandbox, el video y publicar el repositorio |
+| Entrega (C-25b) | documentación y evidencia en [docs/entrega/](docs/entrega/), video publicado | completa |
 | Fase 2 — extras opcionales | cocina/KDS y tiempo real | pendiente de decisión (PA-07) |
 
 ## Cómo se trabajó: OpenSpec + TDD
