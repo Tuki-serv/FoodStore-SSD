@@ -32,8 +32,8 @@ Convenciones:
 
 ## 5. Video y publicación — tareas del usuario
 
-- [ ] 5.1 [USUARIO] Grabar el video siguiendo `guion-video.md` (5–10 min) y subirlo; verifica: enlace accesible sin sesión
-- [ ] 5.2 Agregar el enlace del video al README (CE-13) cuando el usuario lo provea; verifica: escenario «Enlace presente»
+- [x] 5.1 [USUARIO] Grabar el video siguiendo `guion-video.md` (5–10 min) y subirlo; verifica: enlace accesible sin sesión — Hecho (2026-11-25): https://www.youtube.com/watch?v=ty1VeeI9Aig, público (oEmbed 200 sin sesión); dura 14:38, por encima de los 10 min: el usuario decidió dejarlo así
+- [x] 5.2 Agregar el enlace del video al README (CE-13) cuando el usuario lo provea; verifica: escenario «Enlace presente» — Hecho (2026-11-25): enlace y duración en el README, CE-13 cumplido en el checklist; tests `test_readme_enlaza_el_video_publicado_con_su_duracion` y `test_checklist_declara_cumplido_el_video_con_su_enlace_y_su_duracion` (RED → GREEN). Desvío del escenario: la duración (14:38) no está entre 5 y 10 min, aceptado por el usuario
 - [x] 5.3 [USUARIO] Repositorio público y verificado con sesión cerrada (CE-01, CE-14); verifica: el repo abre en una ventana privada y el checklist lo marca — Hecho (2026-11-24): repo público verificado por el usuario en ventana privada; página 200 sin sesión; CE-01 y CE-14 marcados.
 
 ## 6. Deploy opcional [PA-17 / OQ-1 — recomendado: no en este change]
@@ -43,7 +43,7 @@ Convenciones:
 
 ## 7. Integración final
 
-- [ ] 7.1 Actualizar `CHANGES.md` (estado de C-25b, ítems diferidos X1–X4 de `c-25b1-deuda-heredada` con destino) y `knowledge-base/13_rubrica_y_entrega.md` («Estado frente a la rúbrica» al día); verifica: ambos reflejan el estado final y los diferidos — pendiente: se hace al cerrar el change (el estado parcial ya figura en `CHANGES.md`)
+- [x] 7.1 Actualizar `CHANGES.md` (estado de C-25b, ítems diferidos X1–X4 de `c-25b1-deuda-heredada` con destino) y `knowledge-base/13_rubrica_y_entrega.md` («Estado frente a la rúbrica» al día); verifica: ambos reflejan el estado final y los diferidos — Hecho (2026-11-25): C-25b cerrado en `CHANGES.md` con X1–X4 y su destino; «Estado frente a la rúbrica» de la KB 13 reescrito; contador de cerrados en `CLAUDE.md`/`AGENTS.md`; checklist sin filas parciales
 
 ## 8. Correcciones del verify visual
 
