@@ -199,9 +199,16 @@ def test_checklist_filas_ce_tienen_estado_y_evidencia() -> None:
         assert celdas[3], fila
 
 
-@pytest.mark.parametrize("clave", ["CE-01", "CE-09", "CE-13", "CE-14"])
+@pytest.mark.parametrize("clave", ["CE-13"])
 def test_checklist_no_declara_cumplido_lo_que_depende_del_usuario_o_de_la_espera(clave: str) -> None:
     assert "pendiente" in _filas_ce()[clave].lower()
+
+
+# Verificados por el usuario el 2026-11-24 (tareas 2.3 y 5.3): se declaran cumplidos con la fecha de la verificación.
+@pytest.mark.parametrize("clave", ["CE-01", "CE-09", "CE-14"])
+def test_checklist_declara_cumplido_con_fecha_lo_que_el_usuario_verifico(clave: str) -> None:
+    fila = _filas_ce()[clave].lower()
+    assert "cumplido (2026-11-24)" in fila and "pendiente" not in fila
 
 
 METADATOS_CONFIRMADOS = {  # PA-18 resuelta por el usuario (2026-11-23)

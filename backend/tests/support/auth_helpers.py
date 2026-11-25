@@ -1,11 +1,14 @@
 """Helpers compartidos por los tests de sesión (login, renovación, lectura de sesiones)."""
+from datetime import timedelta
 from itertools import count
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
+from app.core.config import settings
 from app.core.security import DUMMY_PASSWORD_HASH, create_access_token, decode_access_token
+from app.core.timestamps import utc_now
 from app.modules.refreshtokens.models import RefreshToken, Sesion
 from app.modules.usuarios.models import Rol, Usuario
 from tests.conftest import presentar_refresh
@@ -79,10 +82,22 @@ def crear_usuario_con_roles(session: Session, roles: list[str]) -> Usuario:
 
 def bearer_con_roles(session: Session, roles: list[str], *, claims_roles: list[str] | None = None) -> dict[str, str]:
     """Headers `Authorization` de un usuario nuevo con `roles` en la BD; el claim `roles` puede desfasarse a propósito."""
-    return bearer_de_usuario(crear_usuario_con_roles(session, roles), claims_roles or roles)
+    return bearer_de_usuario(session, crear_usuario_con_roles(session, roles), claims_roles or roles)
 
 
-def bearer_de_usuario(usuario: Usuario, claims_roles: list[str]) -> dict[str, str]:
-    """Access sin estado (sin fila de sesión) para un usuario existente."""
-    access = create_access_token(sub=str(usuario.id), roles=claims_roles, sid=str(uuid4()))
+def bearer_de_usuario(session: Session, usuario: Usuario, claims_roles: list[str]) -> dict[str, str]:
+    """Access de un usuario existente con una sesión abierta real (el `sid` apunta a una fila de `sesion`).
+
+    El backend exige que la sesión del `sid` exista y esté abierta (revocación inmediata), así que cada llamada inserta
+    una sesión nueva con el vencimiento de un login. Para un `sid` sin sesión usar `access_sin_sesion`.
+    """
+    sesion = Sesion(usuario_id=usuario.id, expires_at=utc_now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
+    session.add(sesion)
+    session.commit()
+    access = create_access_token(sub=str(usuario.id), roles=claims_roles, sid=str(sesion.id))
     return bearer(access)
+
+
+def access_sin_sesion(usuario_id: int, roles: list[str]) -> dict[str, str]:
+    """Access bien firmado y vigente cuyo `sid` no corresponde a ninguna sesión (debe dar 401)."""
+    return bearer(create_access_token(sub=str(usuario_id), roles=roles, sid=str(uuid4())))

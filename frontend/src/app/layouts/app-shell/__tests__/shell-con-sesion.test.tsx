@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { selectEstado, useAuthStore } from '@/shared/auth';
 import { API, server } from '@/test/msw/server';
 import { renderApp } from '@/test/render-app';
@@ -140,5 +140,67 @@ describe('cerrar sesión desde el panel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Ingresar', level: 1 })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/ingresar');
+  });
+});
+
+describe('revalidación de la sesión desde el shell', () => {
+  const SIN_AUTORIZACION = { detail: 'Credenciales inválidas', code: 'HTTP_401', field: null };
+
+  beforeEach(() => {
+    // Solo `Date`: MSW, TanStack Query y `findBy` siguen con timers reales.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    server.use(http.get(`${API}/pedidos/`, () => HttpResponse.json({ items: [], total: 0, page: 1, size: 10, pages: 0 })));
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(document, 'visibilityState');
+    vi.useRealTimers();
+  });
+
+  /** La sesión se cerró en otro dispositivo: `GET /auth/me` y la renovación responden 401. */
+  function cerrarSesionEnOtroDispositivo() {
+    server.use(
+      http.get(`${API}/auth/me`, () => HttpResponse.json(SIN_AUTORIZACION, { status: 401 })),
+      http.post(`${API}/auth/refresh`, () => HttpResponse.json(SIN_AUTORIZACION, { status: 401 })),
+    );
+  }
+
+  it('CLIENT en /carrito que navega a /mis-pedidos pasados 15 s con la sesión cerrada en otro dispositivo va a /ingresar recordando /mis-pedidos', async () => {
+    const { router } = renderApp('/carrito', { sesion: { roles: ['CLIENT'] } });
+    await screen.findByText('Ana Gómez');
+    cerrarSesionEnOtroDispositivo();
+    vi.advanceTimersByTime(16_000);
+
+    await act(() => router.navigate('/mis-pedidos'));
+
+    expect(await screen.findByRole('heading', { name: 'Ingresar', level: 1 })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/ingresar');
+    expect(router.state.location.state).toEqual({ desde: { pathname: '/mis-pedidos', search: '', hash: '' } });
+    expect(selectEstado(useAuthStore.getState())).toBe('anonima');
+  });
+
+  it('CLIENT que vuelve a la pestaña en /carrito pasados 15 s con la sesión cerrada en otro dispositivo va a /ingresar recordando /carrito', async () => {
+    const { router } = renderApp('/carrito', { sesion: { roles: ['CLIENT'] } });
+    await screen.findByText('Ana Gómez');
+    cerrarSesionEnOtroDispositivo();
+    vi.advanceTimersByTime(16_000);
+
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Ingresar', level: 1 })).toBeInTheDocument();
+    expect(router.state.location.state).toEqual({ desde: { pathname: '/carrito', search: '', hash: '' } });
+  });
+
+  it('con la sesión vigente navegar pasados 15 s no cambia de ruta ni cierra la sesión', async () => {
+    const { router } = renderApp('/carrito', { sesion: { roles: ['CLIENT'] } });
+    await screen.findByText('Ana Gómez');
+    vi.advanceTimersByTime(16_000);
+
+    await act(() => router.navigate('/mis-pedidos'));
+
+    expect(await screen.findByRole('heading', { name: 'Mis pedidos', level: 1 })).toBeInTheDocument();
+    expect(selectEstado(useAuthStore.getState())).toBe('autenticada');
   });
 });

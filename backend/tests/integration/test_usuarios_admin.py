@@ -130,7 +130,7 @@ class TestEdicionDeRoles:
         original = _asignaciones(session, creado["id"])["PEDIDOS"]
         # el rol PEDIDOS lo asignó el admin de la fixture; la edición la hace otro admin para distinguir al actor
         otro_admin = crear_usuario_con_roles(session, ["ADMIN"])
-        otro_headers = bearer_de_usuario(otro_admin, ["ADMIN"])
+        otro_headers = bearer_de_usuario(session, otro_admin, ["ADMIN"])
         asignado_original = original.asignado_por_id
         creado_en = original.created_at
 
@@ -304,7 +304,7 @@ class TestListadoPaginadoYFiltro:
 class TestProteccionDeLaPropiaCuenta:
     def _yo(self, session: Session) -> tuple[int, dict]:
         admin = crear_usuario_con_roles(session, ["ADMIN", "CLIENT"])
-        return admin.id, bearer_de_usuario(admin, ["ADMIN", "CLIENT"])
+        return admin.id, bearer_de_usuario(session, admin, ["ADMIN", "CLIENT"])
 
     def test_autodesactivacion_devuelve_409_y_sigue_activo(self, client: TestClient, session: Session):
         yo, headers = self._yo(session)
@@ -375,7 +375,7 @@ class TestSiempreQuedaUnAdmin:
         """Un actor con rol ADMIN siempre es un ADMIN activo más: el último solo se pierde por concurrencia (ver test concurrente)."""
         # El único otro ADMIN activo es el de la fixture; un segundo admin lo desactiva y luego es el último.
         segundo = crear_usuario_con_roles(session, ["ADMIN"])
-        headers = bearer_de_usuario(segundo, ["ADMIN"])
+        headers = bearer_de_usuario(session, segundo, ["ADMIN"])
         fixture_admin_id = _admin_id(session)
         assert client.delete(f"{LISTADO}{fixture_admin_id}", headers=headers).status_code == 204
 

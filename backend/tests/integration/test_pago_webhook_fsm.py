@@ -140,7 +140,7 @@ def test_confirmacion_manual_y_automatica_registran_una_fila_y_solo_difiere_el_a
     resp_manual = client.patch(
         f"/api/v1/pedidos/{manual.id}/estado",
         json={"nuevo_estado": "CONFIRMADO"},
-        headers=bearer_de_usuario(pedidos, ["PEDIDOS"]),
+        headers=bearer_de_usuario(session, pedidos, ["PEDIDOS"]),
     )
     resp_auto = _webhook(client)
 

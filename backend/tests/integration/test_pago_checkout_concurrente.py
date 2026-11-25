@@ -22,6 +22,7 @@ from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pagos.models import Pago
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
+from app.modules.refreshtokens.models import Sesion
 from app.modules.usuarios.models import Rol, Usuario, UsuarioRol
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
 from tests.support.mp_webhook import MPFalso
@@ -63,7 +64,7 @@ def escenario_fixture(engine_test: Engine) -> Iterator[dict]:
         datos = {
             "engine": engine_test,
             "cliente_id": cliente.id,
-            "headers": bearer_de_usuario(cliente, ["CLIENT"]),
+            "headers": bearer_de_usuario(db, cliente, ["CLIENT"]),
             "producto_id": prod.id,
             "pedido_id": pedido.id,
         }
@@ -74,6 +75,7 @@ def escenario_fixture(engine_test: Engine) -> Iterator[dict]:
         db.exec(delete(Pago).where(Pago.pedido_id == datos["pedido_id"]))
         db.exec(delete(Pedido).where(Pedido.id == datos["pedido_id"]))
         db.exec(delete(Producto).where(Producto.id == datos["producto_id"]))
+        db.exec(delete(Sesion).where(Sesion.usuario_id == datos["cliente_id"]))
         db.exec(delete(UsuarioRol).where(UsuarioRol.usuario_id == datos["cliente_id"]))
         db.exec(delete(Usuario).where(Usuario.id == datos["cliente_id"]))
         if catalogos_vacios:  # no dejar catálogos confirmados que otros tests no esperan

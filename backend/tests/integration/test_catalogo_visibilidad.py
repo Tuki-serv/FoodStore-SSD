@@ -232,8 +232,41 @@ def test_lectura_publica_con_access_de_usuario_dado_de_baja_es_401_igual_que_un_
     session.commit()
     esperado = client.get(ruta, headers={"Authorization": "Bearer no-es-un-jwt"})
 
-    response = client.get(ruta, headers=bearer_de_usuario(usuario, ["ADMIN"]))
+    response = client.get(ruta, headers=bearer_de_usuario(session, usuario, ["ADMIN"]))
 
     assert response.status_code == 401
     assert response.json() == esperado.json()
     assert response.headers.get("www-authenticate") == esperado.headers.get("www-authenticate")
+
+
+@pytest.mark.parametrize(
+    "ruta",
+    ["/api/v1/productos?estado=ELIMINADO", "/api/v1/categorias?estado=ELIMINADO", "/api/v1/unidades-medida/999999"],
+)
+def test_lectura_publica_con_access_de_una_sesion_cerrada_por_logout_all_es_401_igual_que_un_access_invalido(
+    client: TestClient, session: Session, ruta: str
+) -> None:
+    from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
+
+    admin = crear_usuario_con_roles(session, ["ADMIN"])
+    cerrado = bearer_de_usuario(session, admin, ["ADMIN"])
+    abierto = bearer_de_usuario(session, admin, ["ADMIN"])
+    assert client.post("/api/v1/auth/logout-all", headers=abierto).status_code == 204
+    esperado = client.get(ruta, headers={"Authorization": "Bearer no-es-un-jwt"})
+
+    response = client.get(ruta, headers=cerrado)
+
+    assert response.status_code == 401
+    assert response.json() == esperado.json()
+    assert response.headers.get("www-authenticate") == esperado.headers.get("www-authenticate")
+
+
+def test_lectura_publica_sin_header_sigue_siendo_anonima_con_sesiones_cerradas_en_la_base(
+    client: TestClient, session: Session
+) -> None:
+    from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
+
+    admin = crear_usuario_con_roles(session, ["ADMIN"])
+    client.post("/api/v1/auth/logout-all", headers=bearer_de_usuario(session, admin, ["ADMIN"]))
+
+    assert client.get("/api/v1/productos").status_code == 200

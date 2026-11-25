@@ -50,22 +50,25 @@ def test_logout_repetido_responde_204_y_conserva_motivo_e_instante_del_primer_ci
     segundo = client.post("/api/v1/auth/logout", headers=bearer(access))
 
     assert (primero.status_code, segundo.status_code) == (204, 204)
+    assert cookie_de_refresh_borrada(primero) and cookie_de_refresh_borrada(segundo)
     despues = sesion_del_access(session, access)
     assert despues.id == sesion.id
     assert despues.revoked_reason == "LOGOUT"
     assert despues.revoked_at == instante
 
 
-def test_el_access_sigue_autenticando_despues_del_logout_hasta_su_vencimiento(
-    client: TestClient, normal_user: dict, normal_user_data: dict
+def test_logout_de_una_sesion_cerrada_por_logout_all_responde_204_borra_la_cookie_y_conserva_logout_all(
+    client: TestClient, session: Session, normal_user: dict, normal_user_data: dict
 ) -> None:
-    access = iniciar_sesion(client, normal_user_data).json()["access_token"]
-    client.post("/api/v1/auth/logout", headers=bearer(access))
+    desde = iniciar_sesion(client, normal_user_data).json()["access_token"]
+    otro = iniciar_sesion(client, normal_user_data).json()["access_token"]
+    client.post("/api/v1/auth/logout-all", headers=bearer(desde))
 
-    response = client.get("/api/v1/auth/me", headers=bearer(access))
+    response = client.post("/api/v1/auth/logout", headers=bearer(otro))
 
-    assert response.status_code == 200
-    assert response.json()["email"] == normal_user_data["email"]
+    assert response.status_code == 204
+    assert cookie_de_refresh_borrada(response)
+    assert sesion_del_access(session, otro).revoked_reason == "LOGOUT_ALL"
 
 
 def test_logout_con_el_access_de_otro_usuario_no_cierra_sesiones_ajenas(
@@ -114,6 +117,20 @@ def test_logout_all_conserva_el_motivo_de_las_sesiones_ya_cerradas(
     motivos = {s.id: s.revoked_reason for s in todas_las_sesiones(session) if s.usuario_id == normal_user["id"]}
     assert motivos[sesion_del_access(session, cerrada).id] == "LOGOUT"
     assert motivos[sesion_del_access(session, abierta).id] == "LOGOUT_ALL"
+
+
+def test_logout_all_con_el_access_de_una_sesion_ya_cerrada_devuelve_401_y_no_cierra_la_sesion_nueva(
+    client: TestClient, session: Session, normal_user: dict, normal_user_data: dict
+) -> None:
+    a1 = iniciar_sesion(client, normal_user_data).json()["access_token"]
+    client.post("/api/v1/auth/logout", headers=bearer(a1))
+    nueva = iniciar_sesion(client, normal_user_data).json()["access_token"]
+
+    response = client.post("/api/v1/auth/logout-all", headers=bearer(a1))
+
+    assert response.status_code == 401
+    assert sesion_del_access(session, nueva).revoked_at is None
+    assert client.get("/api/v1/auth/me", headers=bearer(nueva)).status_code == 200
 
 
 # ── Historial ───────────────────────────────────────────────────────────────

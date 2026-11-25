@@ -101,6 +101,21 @@ class AuthService:
             sesion.revoked_reason = "LOGOUT"
             uow.sesiones.update(sesion)
 
+    def sesion_abierta(self, sid: UUID, usuario_id: int) -> bool:
+        """`True` si la sesión `sid` existe, es del usuario, no está cerrada y no venció (regla única de «sesión abierta»).
+
+        Solo lectura: la usan las dependencias de autenticación en cada pedido para que un access deje de valer
+        apenas se cierra su sesión (RN-AU-06), sin esperar a su `exp`.
+        """
+        with self.uow as uow:
+            sesion = uow.sesiones.get_by_id(sid)
+            return (
+                sesion is not None
+                and sesion.usuario_id == usuario_id
+                and sesion.revoked_at is None
+                and sesion.expires_at > utc_now()
+            )
+
     def logout_all(self, usuario_id: int) -> None:
         """Cierra todas las sesiones abiertas del usuario con motivo `LOGOUT_ALL`."""
         with self.uow:

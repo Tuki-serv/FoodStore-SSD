@@ -5,7 +5,13 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from slowapi.util import get_remote_address
 
-from app.modules.auth.dependencies import AccessClaims, AuthServiceDep, get_access_claims, get_current_active_user
+from app.modules.auth.dependencies import (
+    AccessClaims,
+    AuthServiceDep,
+    get_access_claims,
+    get_access_claims_firmados,
+    get_current_active_user,
+)
 from app.modules.auth.cookies import REFRESH_COOKIE_NAME, clear_refresh_cookie, set_refresh_cookie
 from app.modules.auth.schemas import Token
 from app.modules.auth.service import RefreshRechazado
@@ -66,9 +72,13 @@ def refresh(
 
 @auth_router.post("/logout", summary="Cerrar la sesión actual", responses=respuestas_error(401), status_code=status.HTTP_204_NO_CONTENT)
 def logout(
-    response: Response, claims: Annotated[AccessClaims, Depends(get_access_claims)], svc: AuthServiceDep
+    response: Response, claims: Annotated[AccessClaims, Depends(get_access_claims_firmados)], svc: AuthServiceDep
 ) -> None:
-    """Cierra la sesión del access (`sid`) y borra la cookie del refresh. Sin cuerpo; idempotente."""
+    """Cierra la sesión del access (`sid`) y borra la cookie del refresh. Sin cuerpo; idempotente.
+
+    Basta un access bien firmado y vigente: no exige que la sesión siga abierta, así un cierre repetido (o tras un
+    logout-all) responde 204 y borra la cookie igual.
+    """
     svc.logout(claims.sid, claims.usuario_id)
     clear_refresh_cookie(response)
 

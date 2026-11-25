@@ -30,7 +30,7 @@ def _estado_en_bd(session: Session, pedido_id: int) -> str:
 
 def _actor(session: Session, roles: list[str]) -> tuple[int, dict[str, str]]:
     usuario = crear_usuario_con_roles(session, roles)
-    return usuario.id, bearer_de_usuario(usuario, roles)
+    return usuario.id, bearer_de_usuario(session, usuario, roles)
 
 
 def _cambiar_estado(client: TestClient, headers: dict, pedido_id: int, destino: str, motivo: str | None = None):
@@ -79,7 +79,7 @@ def test_cancelar_propio_stock_mas_client_cancela_pedido_pendiente(client: TestC
     usuario = crear_usuario_con_roles(session, ["STOCK", "CLIENT"])
     pedido = _pedido(session, usuario.id, "PENDIENTE")
 
-    response = _cancelar_propio(client, bearer_de_usuario(usuario, ["STOCK", "CLIENT"]), pedido.id)
+    response = _cancelar_propio(client, bearer_de_usuario(session, usuario, ["STOCK", "CLIENT"]), pedido.id)
 
     assert response.status_code == 200
     assert _estado_en_bd(session, pedido.id) == "CANCELADO"
@@ -89,7 +89,7 @@ def test_cancelar_propio_solo_client_en_en_prep_recibe_409_y_no_cambia(client: T
     usuario = crear_usuario_con_roles(session, ["CLIENT"])
     pedido = _pedido(session, usuario.id, "EN_PREP")
 
-    response = _cancelar_propio(client, bearer_de_usuario(usuario, ["CLIENT"]), pedido.id)
+    response = _cancelar_propio(client, bearer_de_usuario(session, usuario, ["CLIENT"]), pedido.id)
 
     assert response.status_code == 409
     assert _estado_en_bd(session, pedido.id) == "EN_PREP"
@@ -101,7 +101,7 @@ def test_cancelar_propio_client_mas_admin_en_en_prep_cancela_por_union_de_roles(
     usuario = crear_usuario_con_roles(session, ["CLIENT", "ADMIN"])
     pedido = _pedido(session, usuario.id, "EN_PREP")
 
-    response = _cancelar_propio(client, bearer_de_usuario(usuario, ["CLIENT", "ADMIN"]), pedido.id)
+    response = _cancelar_propio(client, bearer_de_usuario(session, usuario, ["CLIENT", "ADMIN"]), pedido.id)
 
     assert response.status_code == 200
     assert _estado_en_bd(session, pedido.id) == "CANCELADO"

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useCerrarSesion, useSesion } from '@/entities/session';
+import { useCerrarSesion, useRevalidarSesion, useSesion } from '@/entities/session';
 import { selectEstado, useAuthStore } from '@/shared/auth';
 import { RUTAS } from '@/shared/config';
 import { AppShell } from './app-shell';
@@ -19,6 +19,8 @@ export function ShellConSesion() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const cerrar = useCerrarSesion();
+  // Enterarse de una sesión cerrada en otro dispositivo al navegar y al volver a la pestaña (acotado a un pedido cada 15 s).
+  useRevalidarSesion(pathname);
   const cerrando = useRef(false);
 
   useEffect(() => {

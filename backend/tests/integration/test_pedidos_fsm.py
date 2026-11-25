@@ -52,7 +52,7 @@ def _estado_en_bd(session: Session, pedido_id: int) -> str:
 
 def _actor(session: Session, roles: list[str]) -> tuple[int, dict[str, str]]:
     usuario = crear_usuario_con_roles(session, roles)
-    return usuario.id, bearer_de_usuario(usuario, roles)
+    return usuario.id, bearer_de_usuario(session, usuario, roles)
 
 
 def _estado(client: TestClient, headers: dict, pedido_id: int, destino: str, motivo: str | None = None):
@@ -250,7 +250,7 @@ def test_cliente_cancela_su_pedido_confirmado(client: TestClient, session: Sessi
     usuario = crear_usuario_con_roles(session, ["CLIENT"])
     pedido = _pedido(session, usuario.id, "CONFIRMADO")
 
-    response = _cancelar_propio(client, bearer_de_usuario(usuario, ["CLIENT"]), pedido.id, "me arrepentí")
+    response = _cancelar_propio(client, bearer_de_usuario(session, usuario, ["CLIENT"]), pedido.id, "me arrepentí")
 
     assert response.status_code == 200
     assert _estado_en_bd(session, pedido.id) == "CANCELADO"
@@ -260,7 +260,7 @@ def test_cliente_solo_client_no_cancela_en_preparacion(client: TestClient, sessi
     usuario = crear_usuario_con_roles(session, ["CLIENT"])
     pedido = _pedido(session, usuario.id, "EN_PREP")
 
-    response = _cancelar_propio(client, bearer_de_usuario(usuario, ["CLIENT"]), pedido.id)
+    response = _cancelar_propio(client, bearer_de_usuario(session, usuario, ["CLIENT"]), pedido.id)
 
     assert response.status_code == 409
     assert _estado_en_bd(session, pedido.id) == "EN_PREP"

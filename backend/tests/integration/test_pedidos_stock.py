@@ -41,7 +41,7 @@ def _cambiar(client: TestClient, headers: dict, pedido_id: int, destino: str, mo
 
 
 def _headers(session: Session, *roles: str) -> dict[str, str]:
-    return bearer_de_usuario(crear_usuario_con_roles(session, list(roles)), list(roles))
+    return bearer_de_usuario(session, crear_usuario_con_roles(session, list(roles)), list(roles))
 
 
 # ─── Crear no descuenta ──────────────────────────────────────────────────────
