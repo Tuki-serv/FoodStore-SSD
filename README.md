@@ -104,6 +104,50 @@ Food-Store-Prueba/
 └── CLAUDE.md / AGENTS.md  # instrucciones para agentes
 ```
 
+#### Backend (`backend/`): capas por módulo
+
+```
+backend/
+├── app/
+│   ├── main.py              # create_app(): routers bajo /api/v1, CORS, rate limit
+│   ├── core/                # bases genéricas compartidas por todos los módulos
+│   │   ├── repository.py    # BaseRepository[T] (CRUD genérico)
+│   │   ├── service.py       # BaseService[T]
+│   │   ├── uow.py           # Unit of Work (commit/rollback por request)
+│   │   ├── security.py      # JWT y bcrypt
+│   │   ├── permissions.py   # RBAC por rol
+│   │   ├── pagination.py, errors.py, config.py, database.py
+│   │   └── mixins/          # auditoría / soft delete
+│   ├── modules/             # un módulo por dominio, todos con la misma forma
+│   │   ├── pedidos/         # models → repository → unit_of_work → service → router
+│   │   │                    #   + schemas.py, fsm.py (máquina de estados), filtros.py
+│   │   ├── pagos/           # MercadoPago: pago con tarjeta y webhook idempotente
+│   │   ├── auth/, usuarios/, refreshtokens/
+│   │   ├── productos/, categorias/, ingredientes/, unidades_medida/
+│   │   └── direcciones/, admin/ (métricas del dashboard), health/
+│   └── db/                  # seed.py, reset.py, registro de modelos
+├── alembic/                 # migraciones del esquema
+├── tests/                   # pytest contra PostgreSQL real (foodstore_test)
+├── requirements.txt, pytest.ini, Dockerfile
+```
+
+#### Frontend (`frontend/src/`): Feature-Sliced Design
+
+```
+frontend/src/
+├── app/         # arranque: providers (TanStack Query), router, layouts, estilos
+├── pages/       # una carpeta por pantalla: catalogo, producto, carrito, finalizar-compra,
+│                #   pago-pedido, mis-pedidos, gestion-pedidos, admin-dashboard,
+│                #   admin-productos, admin-categorias, admin-usuarios, ingresar, registrarse...
+├── features/    # acciones del usuario: agregar-al-carrito, cambiar-estado-pedido, pagar-con-tarjeta
+├── entities/    # entidades del dominio (api + model + ui): producto, pedido, cart, session,
+│                #   categoria, usuario, direccion, payment, estadistica...
+├── shared/      # sin dominio: api (Axios + interceptor de refresh), ui, lib, config, auth
+└── test/        # utilidades de Vitest y handlers de MSW
+```
+
+Las capas del frontend solo importan hacia abajo (`app → pages → features → entities → shared`), igual que el backend (`router → service → unit of work → repository → models`).
+
 ## Cómo correrlo
 
 ### Requisitos
