@@ -13,7 +13,15 @@ from sqlalchemy.engine import Engine
 
 from app.core.security import verify_password
 from app.db.migrations import upgrade_to_head
-from app.db.seed import seed
+from app.db.seed import seed as seed_completo
+
+
+def seed(engine: Engine, *, con_ventas: bool = False) -> None:
+    """Estos tests tratan de catálogos, usuarios y datos de demo: sin ventas (tienen su propio archivo) salvo pedido explícito.
+
+    Evita sumar ~3 s por corrida a una suite que corre el seed decenas de veces.
+    """
+    seed_completo(engine, con_ventas=con_ventas)
 
 
 def _migrar(engine: Engine) -> None:
@@ -129,7 +137,7 @@ def test_seed_sobre_catalogo_de_estados_viejo_lo_reconcilia_y_conserva_pedidos_e
     pedido_id = _insertar_pedido(migrations_db, usuario_id, "CANCELADO", "EFECTIVO")
     historial_antes = _filas(migrations_db, "SELECT * FROM historial_estado_pedido ORDER BY id")
 
-    seed(migrations_db)
+    seed(migrations_db, con_ventas=False)  # el historial previo no se toca; las ventas de demo tienen su propio test
 
     estados = _filas(migrations_db, "SELECT codigo, orden, es_terminal FROM estado_pedido ORDER BY orden")
     assert estados == [
@@ -262,7 +270,7 @@ def test_seed_sobre_base_nueva_crea_los_datos_de_demostracion_con_sus_relaciones
     roles_de_prueba = _filas(
         migrations_db,
         "SELECT u.email, ur.rol_codigo FROM usuario u JOIN usuario_rol ur ON ur.usuario_id = u.id "
-        "WHERE u.email <> 'admin@foodstore.com' ORDER BY u.email",
+        "WHERE u.email <> 'admin@foodstore.com' AND u.email NOT LIKE '%@demo.foodstore.com' ORDER BY u.email",
     )
     assert roles_de_prueba == [
         ("cliente@foodstore.com", "CLIENT"),
@@ -277,13 +285,96 @@ def test_seed_sobre_base_nueva_crea_los_datos_de_demostracion_con_sus_relaciones
     }
     assert conteos == {
         "unidades_medida": 7,
-        "categorias": 6,
-        "ingredientes": 12,
-        "productos": 6,
-        "producto_categoria": 9,
-        "producto_ingrediente": 22,
+        "categorias": 8,
+        "ingredientes": 24,
+        "productos": 21,
+        "producto_categoria": 25,
+        "producto_ingrediente": 58,
     }
     assert _filas(migrations_db, "SELECT COUNT(*) FROM categorias WHERE parent_id IS NOT NULL") == [(3,)]
+
+
+def test_seed_sobre_base_nueva_deja_cada_categoria_raiz_de_demo_con_productos(migrations_db: Engine) -> None:
+    _migrar_y_sembrar(migrations_db)
+
+    filas = _filas(
+        migrations_db,
+        "SELECT c.nombre, COUNT(p.id) FROM categorias c "
+        "LEFT JOIN producto_categoria pc ON pc.categoria_id = c.id "
+        "LEFT JOIN productos p ON p.id = pc.producto_id AND p.deleted_at IS NULL "
+        "WHERE c.parent_id IS NULL GROUP BY c.nombre ORDER BY c.nombre",
+    )
+
+    assert [nombre for nombre, _ in filas] == ["Acompañamientos", "Bebidas", "Hamburguesas", "Pizzas", "Postres"]
+    assert all(cantidad >= 1 for _, cantidad in filas)
+
+
+def test_seed_sobre_base_nueva_marca_los_alergenos_de_los_ingredientes_nuevos(migrations_db: Engine) -> None:
+    _migrar_y_sembrar(migrations_db)
+
+    alergenos = dict(_filas(migrations_db, "SELECT nombre, es_alergeno FROM ingredientes"))
+
+    assert alergenos["Masa de Pizza"] is True
+    assert alergenos["Muzzarella"] is True
+    assert alergenos["Huevo"] is True
+    assert alergenos["Salsa de Tomate"] is False
+
+
+def test_seed_sobre_base_nueva_deja_un_producto_con_stock_bajo_y_otro_agotado(migrations_db: Engine) -> None:
+    _migrar_y_sembrar(migrations_db)
+
+    stocks = dict(_filas(migrations_db, "SELECT nombre, stock_cantidad FROM productos"))
+
+    assert stocks["Cheesecake de Frutos Rojos"] == 4
+    assert stocks["Flan con Dulce de Leche"] == 0
+
+
+def test_seed_sobre_base_nueva_crea_dieciseis_clientes_de_ejemplo_con_direccion_principal(migrations_db: Engine) -> None:
+    _migrar_y_sembrar(migrations_db)
+
+    clientes = _filas(
+        migrations_db,
+        "SELECT u.email, u.deleted_at IS NULL, "
+        "(SELECT string_agg(ur.rol_codigo, ',') FROM usuario_rol ur WHERE ur.usuario_id = u.id), "
+        "(SELECT COUNT(*) FROM direccion_entrega d WHERE d.usuario_id = u.id AND d.deleted_at IS NULL), "
+        "(SELECT COUNT(*) FROM direccion_entrega d WHERE d.usuario_id = u.id AND d.deleted_at IS NULL AND d.es_principal) "
+        "FROM usuario u WHERE u.email LIKE '%@demo.foodstore.com' ORDER BY u.email",
+    )
+    assert len(clientes) == 16
+    for _email, activo, roles, direcciones, principales in clientes:
+        assert (activo, roles, direcciones, principales) == (True, "CLIENT", 1, 1)
+    assert len({email for email, *_ in clientes}) == 16
+    hash_cliente = _filas(migrations_db, f"SELECT password_hash FROM usuario WHERE email = '{clientes[0][0]}'")[0][0]
+    assert verify_password("cliente123", hash_cliente)
+    cliente_base = _filas(
+        migrations_db,
+        "SELECT COUNT(*) FROM direccion_entrega d JOIN usuario u ON u.id = d.usuario_id "
+        "WHERE u.email = 'cliente@foodstore.com' AND d.es_principal AND d.deleted_at IS NULL",
+    )
+    assert cliente_base == [(1,)]
+
+
+def test_seed_con_cliente_base_existente_sin_direcciones_no_le_agrega_ninguna(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _insertar_usuario(migrations_db, "cliente@foodstore.com")
+
+    seed(migrations_db)
+
+    assert _filas(migrations_db, f"SELECT COUNT(*) FROM direccion_entrega WHERE usuario_id = {usuario_id}") == [(0,)]
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM usuario WHERE email = 'cliente@foodstore.com'") == [(1,)]
+
+
+def test_seed_no_recrea_un_cliente_de_ejemplo_dado_de_baja_ni_le_agrega_direccion(migrations_db: Engine) -> None:
+    _migrar(migrations_db)
+    usuario_id = _insertar_usuario(migrations_db, "sofia.fernandez@demo.foodstore.com")
+    with migrations_db.begin() as conn:
+        conn.execute(text(f"UPDATE usuario SET deleted_at = NOW() WHERE id = {usuario_id}"))
+
+    seed(migrations_db)
+
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM usuario WHERE email = 'sofia.fernandez@demo.foodstore.com'") == [(1,)]
+    assert _filas(migrations_db, f"SELECT COUNT(*) FROM direccion_entrega WHERE usuario_id = {usuario_id}") == [(0,)]
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM usuario WHERE email LIKE '%@demo.foodstore.com'") == [(16,)]
 
 
 def test_seed_sobre_base_nueva_deja_categorias_de_demo_legibles_por_el_contrato_de_la_api(migrations_db: Engine) -> None:
@@ -295,7 +386,7 @@ def test_seed_sobre_base_nueva_deja_categorias_de_demo_legibles_por_el_contrato_
     filas = _filas(migrations_db, "SELECT id, parent_id, nombre, descripcion, imagen_url, imagen_public_id FROM categorias ORDER BY id")
     columnas = ("id", "parent_id", "nombre", "descripcion", "imagen_url", "imagen_public_id")
 
-    assert len(filas) == 6
+    assert len(filas) == 8
     for fila in filas:
         CategoriaRead.model_validate(dict(zip(columnas, fila)))
     assert {imagen for (_, _, _, _, imagen, _) in filas} == {""}
@@ -310,8 +401,8 @@ def test_seed_sobre_base_nueva_no_deja_urls_de_imagen_externas_en_el_catalogo_de
     assert [url for (url,) in urls_de_productos + urls_de_categorias if url.lower().startswith(("http://", "https://"))] == []
     # El respaldo tipográfico del frontend cubre la ausencia: ningún producto ni categoría de demo trae imagen.
     assert urls_de_productos == []
-    assert urls_de_categorias == [("",)] * 6
-    assert _filas(migrations_db, "SELECT COUNT(*) FROM productos") == [(6,)]
+    assert urls_de_categorias == [("",)] * 8
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM productos") == [(21,)]
 
 
 def test_seed_no_recrea_un_producto_de_demo_dado_de_baja(migrations_db: Engine) -> None:
@@ -324,7 +415,7 @@ def test_seed_no_recrea_un_producto_de_demo_dado_de_baja(migrations_db: Engine) 
     assert _filas(
         migrations_db, "SELECT COUNT(*) FROM productos WHERE nombre = 'Hamburguesa Clásica' AND deleted_at IS NULL"
     ) == [(0,)]
-    assert _filas(migrations_db, "SELECT COUNT(*) FROM productos") == [(6,)]
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM productos") == [(21,)]
 
 
 # --- 5. Idempotencia y atomicidad -------------------------------------------------------------------------------------
@@ -341,6 +432,11 @@ _TABLAS_QUE_SIEMBRA_EL_SEED: dict[str, str] = {  # tabla -> columnas de la PK
     "productos": "id",
     "producto_categoria": "producto_id, categoria_id",
     "producto_ingrediente": "producto_id, ingrediente_id",
+    "direccion_entrega": "id",
+    "pedidos": "id",
+    "detalle_pedido": "id",
+    "historial_estado_pedido": "id",
+    "pagos": "id",
 }
 
 
@@ -353,11 +449,13 @@ def _foto(engine: Engine) -> dict[str, list[tuple]]:
 
 
 def test_seed_dos_corridas_seguidas_dejan_las_tablas_identicas(migrations_db: Engine) -> None:
-    _migrar_y_sembrar(migrations_db)
+    _migrar(migrations_db)
+    seed(migrations_db, con_ventas=True)
     foto_primera = _foto(migrations_db)
     assert foto_primera["productos"], "la primera corrida debe haber sembrado datos"
+    assert foto_primera["pedidos"], "la primera corrida debe haber sembrado ventas"
 
-    seed(migrations_db)
+    seed(migrations_db, con_ventas=True)
 
     assert _foto(migrations_db) == foto_primera
 
@@ -409,12 +507,12 @@ def test_seed_sobre_base_nueva_con_consola_cp1252_termina_y_deja_los_datos(
     _migrar(migrations_db)
     _stdout_cp1252_estricta(monkeypatch)
 
-    seed(migrations_db)
+    seed(migrations_db, con_ventas=True)
 
     assert _filas(migrations_db, "SELECT COUNT(*) FROM rol") == [(4,)]
     assert _filas(migrations_db, "SELECT COUNT(*) FROM estado_pedido") == [(6,)]
     assert _filas(migrations_db, "SELECT COUNT(*) FROM forma_pago") == [(3,)]
-    assert _filas(migrations_db, "SELECT COUNT(*) FROM usuario") == [(4,)]
+    assert _filas(migrations_db, "SELECT COUNT(*) FROM usuario") == [(20,)]
 
 
 def test_seed_con_usuarios_existentes_y_consola_cp1252_termina_sin_cambiar_filas(
@@ -422,10 +520,10 @@ def test_seed_con_usuarios_existentes_y_consola_cp1252_termina_sin_cambiar_filas
 ) -> None:
     _migrar(migrations_db)
     _stdout_cp1252_estricta(monkeypatch)
-    seed(migrations_db)
+    seed(migrations_db, con_ventas=True)
     foto = _foto(migrations_db)
 
-    seed(migrations_db)  # camino «el usuario ya existe»
+    seed(migrations_db, con_ventas=True)  # camino «el usuario ya existe»
 
     assert _foto(migrations_db) == foto
 
@@ -433,8 +531,8 @@ def test_seed_con_usuarios_existentes_y_consola_cp1252_termina_sin_cambiar_filas
 def test_toda_la_salida_del_seed_se_codifica_en_cp1252(migrations_db: Engine, capsys: pytest.CaptureFixture[str]) -> None:
     _migrar(migrations_db)
 
-    seed(migrations_db)
-    seed(migrations_db)
+    seed(migrations_db, con_ventas=True)
+    seed(migrations_db, con_ventas=True)
 
     salida = capsys.readouterr().out
     assert "SEED FINALIZADO" in salida

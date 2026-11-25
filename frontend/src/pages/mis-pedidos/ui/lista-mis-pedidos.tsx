@@ -14,7 +14,7 @@ function FilaMiPedido({ pedido, indice }: { pedido: PedidoResumen; indice: numbe
         <Link {...destino}>{`#${pedido.id}`}</Link>
         <small>
           {fechaHoraCorta(pedido.created_at)}
-          {esEstadoTerminal(pedido.estado_codigo) ? null : <span className="live">En curso</span>}
+          {esEstadoTerminal(pedido.estado_codigo) ? null : <span className="en-curso">En curso</span>}
         </small>
       </div>
       <div className="opay">

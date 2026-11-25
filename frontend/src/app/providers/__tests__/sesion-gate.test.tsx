@@ -1,8 +1,9 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiClient } from '@/shared/api';
 import { selectEstado, useAuthStore } from '@/shared/auth';
 import { useUiStore } from '@/shared/model';
 import { handlerMe, handlerRefreshOk } from '@/test/msw/auth';
@@ -110,6 +111,72 @@ describe('SesionGate: limpieza de la caché al perder la sesión', () => {
     act(() => useAuthStore.getState().establecerAccess('A2'));
 
     expect(cliente.getQueryData(['pedidos', 'lista', {}])).toEqual([{ id: 1 }]);
+  });
+});
+
+describe('SesionGate: revalidación y consultas públicas al perder la sesión', () => {
+  const clave = ['productos', 'lista', {}] as const;
+
+  beforeEach(() => {
+    server.use(handlerRefreshOk('A1'), handlerMe(['CLIENT']));
+  });
+
+  /** Registra los `Authorization` con que llega `GET /productos` y responde 200. */
+  function contarProductos() {
+    const autorizaciones: (string | null)[] = [];
+    server.use(
+      http.get(`${API}/productos`, ({ request }) => {
+        autorizaciones.push(request.headers.get('authorization'));
+        return HttpResponse.json([{ id: 1 }]);
+      }),
+    );
+    return autorizaciones;
+  }
+
+  async function conSesion() {
+    const cliente = renderGate();
+    await screen.findByText('Contenido de la app');
+    return cliente;
+  }
+
+  it('al pasar a anónima quita la consulta de vigencia de la sesión y conserva la de rehidratación', async () => {
+    const cliente = await conSesion();
+    cliente.setQueryData(['sesion', 'vigencia'], { id: 1 });
+
+    act(() => useAuthStore.getState().expirarSesion('A1'));
+
+    expect(cliente.getQueryData(['sesion', 'vigencia'])).toBeUndefined();
+    expect(cliente.getQueryData(['sesion', 'rehidratar'])).toBe(true);
+  });
+
+  it('una consulta pública que quedó en error por el 401 de la sesión cerrada se vuelve a pedir sin Authorization y queda con datos', async () => {
+    const cliente = await conSesion();
+    const autorizaciones = contarProductos();
+    let llamadas = 0;
+    const queryFn = async (): Promise<unknown> => {
+      llamadas += 1;
+      if (llamadas === 1) throw new Error('401 de la sesión cerrada');
+      return (await apiClient.get('/productos')).data;
+    };
+    await cliente.fetchQuery({ queryKey: clave, queryFn }).catch(() => undefined);
+    expect(cliente.getQueryState(clave)?.status).toBe('error');
+
+    act(() => useAuthStore.getState().expirarSesion('A1'));
+
+    await waitFor(() => expect(cliente.getQueryData(clave)).toEqual([{ id: 1 }]));
+    expect(autorizaciones).toEqual([null]);
+  });
+
+  it('una consulta pública con datos (sin error) no se vuelve a pedir', async () => {
+    const cliente = await conSesion();
+    const autorizaciones = contarProductos();
+    cliente.setQueryData(clave, [{ id: 9 }]);
+
+    act(() => useAuthStore.getState().cerrarLocal({ motivo: 'logout' }));
+
+    await new Promise((resolver) => setTimeout(resolver, 50));
+    expect(autorizaciones).toEqual([]);
+    expect(cliente.getQueryData(clave)).toEqual([{ id: 9 }]);
   });
 });
 

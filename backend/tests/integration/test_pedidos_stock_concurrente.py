@@ -22,6 +22,7 @@ from app.modules.pagos.models import FormaPago
 from app.modules.pedidos.models import HistorialEstadoPedido
 from app.modules.pedidos.models import Pedido
 from app.modules.productos.models import Producto
+from app.modules.refreshtokens.models import Sesion
 from app.modules.usuarios.models import Rol, Usuario, UsuarioRol
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
 
@@ -83,7 +84,7 @@ def escenario_fixture(engine_test: Engine) -> Iterator[Escenario]:
         db.commit()
         pedidos_user = crear_usuario_con_roles(db, ["PEDIDOS"])
         cliente = crear_usuario_con_roles(db, ["CLIENT"])
-        headers = bearer_de_usuario(pedidos_user, ["PEDIDOS"])
+        headers = bearer_de_usuario(db, pedidos_user, ["PEDIDOS"])
         usuarios = [pedidos_user.id, cliente.id]
         datos = Escenario(engine_test, headers, cliente.id, [], [])
     yield datos
@@ -92,6 +93,7 @@ def escenario_fixture(engine_test: Engine) -> Iterator[Escenario]:
         db.exec(delete(DetallePedido).where(DetallePedido.pedido_id.in_(datos.pedidos)))
         db.exec(delete(Pedido).where(Pedido.id.in_(datos.pedidos)))
         db.exec(delete(Producto).where(Producto.id.in_(datos.productos)))
+        db.exec(delete(Sesion).where(Sesion.usuario_id.in_(usuarios)))
         db.exec(delete(UsuarioRol).where(UsuarioRol.usuario_id.in_(usuarios)))
         db.exec(delete(Usuario).where(Usuario.id.in_(usuarios)))
         if catalogos_vacios:  # no dejar catálogos confirmados que otros tests no esperan

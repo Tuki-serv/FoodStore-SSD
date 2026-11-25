@@ -18,6 +18,7 @@ from app.db.seed import seed_catalogos
 from app.main import app
 from app.modules.pagos.models import FormaPago
 from app.modules.pedidos.models import EstadoPedido
+from app.modules.refreshtokens.models import Sesion
 from app.modules.usuarios.models import Rol, Usuario, UsuarioRol
 from tests.support.auth_helpers import bearer_de_usuario, crear_usuario_con_roles
 
@@ -54,12 +55,13 @@ def escenario_fixture(engine_test: Engine) -> Iterator[Escenario]:
         admin_b = crear_usuario_con_roles(db, ["ADMIN"])
         cliente = crear_usuario_con_roles(db, ["CLIENT"])
         datos = Escenario(
-            engine_test, admin_a, admin_b, cliente.id, bearer_de_usuario(admin_a, ["ADMIN"]), bearer_de_usuario(admin_b, ["ADMIN"])
+            engine_test, admin_a, admin_b, cliente.id, bearer_de_usuario(db, admin_a, ["ADMIN"]), bearer_de_usuario(db, admin_b, ["ADMIN"])
         )
         usuarios = [admin_a.id, admin_b.id, cliente.id]
     assert datos.admins_activos() == sorted([admin_a.id, admin_b.id]), "la base de tests tiene otros ADMIN confirmados"
     yield datos
     with Session(engine_test) as db:
+        db.exec(delete(Sesion).where(Sesion.usuario_id.in_(usuarios)))
         db.exec(delete(UsuarioRol).where(UsuarioRol.usuario_id.in_(usuarios)))
         db.exec(delete(Usuario).where(Usuario.id.in_(usuarios)))
         if catalogos_vacios:  # no dejar catálogos confirmados que otros tests no esperan

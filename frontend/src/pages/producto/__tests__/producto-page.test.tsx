@@ -149,6 +149,18 @@ describe('página Detalle: stock y cantidad', () => {
     expect(screen.getByText('3 × Burger Doble Cheddar')).toBeInTheDocument();
   });
 
+  it('el botón del detalle muestra el total «Agregar al carrito · $ N» y lo actualiza con la cantidad', async () => {
+    const { usuario } = montarCatalogo('/catalogo/7', { productos: [productoConStock(3)], sesion: { roles: ['CLIENT'] } });
+    await titulo('Burger Doble Cheddar');
+    const boton = screen.getByRole('button', { name: 'Agregar Burger Doble Cheddar al carrito' });
+    expect(boton).toHaveTextContent('Agregar al carrito · $ 2.300');
+
+    await usuario.click(screen.getByRole('button', { name: 'Sumar una unidad' }));
+    await usuario.click(screen.getByRole('button', { name: 'Sumar una unidad' }));
+
+    expect(boton).toHaveTextContent('Agregar al carrito · $ 6.900');
+  });
+
   it('un producto sin imágenes muestra el respaldo tipográfico grande con su inicial y «Sin imagen de …»', async () => {
     montarCatalogo('/catalogo/7', { productos: [productoConStock(5)] });
     await titulo('Burger Doble Cheddar');

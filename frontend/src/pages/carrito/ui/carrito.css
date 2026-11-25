@@ -32,7 +32,7 @@
   @media (max-width:1023.98px){.cart{grid-template-columns:1fr}.summary{position:static}}
   @media (max-width:719.98px){
     .page-head-row .btn-vaciar{width:100%;justify-content:center}
-    .cartitem{grid-template-columns:64px minmax(0,1fr) auto;grid-template-areas:"thumb meta meta" "qty sub remove";gap:var(--space-3);padding:var(--space-3)}
+    .cartitem{grid-template-columns:64px minmax(0,1fr) auto auto;grid-template-areas:"thumb meta meta meta" "qty qty sub remove";gap:var(--space-3);padding:var(--space-3)}
     .cartitem .thumb{grid-area:thumb;width:64px;height:64px}
     .cartitem .meta{grid-area:meta}
     .cartitem .qty{grid-area:qty;justify-self:start}

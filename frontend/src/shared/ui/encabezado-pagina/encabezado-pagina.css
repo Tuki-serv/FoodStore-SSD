@@ -211,6 +211,22 @@
       flex-wrap: nowrap;
       align-items: center;
     }
+    /* Detalle con «Actualizar» junto a otras acciones: el ícono queda en la fila del título, a la derecha, y las acciones debajo a todo el ancho. */
+    .band-top:has(> .band-actions > .refresh + *) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
+    .band-top:has(> .band-actions > .refresh + *) > .band-actions {
+      display: contents;
+    }
+    .band-top:has(> .band-actions > .refresh + *) .band-actions > .refresh {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .band-top:has(> .band-actions > .refresh + *) .band-actions > :not(.refresh) {
+      grid-column: 1 / -1;
+    }
     .band-toolbar,
     .page-band[data-stuck="true"] .band-toolbar {
       padding-top: 0;

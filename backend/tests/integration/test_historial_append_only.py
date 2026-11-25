@@ -74,7 +74,7 @@ def test_historial_con_igual_created_at_se_devuelve_por_id_ascendente(
     session.commit()
     admin = crear_usuario_con_roles(session, ["ADMIN"])
 
-    response = client.get(f"/api/v1/pedidos/{pedido.id}/historial", headers=bearer_de_usuario(admin, ["ADMIN"]))
+    response = client.get(f"/api/v1/pedidos/{pedido.id}/historial", headers=bearer_de_usuario(session, admin, ["ADMIN"]))
 
     assert response.status_code == 200
     assert [fila["estado_hacia"] for fila in response.json()] == ["PENDIENTE", "CONFIRMADO"]
@@ -88,7 +88,7 @@ def test_recorrido_completo_de_un_pedido_deja_cinco_filas_encadenadas(client: Te
     producto = Producto(nombre="Pizza historial", precio_base="1000.00", stock_cantidad=10, disponible=True)
     session.add(producto)
     session.commit()
-    h_cliente, h_gestor = bearer_de_usuario(cliente, ["CLIENT"]), bearer_de_usuario(gestor, ["PEDIDOS"])
+    h_cliente, h_gestor = bearer_de_usuario(session, cliente, ["CLIENT"]), bearer_de_usuario(session, gestor, ["PEDIDOS"])
 
     creado = client.post(
         "/api/v1/pedidos/",

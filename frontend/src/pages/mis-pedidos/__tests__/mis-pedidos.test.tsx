@@ -55,6 +55,26 @@ describe('Mis pedidos · listado', () => {
     expect(screen.getAllByText('En curso')).toHaveLength(1);
     expect(screen.getByRole('link', { name: '#58' }).closest('li')).toHaveTextContent('En curso');
   });
+
+  it('«En curso» es texto de la fecha, no un segundo chip: cada fila tiene una sola marca de estado (decisión D3)', async () => {
+    montarMisPedidos('/mis-pedidos', { pedidos: [pedidoPropio(58), pedidoPropio(41, { estado_codigo: 'ENTREGADO' })] });
+
+    await screen.findByRole('link', { name: '#58' });
+
+    const enCurso = screen.getByText('En curso');
+    expect(enCurso).not.toHaveClass('live');
+    expect(enCurso).not.toHaveClass('badge');
+    for (const fila of filas()) expect(fila.querySelectorAll('.badge')).toHaveLength(1);
+  });
+
+  it('el filtro de estado es un control segmentado (no un select)', async () => {
+    montarMisPedidos('/mis-pedidos', { pedidos: [pedidoPropio(58)] });
+
+    await screen.findByRole('link', { name: '#58' });
+
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Estado' })).getAllByRole('button')).toHaveLength(7);
+  });
 });
 
 describe('Mis pedidos · paginación, alcance y estados', () => {
@@ -85,7 +105,7 @@ describe('Mis pedidos · paginación, alcance y estados', () => {
     montarMisPedidos('/mis-pedidos', { pedidos: [pedidoPropio(58)], estado: { demoraLista: 300 } });
 
     expect(await screen.findByRole('status', { name: 'Cargando tus pedidos' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Estado' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Estado' })).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: '#58' })).toBeInTheDocument();
   });
 
@@ -124,7 +144,7 @@ describe('Mis pedidos · filtro por estado', () => {
     await screen.findByRole('link', { name: '#3' });
     expect(screen.queryByRole('button', { name: 'Limpiar filtro' })).not.toBeInTheDocument();
 
-    await usuario.selectOptions(screen.getByRole('combobox', { name: 'Estado' }), 'Entregado');
+    await usuario.click(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Entregado' }));
 
     await waitFor(() => expect(estado.consultasLista.at(-1)).toEqual({ propios: 'true', estado: 'ENTREGADO', page: '1', size: '10' }));
     expect(router.state.location.search).toBe('?estado=ENTREGADO');
@@ -138,7 +158,7 @@ describe('Mis pedidos · filtro por estado', () => {
 
     await screen.findByRole('link', { name: '#2' });
 
-    expect(screen.getByRole('combobox', { name: 'Estado' })).toHaveValue('CANCELADO');
+    expect(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Cancelado', pressed: true })).toBeInTheDocument();
     expect(estado.consultasLista[0]).toEqual({ propios: 'true', estado: 'CANCELADO', page: '1', size: '10' });
   });
 
@@ -147,7 +167,7 @@ describe('Mis pedidos · filtro por estado', () => {
 
     await screen.findByRole('link', { name: '#3' });
 
-    expect(screen.getByRole('combobox', { name: 'Estado' })).toHaveValue('');
+    expect(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Todos', pressed: true })).toBeInTheDocument();
     expect(estado.consultasLista[0]).toEqual({ propios: 'true', page: '1', size: '10' });
   });
 
@@ -155,7 +175,7 @@ describe('Mis pedidos · filtro por estado', () => {
     const { router, usuario } = montarMisPedidos('/mis-pedidos?page=3', { pedidos: pedidos(23) });
     await screen.findByText('Página 3 de 3');
 
-    await usuario.selectOptions(screen.getByRole('combobox', { name: 'Estado' }), 'Pendiente');
+    await usuario.click(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Pendiente' }));
 
     await waitFor(() => expect(router.state.location.search).toBe('?estado=PENDIENTE'));
   });
@@ -177,7 +197,7 @@ describe('Mis pedidos · filtro por estado', () => {
     await usuario.click(screen.getByRole('button', { name: 'Limpiar filtro' }));
 
     await waitFor(() => expect(router.state.location.search).toBe(''));
-    expect(screen.getByRole('combobox', { name: 'Estado' })).toHaveValue('');
+    expect(within(screen.getByRole('group', { name: 'Estado' })).getByRole('button', { name: 'Todos', pressed: true })).toBeInTheDocument();
     await screen.findByRole('link', { name: '#3' });
     expect(estado.consultasLista.at(-1)).toEqual({ propios: 'true', page: '1', size: '10' });
     expect(screen.queryByRole('button', { name: 'Limpiar filtro' })).not.toBeInTheDocument();
@@ -197,7 +217,7 @@ describe('Mis pedidos · filtro por estado', () => {
 
     await screen.findByRole('heading', { name: 'No pudimos cargar tus pedidos' });
 
-    expect(screen.getByRole('combobox', { name: 'Estado' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Estado' })).toBeInTheDocument();
   });
 
   it('no tiene violaciones de accesibilidad con un filtro activo', async () => {

@@ -368,6 +368,102 @@
       "sessions": 1,
       "memories": 13,
       "prompts": 0
+    },
+    {
+      "id": "dac33474",
+      "created_by": "jacop",
+      "created_at": "2026-11-23T23:20:21.5542664Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
+    },
+    {
+      "id": "7706967b",
+      "created_by": "jacop",
+      "created_at": "2026-11-23T23:57:29.6331393Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
+    },
+    {
+      "id": "daa5f1c6",
+      "created_by": "jacop",
+      "created_at": "2026-11-24T00:42:04.5860509Z",
+      "sessions": 1,
+      "memories": 3,
+      "prompts": 0
+    },
+    {
+      "id": "42b647a4",
+      "created_by": "jacop",
+      "created_at": "2026-11-24T00:58:39.725831Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
+    },
+    {
+      "id": "54078b9b",
+      "created_by": "jacop",
+      "created_at": "2026-11-24T01:04:09.1361349Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
+    },
+    {
+      "id": "d655e235",
+      "created_by": "jacop",
+      "created_at": "2026-11-24T03:09:36.6627295Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
+    },
+    {
+      "id": "5760453a",
+      "created_by": "jacop",
+      "created_at": "2026-11-25T02:08:01.9542677Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
+    },
+    {
+      "id": "20ccd45e",
+      "created_by": "jacop",
+      "created_at": "2026-11-25T02:25:16.5738529Z",
+      "sessions": 1,
+      "memories": 2,
+      "prompts": 0
+    },
+    {
+      "id": "3c29096c",
+      "created_by": "jacop",
+      "created_at": "2026-11-25T02:40:20.7312462Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
+    },
+    {
+      "id": "6024d188",
+      "created_by": "jacop",
+      "created_at": "2026-11-25T04:06:07.4043507Z",
+      "sessions": 1,
+      "memories": 3,
+      "prompts": 0
+    },
+    {
+      "id": "e7d9f444",
+      "created_by": "jacop",
+      "created_at": "2026-11-25T18:21:01.9034087Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
+    },
+    {
+      "id": "64361d24",
+      "created_by": "jacop",
+      "created_at": "2026-11-25T23:59:35.1680528Z",
+      "sessions": 1,
+      "memories": 1,
+      "prompts": 0
     }
   ]
 }

@@ -5,39 +5,62 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EstadoPedidoCodigo } from '../model';
 import { SelectorEstadoPedido } from '../ui';
 
-describe('SelectorEstadoPedido', () => {
-  it('ofrece «Todos» y los seis estados con su etiqueta', () => {
-    render(<SelectorEstadoPedido id="estado" valor={null} onCambiar={() => undefined} />);
+describe('SelectorEstadoPedido (control segmentado)', () => {
+  it('ofrece «Todos» y los seis estados como botones de un grupo «Filtrar por estado»', () => {
+    render(<SelectorEstadoPedido valor={null} onCambiar={() => undefined} />);
 
-    const opciones = screen.getAllByRole('option').map((opcion) => opcion.textContent);
+    const grupo = screen.getByRole('group', { name: 'Filtrar por estado' });
+    const botones = screen.getAllByRole('button').map((boton) => boton.textContent);
 
-    expect(opciones).toEqual(['Todos', 'Pendiente', 'Confirmado', 'En preparación', 'En camino', 'Entregado', 'Cancelado']);
+    expect(grupo).toContainElement(screen.getByRole('button', { name: 'Todos' }));
+    expect(botones).toEqual(['Todos', 'Pendiente', 'Confirmado', 'En preparación', 'En camino', 'Entregado', 'Cancelado']);
   });
 
-  it('elegir «Entregado» llama onCambiar con ENTREGADO y «Todos» con null', async () => {
+  it('marca con aria-pressed solo el estado elegido (y «Todos» con null)', () => {
+    const { rerender } = render(<SelectorEstadoPedido valor={null} onCambiar={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'Todos', pressed: true })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1);
+
+    rerender(<SelectorEstadoPedido valor="ENTREGADO" onCambiar={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'Entregado', pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Todos', pressed: false })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1);
+  });
+
+  it('pulsar «Cancelado» llama onCambiar con CANCELADO y «Todos» con null', async () => {
     const usuario = userEvent.setup();
     const onCambiar = vi.fn();
-    render(<SelectorEstadoPedido id="estado" valor="ENTREGADO" onCambiar={onCambiar} />);
-    const selector = screen.getByRole('combobox');
-    expect(selector).toHaveValue('ENTREGADO');
+    render(<SelectorEstadoPedido valor="ENTREGADO" onCambiar={onCambiar} />);
 
-    await usuario.selectOptions(selector, 'Todos');
-    await usuario.selectOptions(selector, 'Cancelado');
+    await usuario.click(screen.getByRole('button', { name: 'Todos' }));
+    await usuario.click(screen.getByRole('button', { name: 'Cancelado' }));
 
     expect(onCambiar).toHaveBeenNthCalledWith(1, null);
     expect(onCambiar).toHaveBeenNthCalledWith(2, 'CANCELADO');
   });
 
-  it('muestra el estado que le pasan como seleccionado', async () => {
+  it('se opera con el teclado (Tab y Enter) y refleja el estado que le pasan', async () => {
     const usuario = userEvent.setup();
     function Envoltorio() {
       const [valor, setValor] = useState<EstadoPedidoCodigo | null>(null);
-      return <SelectorEstadoPedido id="estado" valor={valor} onCambiar={setValor} />;
+      return <SelectorEstadoPedido valor={valor} onCambiar={setValor} />;
     }
     render(<Envoltorio />);
 
-    await usuario.selectOptions(screen.getByRole('combobox'), 'En camino');
+    screen.getByRole('button', { name: 'En camino' }).focus();
+    await usuario.keyboard('{Enter}');
 
-    expect(screen.getByRole('combobox')).toHaveValue('EN_CAMINO');
+    expect(screen.getByRole('button', { name: 'En camino', pressed: true })).toBeInTheDocument();
+  });
+
+  it('el grupo toma su nombre de la etiqueta visible cuando se le pasa idEtiqueta', () => {
+    render(
+      <>
+        <span id="et">Estado</span>
+        <SelectorEstadoPedido idEtiqueta="et" valor={null} onCambiar={() => undefined} />
+      </>,
+    );
+
+    expect(screen.getByRole('group', { name: 'Estado' })).toBeInTheDocument();
   });
 });

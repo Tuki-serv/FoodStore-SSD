@@ -225,7 +225,7 @@ def usuario_con_roles_fixture(client: TestClient, session: Session):
 
     def _crear(roles: list[str], *, claims_roles: list[str] | None = None) -> tuple[int, dict[str, str]]:
         usuario = crear_usuario_con_roles(session, roles)
-        return usuario.id, bearer_de_usuario(usuario, claims_roles or roles)
+        return usuario.id, bearer_de_usuario(session, usuario, claims_roles or roles)
 
     return _crear
 

@@ -163,7 +163,7 @@ Estado: PA-02 resuelta por el usuario (DD-16); PA-01, PA-03, PA-05 y PA-06 resue
 | PA-15 | **RESUELTA** | Migraciones Alembic implementadas en C-06 (migración 001, CE-04 cubierto por test); la estructura de directorios ya se alineó en C-01 (IN-18) | Entrega | Equipo técnico |
 | PA-16 | **RESUELTA** | Cobertura >60% con umbral automático (`backend/.coveragerc`, `fail_under = 60`, `pytest --cov`) sobre todo `app/`; alcance: módulos de la rúbrica (`auth`, `pedidos`, `pagos`, `categorias`, `direcciones`, `ingredientes`, `productos`, `admin`) y flujo e2e (C-25a) | Bonus | Equipo |
 | PA-17 | Baja | ¿Se hará deploy (Railway/Render/Fly.io) para el bonus? Requiere cookies `secure=True`, CORS y `NGROK_URL` reemplazada | Bonus | Equipo |
-| PA-18 | Baja | Metadatos faltantes en `integrador.docx`: **Materia** y **Carrera** están vacíos; nombre del equipo/docente desconocido | Documentación de entrega | Equipo |
+| PA-18 | **RESUELTA** | Metadatos de portada confirmados por el usuario (2026-11-23): Materia «Metodología de Sistemas», Carrera «Tecnicatura Universitaria en Programación», equipo y docentes en `docs/entrega/metadatos.md` (antes vacíos en `integrador.docx`) | Documentación de entrega | Equipo |
 | PA-19 | Media | Extras del código no especificados (WebSocket/KDS, `COCINA`, estadísticas, unidades de medida, Cloudinary, rate limit global, `GET /pedidos/cocina/pedidos`): ¿se formalizan en la spec o se descartan? | Alcance | Product Owner / docente |
 
 ## Incertidumbres del campo `kb.discovery` (inferencia Mode A)

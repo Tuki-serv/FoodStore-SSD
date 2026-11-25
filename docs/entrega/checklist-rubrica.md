@@ -1,0 +1,60 @@
+# Checklist de la rúbrica y de entrega
+
+Estado al 2026-11-25 (rama `dev`, con `c-25b1-deuda-heredada` archivado). Fuente de los criterios: [knowledge-base/13_rubrica_y_entrega.md](../../knowledge-base/13_rubrica_y_entrega.md).
+
+Estados: **cumplido** (hay evidencia verificable en el repo), **parcial** (hay evidencia pero falta algo) y **pendiente** (depende del usuario o de la revisión final). La puntuación la asigna el docente: aquí solo se declara si el criterio está cubierto, no cuántos puntos vale el resultado.
+
+> Toda la evidencia está generada: capturas y recorrido E2E (tramos A y C) el 2026-11-23, pago con tarjeta sandbox (tramo B) y repositorio público el 2026-11-24, y video el 2026-11-25.
+
+## Criterios de la rúbrica (200 puntos)
+
+| Criterio | Pts | Estado | Evidencia |
+|----------|-----|--------|-----------|
+| Backend — Estructura y configuración | 10 | cumplido | Capas y módulos por dominio en `backend/app/modules/`, `core/` separado, migraciones Alembic (`backend/alembic/`), seed (`backend/app/db/seed.py`), CORS y rate limiting; `backend/tests/unit/test_arquitectura_capas.py`, `backend/tests/integration/test_rate_limit.py` |
+| Backend — Modelo de datos | 15 | cumplido | Modelos SQLModel por módulo, constraints, soft delete, snapshot de precios y nombres en el pedido; `backend/tests/integration/test_migrations.py` (esquema == modelos) |
+| Backend — Unit of Work y Repository | 15 | cumplido | `BaseRepository` genérico y UoW con commit/rollback; `backend/tests/unit/test_unit_of_work.py` (commit/rollback del UoW) y `backend/tests/unit/test_arquitectura_capas.py` (dependencias en un solo sentido); búsqueda de `commit(` sin resultados en `backend/app/modules/` (2026-11-21) |
+| Backend — Capa de servicio | 15 | cumplido | FSM del pedido y reglas RN; `backend/tests/unit/test_pedido_fsm.py`, `backend/tests/integration/test_pedidos_fsm.py`, `backend/tests/integration/test_pedidos_stock.py` |
+| Backend — Controladores REST | 15 | cumplido | Prefijo `/api/v1`, schemas Read/Create/Update y códigos de estado; `backend/tests/integration/test_contrato_rutas.py`, `backend/tests/integration/test_openapi_documentacion.py` |
+| Backend — MercadoPago | 15 | cumplido | SDK + webhook con firma verificada e idempotente + tabla de pagos (`backend/tests/integration/test_pago_webhook_*.py`); pago con tarjeta sandbox end-to-end verificado el 2026-11-24 (ver CE-09) |
+| Frontend — Estructura y TypeScript | 10 | cumplido | Feature-Sliced Design y `strict: true` sin `any`; `frontend/tests/architecture/fsd-boundaries.test.ts`, `npm run typecheck`, `npm run lint` |
+| Frontend — Zustand | 10 | cumplido | 4 stores tipados: `frontend/src/shared/auth/auth-store.ts`, `frontend/src/entities/cart/model/cart-store.ts`, `frontend/src/shared/model/ui-store.ts`, `frontend/src/entities/payment/model/payment-store.ts`; `frontend/src/entities/cart/__tests__/cart-store.test.ts` |
+| Frontend — TanStack Query | 15 | cumplido | `useQuery`/`useMutation` con claves jerárquicas e invalidación tras mutaciones, interceptor de refresh en 401; `frontend/src/shared/api/` y su sección en `frontend/README.md` |
+| Frontend — Funcionalidades cliente | 15 | cumplido | Catálogo con debounce, filtros y paginación, carrito persistente, checkout con `CardPayment` y seguimiento con polling (`frontend/src/pages/`); recorrido E2E registrado en [recorrido-e2e.md](recorrido-e2e.md) (tramos A, B y C, 2026-11-23/24), capturas en [capturas/](capturas/) y video (CE-13) |
+| Frontend — Panel Admin | 15 | cumplido | Dashboard con KPIs y recharts, CRUD de categorías, productos e ingredientes, gestión de pedidos con FSM y usuarios (`frontend/src/pages/admin-*`, `gestion-pedidos`); capturas en [capturas/](capturas/) y verify visual en `openspec/changes/archive/2026-11-25-c-25b-entrega-docs-video/verify/informe-visual.md` (2026-11-23) |
+| UI/UX y diseño | 10 | cumplido | Design system aprobado (`design-system/`), mockups aprobados por change en `openspec/changes/archive/*/mockups/`, skeletons, toasts, modales de confirmación y estados vacíos; verify visual de 17 pantallas en dos viewports (tarea 3.2, 2026-11-23): 0 blocker, el major y los menores elegidos corregidos (tareas 8.1–8.4) |
+| Calidad de código | 10 | cumplido | Convenciones, funciones acotadas, docstrings y READMEs por parte; README raíz como guía única con árboles de carpetas, probado en clon limpio (CE-02, 2026-11-23) |
+
+## Bonus y penalización
+
+| Ítem | Estado | Evidencia |
+|------|--------|-----------|
+| Bonus +10 — tests con pytest y cobertura mayor a 60 % | cumplido | Suite de integración y unit en `backend/tests/`; `pytest --cov` falla bajo 60 % (`backend/.coveragerc`, `fail_under = 60`); cubre pedidos, pagos y auth (`test_pedidos*.py`, `test_pago*.py`, `test_auth*.py`) |
+| Bonus +10 — deploy funcional con URL accesible | pendiente | Decisión del usuario (2026-11-21, PA-17): **no se hace deploy**; el bonus de +10 queda sin reclamar |
+| Penalización −30 % si el proyecto no corre siguiendo el README | cumplido (evitada) | Prueba en clon limpio siguiendo solo el README hecha por el usuario el 2026-11-23 (tarea 1.4, CE-02) |
+
+## Checklist de entrega (CE-01..CE-14)
+
+| ID | Ítem | Estado | Evidencia |
+|----|------|--------|-----------|
+| CE-01 | Link a repositorio GitHub público en la entrega | cumplido (2026-11-24) | https://github.com/Tuki-serv/FoodStore-SSD (público, rama por defecto `main`) |
+| CE-02 | `README.md` con setup funcionando en máquina limpia | cumplido | [README.md](../../README.md) verificado estáticamente (`backend/tests/unit/test_entrega_docs.py`) y prueba en clon limpio de `dev` por el usuario (2026-11-23): stack levantado siguiendo el README, catálogo, compra en efectivo hasta `ENTREGADO`, dashboard y Swagger ok; los `.env` de raíz y backend se reutilizaron del proyecto original y `frontend/.env` se creó de su plantilla (las plantillas se validan por test, CE-03); fricciones corregidas en el README (`cd` en los bloques, copia de los cuatro `.env`, página en blanco sin `frontend/.env`) |
+| CE-03 | `.env.example` completo, con variables de MercadoPago documentadas | cumplido | Tres plantillas validadas por test (`backend/tests/unit/test_env_example.py`, `frontend/src/shared/config/__tests__/env-example.test.ts`); cada variable de MercadoPago de `backend/.env.example` indica de dónde sale en el panel de desarrolladores (`backend/tests/unit/test_entrega_docs.py`, 2026-11-23) |
+| CE-04 | `alembic upgrade head` sin errores | cumplido | `backend/tests/integration/test_migrations.py` aplica las migraciones desde una base vacía |
+| CE-05 | `python -m app.db.seed` carga datos iniciales | cumplido | `backend/app/db/seed.py` y `backend/tests/integration/test_seed.py`; cuentas en el README |
+| CE-06 | `npm install` + `npm run dev` sin errores | cumplido | Scripts verificados contra `frontend/package.json`; `npm install` + `npm run dev` sin errores en el clon limpio (2026-11-23, tarea 1.4) |
+| CE-07 | `pip install -r requirements.txt` + `uvicorn app.main:app` sin errores | cumplido | `backend/tests/integration/test_app_startup.py`; `pip install` + `uvicorn` sin errores en el clon limpio (2026-11-23, tarea 1.4) |
+| CE-08 | Swagger UI (`/docs`) con todos los endpoints documentados | cumplido | `backend/tests/integration/test_openapi_documentacion.py` (C-25b1) |
+| CE-09 | Pago de prueba con tarjeta sandbox de MercadoPago end-to-end | cumplido (2026-11-24) | Pedido #303 pagado con tarjeta de prueba (titular `APRO`) y `CONFIRMADO` por «Sistema», con el webhook recibido vía ngrok (tarea 2.3); detalle y capturas en [recorrido-e2e.md](recorrido-e2e.md) |
+| CE-10 | UoW correcto (ningún `service.session.commit()` directo) | cumplido | `backend/tests/unit/test_unit_of_work.py`; ningún `commit(` en `backend/app/modules/` (búsqueda del 2026-11-21) |
+| CE-11 | 4 stores Zustand tipados y con `persist` correcto | cumplido | Los cuatro stores del criterio de Zustand; `cart-store` y `ui-store` usan `persist`, `auth-store` y `payment-store` viven en memoria a propósito (token de acceso y pago en curso no se persisten) |
+| CE-12 | Capturas de al menos 10 pantallas distintas | cumplido | 17 pantallas distintas en 1440x900 y 390x844 (34 archivos) en [capturas/](capturas/), tomadas el 2026-11-23 (tarea 3.1) |
+| CE-13 | Link a video de demostración (5-10 min) en el README | cumplido (2026-11-25) | Video publicado en YouTube y enlazado en el README: https://www.youtube.com/watch?v=ty1VeeI9Aig (abre sin iniciar sesión). Dura 14:38, por encima de los 10 minutos de la consigna; el usuario decidió dejarlo así. Sigue el guion de [guion-video.md](guion-video.md) (tareas 5.1 y 5.2) |
+| CE-14 | Repositorio público verificado con sesión cerrada | cumplido (2026-11-24) | El usuario lo abrió en una ventana privada; además la página responde 200 sin sesión y la API de GitHub informa `visibility: public` (tarea 5.3) |
+
+## Pendientes del usuario
+
+Ninguno: el video se publicó el 2026-11-25 (CE-13).
+
+## Limitaciones conocidas
+
+Ver la sección homónima del [README](../../README.md): DT-28, PA-07 (COCINA/KDS), fechas en UTC, envío fijo de $50 en retiro (PA-13), sin idempotencia al crear pedidos y escala de Tailwind por defecto.

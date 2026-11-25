@@ -17,7 +17,7 @@ PEDIDOS_URL = "/api/v1/pedidos"
 
 def _cliente(session: Session):
     usuario = crear_usuario_con_roles(session, ["CLIENT"])
-    return usuario.id, bearer_de_usuario(usuario, ["CLIENT"])
+    return usuario.id, bearer_de_usuario(session, usuario, ["CLIENT"])
 
 
 def _gestor(session: Session, roles: list[str], nombre: str | None = None):
@@ -26,7 +26,7 @@ def _gestor(session: Session, roles: list[str], nombre: str | None = None):
         usuario.nombre = nombre
         session.add(usuario)
         session.commit()
-    return usuario.id, bearer_de_usuario(usuario, roles)
+    return usuario.id, bearer_de_usuario(session, usuario, roles)
 
 
 def _direccion(client: TestClient, headers: dict, **campos) -> int:
