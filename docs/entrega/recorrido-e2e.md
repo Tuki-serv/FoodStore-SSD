@@ -4,7 +4,7 @@ Guion verificable del flujo completo con el frontend sobre el stack local (backe
 
 Cuentas del seed (solo desarrollo): `cliente@foodstore.com` / `cliente123` (CLIENT), `pedidos@foodstore.com` / `pedidos123` (PEDIDOS), `admin@foodstore.com` / `Admin1234!` (ADMIN).
 
-Estado de ejecución: tramos A y C ejecutados el 2026-11-23 sobre el stack local con Edge headless + `playwright-core`; el tramo B (tarjeta sandbox) lo ejecuta el usuario (`[USUARIO]`). Cada tramo tiene un bloque «Resultado de la ejecución» con fecha, pedido y capturas.
+Estado de ejecución: tramos A y C ejecutados el 2026-11-23 sobre el stack local con Edge headless + `playwright-core`; el tramo B (tarjeta sandbox) lo ejecutó el usuario el 2026-11-24. Cada tramo tiene un bloque «Resultado de la ejecución» con fecha, pedido y capturas.
 
 ## Tramo A — Efectivo hasta `ENTREGADO` (cuentas: `cliente@foodstore.com` y `pedidos@foodstore.com`)
 
@@ -40,7 +40,11 @@ Prerrequisitos: credenciales de prueba de MercadoPago en `backend/.env` (`MP_ACC
 | B2 | Pagar con una tarjeta de prueba que aprueba el pago (titular `APRO`) | El formulario informa que el pago se procesa |
 | B3 | Esperar la notificación del webhook (reintentar si MercadoPago demora) | El pedido pasa a `CONFIRMADO` sin intervención del gestor; el historial lo atribuye a «Sistema» |
 
-**Resultado de la ejecución:** pendiente `[USUARIO]` (anotar fecha, id de pago y captura).
+**Resultado de la ejecución (2026-11-24, ejecutado por el usuario):** pedido **#303** de `cliente@foodstore.com` (3 productos, total $ 5.250 con envío) pagado con tarjeta Visa de prueba, titular `APRO`, sobre ngrok con dominio fijo y el webhook del panel en `/api/v1/pagos/webhook`.
+
+- B1-B2: pedido `PENDIENTE` con forma de pago `MERCADOPAGO`; el pago quedó `aprobado` (orden `ORDTST01M8891V0XGMHHTYVMDH1QXTRZ`, pago `PAY01M8891V1CDEWPAZJ2M3HCYRV4`, `processed`/`accredited`, $ 5.250).
+- B3: el pedido pasó a `CONFIRMADO` sin intervención del gestor; el historial registra `PENDIENTE → CONFIRMADO` sin usuario («Automático» en la UI, «Sistema» en el backend) con el motivo «Pago aprobado por MercadoPago». La notificación `type=order` de MercadoPago llegó por ngrok y el backend respondió 200 (firma válida). La confirmación quedó registrada al aprobarse el pago, ~1 s antes de que llegara la notificación, que se procesó de forma idempotente.
+- Capturas: [18 desktop](capturas/18-pago-tarjeta-confirmado-1440x900.png), [18 mobile](capturas/18-pago-tarjeta-confirmado-390x844.png).
 
 ## Tramo C — Cancelación con motivo (cuentas: `cliente@foodstore.com` y `pedidos@foodstore.com`)
 

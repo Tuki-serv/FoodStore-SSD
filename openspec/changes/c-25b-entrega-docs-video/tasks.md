@@ -16,7 +16,7 @@ Convenciones:
 
 - [x] 2.1 Escribir `docs/entrega/recorrido-e2e.md`: pasos, cuenta, resultado esperado (efectivo hasta `ENTREGADO`; tarjeta sandbox `APRO` hasta `CONFIRMADO`; cancelación con motivo; dashboard con la venta); verifica: escenarios de `project-delivery` «Recorrido de punta a punta verificado» cubiertos paso a paso — `docs/entrega/recorrido-e2e.md` escrito (tramos A efectivo, B tarjeta sandbox, C cancelación); sin ejecutar
 - [x] 2.2 [GATE: `c-25b1-deuda-heredada` archivado] [GATE: permiso del usuario para levantar el stack, regla 13] Ejecutar el tramo efectivo con Edge headless + `playwright-core` contra el stack local, registrando resultado, fecha y capturas; detener lo que se levantó; verifica: resultado anotado en `recorrido-e2e.md` con capturas — **Hecho (2026-11-23): tramos A (pedido #62, hasta `ENTREGADO`) y C (cancelación con motivo, #64 y #65) ok con Edge headless + `playwright-core` sobre el stack ya levantado; resultados en `recorrido-e2e.md`; el tramo B sigue `[USUARIO]`.**
-- [ ] 2.3 [USUARIO] Ejecutar el tramo con tarjeta sandbox (CE-09) con ngrok y el webhook configurado en el panel; verifica: pedido `CONFIRMADO` por «Sistema» anotado en `recorrido-e2e.md`
+- [x] 2.3 [USUARIO] Ejecutar el tramo con tarjeta sandbox (CE-09) con ngrok y el webhook configurado en el panel; verifica: pedido `CONFIRMADO` por «Sistema» anotado en `recorrido-e2e.md` — Hecho (2026-11-24): pedido #303 `CONFIRMADO` por «Sistema» tras el pago aprobado; webhook recibido con 200; capturas 18-*.
 
 ## 3. Capturas y verificación visual (CE-12)
 
