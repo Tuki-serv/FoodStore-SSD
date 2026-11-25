@@ -59,7 +59,7 @@
 ## 6. Documentación y prueba manual
 
 - [x] 6.1 README raíz: en el paso del seed y en «Credenciales de prueba», una línea con los 16 clientes de ejemplo (`@demo.foodstore.com`, contraseña `cliente123`), qué siembra el seed (catálogo, clientes, ≈300 ventas de 12 meses, `--sin-ventas`) y que las fechas son relativas a la primera corrida (regenerar con reset + `alembic upgrade head` + seed). En `frontend/README.md`, actualizar la nota del dashboard («hace falta algún pedido confirmado»). Verificar: `pytest tests/unit/test_entrega_docs.py` → verde.
-- [ ] 6.2 (usuario) Sobre la base de desarrollo: `python -m app.db.reset`, `alembic upgrade head`, `python -m app.db.seed`; abrir el dashboard y probar «Hoy», «7 días», «30 días», «Este mes» y un rango de 12 meses con agrupación por mes; revisar «Mis pedidos» con `cliente@foodstore.com` y la gestión de pedidos con `pedidos@foodstore.com` (filtros de fecha y pedidos activos). Verificar: el usuario confirma que todos muestran datos.
+- [x] 6.2 (usuario) Sobre la base de desarrollo: `python -m app.db.reset`, `alembic upgrade head`, `python -m app.db.seed`; abrir el dashboard y probar «Hoy», «7 días», «30 días», «Este mes» y un rango de 12 meses con agrupación por mes; revisar «Mis pedidos» con `cliente@foodstore.com` y la gestión de pedidos con `pedidos@foodstore.com` (filtros de fecha y pedidos activos). Verificar: el usuario confirma que todos muestran datos. — Hecho (2026-11-24): el usuario lo verificó con todas las cuentas; la base tiene 302 pedidos repartidos en los 12 meses (dic-2025..nov-2026).
 
 ## Workflow follow-up
 
