@@ -51,7 +51,7 @@ El access token SHALL ser un JWT firmado con `ALGORITHM` que vence a los `ACCESS
 - **THEN** son identificadores UUID distintos
 
 ### Requirement: El access token viaja por Authorization Bearer
-Las rutas protegidas SHALL autenticar solo con el header `Authorization: Bearer <access_token>`. Una cookie `access_token` no SHALL autenticar. Un token ausente, mal firmado, vencido, de otro `type` o sin `sid` SHALL producir 401. Validar el access no SHALL requerir que la sesión esté abierta.
+Las rutas protegidas SHALL autenticar solo con el header `Authorization: Bearer <access_token>`. Una cookie `access_token` no SHALL autenticar. Un token ausente, mal firmado, vencido, de otro `type` o sin `sid` SHALL producir 401. Validar el access SHALL requerir además que la sesión del `sid` exista, pertenezca al usuario del `sub`, no esté cerrada y no haya vencido; si no, SHALL responder 401 con el mismo cuerpo y el mismo header `WWW-Authenticate: Bearer` que un access inválido.
 
 #### Scenario: Bearer válido
 - **WHEN** un usuario llama a `GET /api/v1/auth/me` con `Authorization: Bearer` y el access de su login
@@ -72,6 +72,22 @@ Las rutas protegidas SHALL autenticar solo con el header `Authorization: Bearer 
 #### Scenario: Login no emite cookie de access
 - **WHEN** un usuario hace login con éxito
 - **THEN** la respuesta no setea ninguna cookie llamada `access_token`
+
+#### Scenario: Sid de una sesión inexistente
+- **WHEN** un usuario llama a `GET /api/v1/auth/me` con un access bien firmado y vigente cuyo `sid` no corresponde a ninguna sesión
+- **THEN** recibe 401 con el mismo cuerpo que un access inválido
+
+#### Scenario: Sid de la sesión de otro usuario
+- **WHEN** un usuario llama a `GET /api/v1/auth/me` con un access bien firmado y vigente cuyo `sub` es el suyo pero cuyo `sid` es el de una sesión abierta de otro usuario
+- **THEN** recibe 401
+
+#### Scenario: Sesión vencida
+- **WHEN** un usuario llama a `GET /api/v1/auth/me` con un access vigente cuya sesión tiene el vencimiento en el pasado y no está cerrada
+- **THEN** recibe 401
+
+#### Scenario: Sesión abierta y vigente
+- **WHEN** un usuario con dos sesiones abiertas cierra una con logout y llama a `GET /api/v1/auth/me` con el access de la otra
+- **THEN** recibe 200
 
 ### Requirement: Usuario autenticado en GET /auth/me
 `GET /api/v1/auth/me` SHALL devolver el usuario autenticado por el access con `id`, `nombre`, `apellido`, `email`, `celular` y `roles`, sin `password_hash`.
@@ -196,7 +212,7 @@ Cada sesión SHALL tener como máximo un refresh activo (sin `revoked_at`) en to
 - **THEN** la base rechaza la inserción por violación de unicidad
 
 ### Requirement: Logout cierra la sesión actual
-`POST /api/v1/auth/logout` SHALL requerir Bearer, no SHALL recibir cuerpo y SHALL cerrar la sesión indicada por el `sid` del access con motivo `LOGOUT`, borrar la cookie del refresh y responder 204. Si la sesión ya estaba cerrada SHALL responder 204 sin modificarla.
+`POST /api/v1/auth/logout` SHALL requerir Bearer, no SHALL recibir cuerpo y SHALL cerrar la sesión indicada por el `sid` del access con motivo `LOGOUT`, borrar la cookie del refresh y responder 204. Para este endpoint basta un access bien firmado, vigente y con `sid`: no SHALL exigir que la sesión siga abierta. Si la sesión ya estaba cerrada SHALL responder 204, borrar la cookie y no modificarla.
 
 #### Scenario: Logout exitoso
 - **WHEN** un usuario con dos sesiones hace logout con el access de una de ellas
@@ -212,10 +228,14 @@ Cada sesión SHALL tener como máximo un refresh activo (sin `revoked_at`) en to
 
 #### Scenario: Logout repetido
 - **WHEN** un usuario hace logout dos veces con el mismo access
-- **THEN** ambas llamadas reciben 204 y la sesión conserva el motivo `LOGOUT` y el instante del primer cierre
+- **THEN** ambas llamadas reciben 204, ambas borran la cookie `refresh_token` y la sesión conserva el motivo `LOGOUT` y el instante del primer cierre
+
+#### Scenario: Logout de una sesión cerrada por logout-all
+- **WHEN** un usuario con dos sesiones hace logout-all desde una y después hace logout con el access de la otra
+- **THEN** recibe 204, la respuesta borra la cookie `refresh_token` y esa sesión conserva el motivo `LOGOUT_ALL`
 
 ### Requirement: Logout en todos los dispositivos
-`POST /api/v1/auth/logout-all` SHALL requerir Bearer, SHALL cerrar todas las sesiones abiertas del usuario autenticado con motivo `LOGOUT_ALL`, borrar la cookie del refresh y responder 204. Las sesiones de otros usuarios y las ya cerradas no SHALL modificarse.
+`POST /api/v1/auth/logout-all` SHALL requerir Bearer de una sesión abierta y vigente, SHALL cerrar todas las sesiones abiertas del usuario autenticado con motivo `LOGOUT_ALL`, borrar la cookie del refresh y responder 204. Las sesiones de otros usuarios y las ya cerradas no SHALL modificarse. Un access de una sesión ya cerrada SHALL recibir 401 sin cerrar ninguna sesión.
 
 #### Scenario: Cierra todas las sesiones propias
 - **WHEN** un usuario con tres sesiones abiertas hace logout-all
@@ -225,12 +245,9 @@ Cada sesión SHALL tener como máximo un refresh activo (sin `revoked_at`) en to
 - **WHEN** un usuario hace logout-all mientras otro usuario tiene una sesión abierta
 - **THEN** la sesión del otro usuario sigue abierta
 
-### Requirement: Cerrar la sesión no invalida los access ya emitidos
-Un access emitido antes de cerrar su sesión SHALL seguir autenticando hasta su `exp` (límite aceptado de RN-AU-06).
-
-#### Scenario: Access después del logout
-- **WHEN** un usuario hace logout y enseguida llama a `GET /api/v1/auth/me` con el mismo access
-- **THEN** recibe 200
+#### Scenario: Access de una sesión ya cerrada
+- **WHEN** un usuario hace logout con el access A1, después inicia una sesión nueva y luego llama a logout-all con A1
+- **THEN** recibe 401 y la sesión nueva sigue abierta
 
 ### Requirement: Metadatos de sesión solo para auditoría
 Al crear una sesión el sistema SHALL guardar la IP del cliente y el `User-Agent` del pedido de login (nulo si falta). La renovación no SHALL compararlos ni rechazar un pedido porque difieran.
@@ -338,3 +355,26 @@ La IP que identifica al cliente en el límite de login SHALL ser la dirección d
 #### Scenario: Contraseña incorrecta con email en mayúsculas
 - **WHEN** hace login con `username` `ANA@EXAMPLE.COM` y una contraseña incorrecta
 - **THEN** recibe 401 con «Credenciales incorrectas» y no se crea ninguna sesión
+
+### Requirement: Cerrar la sesión invalida sus access
+Un access SHALL dejar de autenticar en el pedido siguiente al cierre de su sesión, sea por logout, logout-all, detección de reuso o baja del usuario, aunque su `exp` no haya pasado. Esto SHALL valer para toda ruta protegida, incluida la creación de pedidos, sin esperar a la renovación.
+
+#### Scenario: Access después del logout
+- **WHEN** un usuario hace logout y enseguida llama a `GET /api/v1/auth/me` con el mismo access
+- **THEN** recibe 401
+
+#### Scenario: Otro navegador después de logout-all
+- **WHEN** un cliente tiene tres sesiones abiertas, hace logout-all con el access de una y otro navegador llama a `GET /api/v1/auth/me` con el access de otra sesión
+- **THEN** recibe 401
+
+#### Scenario: Crear un pedido después de logout-all
+- **WHEN** un cliente con dos sesiones hace logout-all desde una y el otro navegador llama a `POST /api/v1/pedidos/` con un cuerpo válido y el access de la otra sesión
+- **THEN** recibe 401, no se crea ningún pedido y el stock no cambia
+
+#### Scenario: Access después de detectar reuso
+- **WHEN** se detecta el reuso de un refresh y se cierran las sesiones del usuario con motivo `REUSO`
+- **THEN** el access de cualquiera de esas sesiones recibe 401 en `GET /api/v1/auth/me`
+
+#### Scenario: Access de un usuario dado de baja
+- **WHEN** un `ADMIN` desactiva a un usuario logueado y ese usuario llama a `GET /api/v1/auth/me` con su access
+- **THEN** recibe 401, con el mismo cuerpo que un access inválido
