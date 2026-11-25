@@ -34,7 +34,7 @@ Convenciones:
 
 - [ ] 5.1 [USUARIO] Grabar el video siguiendo `guion-video.md` (5–10 min) y subirlo; verifica: enlace accesible sin sesión
 - [ ] 5.2 Agregar el enlace del video al README (CE-13) cuando el usuario lo provea; verifica: escenario «Enlace presente»
-- [ ] 5.3 [USUARIO] Repositorio público y verificado con sesión cerrada (CE-01, CE-14); verifica: el repo abre en una ventana privada y el checklist lo marca
+- [x] 5.3 [USUARIO] Repositorio público y verificado con sesión cerrada (CE-01, CE-14); verifica: el repo abre en una ventana privada y el checklist lo marca — Hecho (2026-11-24): repo público verificado por el usuario en ventana privada; página 200 sin sesión; CE-01 y CE-14 marcados.
 
 ## 6. Deploy opcional [PA-17 / OQ-1 — recomendado: no en este change]
 
